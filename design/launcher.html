@@ -1,0 +1,2219 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>男性机器人控制终端</title>
+  <script>
+    // 页面解析前就标记暂停态：确保淡入等 CSS 动画在窗口显示前不提前跑完
+    try { document.documentElement.classList.add('pre-hide'); } catch (e) {}
+  </script>
+  <style>
+    /* ============ JetBrains Mono & MiSans（随应用本地打包） ============ */
+    @font-face {
+      font-family: 'JetBrains Mono';
+      src: url('launcher-assets/JetBrainsMono-Bold.woff2') format('woff2');
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'MiSans';
+      src: url('launcher-assets/MiSans-Regular.woff2') format('woff2');
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'MiSans';
+      src: url('launcher-assets/MiSans-Demibold.woff2') format('woff2');
+      font-weight: 600;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    /* ============ Reset & Base ============ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: 'JetBrains Mono', 'MiSans', 'SF Pro Text', 'Segoe UI', 'Microsoft YaHei UI', 'PingFang SC', system-ui, sans-serif;
+      background: transparent;
+      color: #c0e4c0;
+    }
+
+    /* ============ Window: Acrylic Frosted Glass ============ */
+    /* 非透明窗口 + DWM acrylic 材质：body 铺满窗口，由 DWM 统一裁剪圆角，避免 CSS 圆角与窗口圆角错位产生“小耳朵” */
+    body {
+      background:
+        radial-gradient(ellipse 85% 65% at 50% 42%, rgba(74,222,128,0.045) 0%, transparent 62%),
+        linear-gradient(170deg, rgba(6,15,6,0.42) 0%, rgba(4,12,4,0.50) 50%, rgba(6,16,6,0.44) 100%);
+      backdrop-filter: blur(22px) saturate(1.25);
+      -webkit-backdrop-filter: blur(22px) saturate(1.25);
+      position: relative;
+    }
+    @keyframes launcher-fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    /* 内容就绪后由 JS 显式触发淡入（不依赖 visibilitychange，避免空窗） */
+    body.launcher-reveal {
+      animation: launcher-fade-in 0.32s ease-out;
+    }
+    html.pre-hide body.launcher-reveal {
+      animation-play-state: running !important;
+    }
+
+    /* Subtle green grid - very faint, terminal vibe */
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(74,222,128,0.012) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74,222,128,0.012) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Vignette edge for depth - very subtle for acrylic */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.18) 100%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* ============ Drag Region (custom titlebar) ============ */
+    .titlebar {
+      position: fixed; top: 0; left: 0; right: 0;
+      height: 40px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 0 0 16px;
+      -webkit-app-region: drag;
+      app-region: drag;
+      z-index: 300;
+    }
+    .titlebar-brand {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      color: rgba(224,245,224,0.80);
+      white-space: nowrap;
+    }
+    .titlebar-brand img {
+      width: 16px; height: 16px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    /* Win11 风格自绘窗口控制按钮（原生 WCO 无法模糊，改用 HTML 实现） */
+    .titlebar-controls {
+      display: flex;
+      align-items: stretch;
+      height: 100%;
+      -webkit-app-region: no-drag;
+      app-region: no-drag;
+    }
+    .titlebar-btn {
+      width: 46px;
+      height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: transparent;
+      border: none;
+      color: rgba(224,245,224,0.8);
+      cursor: default;
+      padding: 0;
+      transition: background-color 0.1s ease, color 0.1s ease;
+    }
+    .titlebar-btn svg {
+      width: 10px; height: 10px;
+      display: block;
+    }
+    .titlebar-btn:hover {
+      background: rgba(255,255,255,0.10);
+      color: #ffffff;
+    }
+    .titlebar-btn:active {
+      background: rgba(255,255,255,0.16);
+    }
+    .titlebar-btn-close:hover {
+      background: #c42b1c;
+      color: #ffffff;
+    }
+    .titlebar-btn-close:active {
+      background: rgba(196,43,28,0.85);
+    }
+
+    /* ============ Main Layout ============ */
+    .app {
+      position: relative;
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center;
+      padding-top: 40px;
+      z-index: 2;
+      transition: filter 0.25s ease, opacity 0.25s ease;
+    }
+    .app.settings-open {
+      filter: blur(2px) brightness(0.7);
+      pointer-events: none;
+    }
+
+    /* Title */
+    .app-title {
+      margin-top: 26px;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-align: center;
+      color: #e8f7e8;
+      text-shadow: 0 0 24px rgba(74,222,128,0.18);
+      position: relative;
+      flex-shrink: 0;
+    }
+    .app-title::after {
+      content: '';
+      display: block;
+      width: 72px; height: 1px;
+      margin: 12px auto 0;
+      background: linear-gradient(90deg, transparent, rgba(74,222,128,0.45), transparent);
+    }
+    .app-subtitle {
+      margin-top: 8px;
+      font-size: 9px;
+      letter-spacing: 4.5px;
+      color: rgba(143,188,143,0.38);
+      text-transform: uppercase;
+      font-family: 'JetBrains Mono', 'MiSans', 'Consolas', 'Courier New', monospace;
+      flex-shrink: 0;
+      margin-bottom: 6px;
+    }
+    /* 版权行（v1.6.0）：固定真公司归属，不随型号信息设置变化 */
+    .app-copyright {
+      margin-top: 6px;
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: rgba(143,188,143,0.32);
+      text-align: center;
+      font-family: 'JetBrains Mono', 'MiSans', 'Consolas', 'Courier New', monospace;
+      flex-shrink: 0;
+    }
+
+    /* ============ Device Button Area ============ */
+    .device-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      width: 100%;
+      min-height: 0;
+    }
+
+    /* Subtle ambient glow behind figure */
+    .device-glow {
+      position: absolute;
+      width: 340px; height: 340px;
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    .device-glow.connected {
+      opacity: 1;
+      background: radial-gradient(circle, rgba(74,222,128,0.10) 0%, rgba(74,222,128,0.04) 38%, transparent 68%);
+      animation: glow-breathe 4s ease-in-out infinite;
+    }
+    .device-glow.connecting {
+      opacity: 0.55;
+      background: radial-gradient(circle, rgba(143,188,143,0.07) 0%, transparent 62%);
+    }
+    .device-glow.idle {
+      opacity: 0.18;
+      background: radial-gradient(circle, rgba(100,130,100,0.05) 0%, transparent 58%);
+    }
+    @keyframes glow-breathe {
+      0%, 100% { opacity: 0.55; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.08); }
+    }
+
+    /* Single subtle ring - clean tech, not flashy */
+    .orbit-ring {
+      position: absolute;
+      width: 292px; height: 584px;
+      border-radius: 50%;
+      border: 1px solid transparent;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.6s ease;
+    }
+    .orbit-ring.connected {
+      opacity: 1;
+      border-color: rgba(74,222,128,0.07);
+      animation: orbit-spin 24s linear infinite;
+    }
+    .orbit-ring.connecting {
+      opacity: 0.55;
+      border-color: rgba(74,222,128,0.12);
+      animation: orbit-spin 6s linear infinite;
+    }
+    @keyframes orbit-spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* ============ Device Button (sprite container) ============ */
+    .device-btn-wrap {
+      position: relative;
+      cursor: default;
+      transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1),
+                  filter 0.4s ease;
+      filter: drop-shadow(0 8px 30px rgba(0,0,0,0.5));
+      will-change: transform;
+    }
+    .device-btn-wrap.connected {
+      cursor: pointer;
+    }
+
+    /* Hover floating - clean, restrained */
+    .device-btn-wrap.disabled:hover {
+      transform: translateY(-6px) scale(1.02);
+      filter:
+        drop-shadow(0 16px 40px rgba(0,0,0,0.55))
+        drop-shadow(0 0 20px rgba(74,222,128,0.12));
+    }
+    .device-btn-wrap.connected:hover {
+      transform: translateY(-10px) scale(1.03);
+      filter:
+        drop-shadow(0 20px 44px rgba(0,0,0,0.55))
+        drop-shadow(0 0 24px rgba(74,222,128,0.22));
+    }
+    .device-btn-wrap.connected:active {
+      transform: translateY(-4px) scale(0.99);
+      filter:
+        drop-shadow(0 10px 28px rgba(0,0,0,0.45))
+        drop-shadow(0 0 24px rgba(74,222,128,0.2));
+    }
+
+    /* Ground shadow under figure */
+    .ground-shadow {
+      position: absolute;
+      bottom: -12px; left: 50%;
+      width: 132px; height: 14px;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse, rgba(0,0,0,0.40) 0%, transparent 72%);
+      border-radius: 50%;
+      pointer-events: none;
+      transition: all 0.4s ease;
+    }
+    .device-btn-wrap.connected:hover .ground-shadow,
+    .device-btn-wrap.disabled:hover .ground-shadow {
+      width: 162px; height: 16px;
+      opacity: 0.45;
+      transform: translateX(-50%) translateY(8px);
+    }
+    .device-btn-wrap.connected .ground-shadow {
+      background: radial-gradient(ellipse, rgba(74,222,128,0.12) 0%, transparent 72%);
+    }
+
+    /* Scan line - subtle green sweep */
+    .scanline {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(74,222,128,0.2), transparent);
+      pointer-events: none;
+      opacity: 0;
+    }
+    .scanline.connecting {
+      opacity: 1;
+      animation: scan 3s linear infinite;
+    }
+    .scanline.connected {
+      opacity: 0; /* no scanline when idle-connected, cleaner */
+    }
+    @keyframes scan {
+      0% { top: 0; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      100% { top: 100%; opacity: 0; }
+    }
+
+    /* Morph flash - green tinted */
+    .morph-flash {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 0; height: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(200,255,210,0.6) 0%, rgba(74,222,128,0.3) 30%, transparent 70%);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      opacity: 0;
+    }
+    .morph-flash.go {
+      animation: flash-burst 0.6s ease-out forwards;
+    }
+    @keyframes flash-burst {
+      0% { width: 0; height: 0; opacity: 0; }
+      30% { width: 300px; height: 600px; opacity: 0.5; }
+      100% { width: 600px; height: 900px; opacity: 0; }
+    }
+
+    #sprite-canvas {
+      display: block;
+      width: 240px;
+      height: 560px;
+      image-rendering: auto;
+      transition: filter 0.3s ease;
+    }
+    .device-btn-wrap.connected:hover #sprite-canvas {
+      filter: brightness(1.06);
+    }
+
+    /* ============ Boot Splash: show logo immediately while sprites load ============ */
+    .boot-splash {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      z-index: 20;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+      pointer-events: none;
+    }
+    .boot-splash.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    /* 窗口未显示/隐藏时暂停所有 CSS 动画：避免首帧跳变、闪动，并降低后台开销 */
+    html.pre-hide body,
+    html.pre-hide body *,
+    html.pre-hide body *::before,
+    html.pre-hide body *::after {
+      animation-play-state: paused !important;
+    }
+    .boot-splash img {
+      width: 88px;
+      height: 88px;
+      opacity: 0.92;
+      filter: drop-shadow(0 0 24px rgba(74,222,128,0.18));
+    }
+    .boot-text {
+      font-size: 11px;
+      letter-spacing: 3.5px;
+      color: rgba(143,188,143,0.62);
+      font-weight: 500;
+    }
+
+    /* ============ Status Text ============ */
+    .status-bar {
+      margin-top: 14px;
+      margin-bottom: 8px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+      z-index: 5;
+    }
+    .status-text {
+      font-size: 12px;
+      letter-spacing: 3.5px;
+      color: rgba(143,188,143,0.58);
+      transition: color 0.4s ease;
+      font-weight: 500;
+    }
+    .status-text.connected {
+      color: #4ade80;
+      text-shadow: 0 0 12px rgba(74,222,128,0.4);
+    }
+    .status-text.connecting {
+      color: #8fbc8f;
+    }
+    .status-hint {
+      font-size: 11px;
+      letter-spacing: 1px;
+      color: rgba(143,188,143,0.35);
+      min-height: 16px;
+      transition: opacity 0.3s ease;
+      line-height: 16px;
+    }
+    .status-hint.visible { opacity: 1; }
+    .status-hint.hidden { opacity: 0; }
+
+    /* Enter cue */
+    .enter-cue {
+      margin-top: 4px;
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: rgba(74,222,128,0.7);
+      opacity: 0;
+      transform: translateY(4px);
+      transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .enter-cue.visible {
+      opacity: 1;
+      transform: translateY(0);
+      animation: cue-pulse 2.5s ease-in-out infinite;
+    }
+    /* 悬停时按钮浮起并立即亮出引导提示 */
+    .device-btn-wrap.connected:hover + .enter-cue {
+      opacity: 1;
+      transform: translateY(0);
+      animation: cue-pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes cue-pulse {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    .enter-cue svg {
+      width: 14px; height: 14px;
+      transition: transform 0.3s ease;
+    }
+    .device-btn-wrap.connected:hover + .enter-cue svg {
+      transform: translateX(3px);
+    }
+
+    /* ============ Bottom Toolbar ============ */
+    .bottom-bar {
+      width: 100%;
+      padding: 14px 22px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      z-index: 10;
+    }
+    .toolbar-left, .toolbar-right {
+      display: flex; gap: 10px; align-items: center;
+    }
+    .tool-btn {
+      background: rgba(13,26,13,0.30);
+      border: 1px solid rgba(143,188,143,0.10);
+      color: rgba(143,188,143,0.58);
+      padding: 8px 16px;
+      border-radius: 9px;
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+      display: flex; align-items: center; gap: 6px;
+      font-family: inherit;
+      font-weight: 500;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .tool-btn:hover {
+      background: rgba(74,222,128,0.10);
+      border-color: rgba(74,222,128,0.28);
+      color: #c0e4c0;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(0,0,0,0.18), 0 0 12px rgba(74,222,128,0.08);
+    }
+    .tool-btn:active {
+      transform: translateY(0);
+    }
+    .tool-btn.active {
+      background: rgba(74,222,128,0.12);
+      border-color: rgba(74,222,128,0.35);
+      color: #4ade80;
+      box-shadow: 0 0 14px rgba(74,222,128,0.12);
+    }
+    .tool-btn svg { width: 13px; height: 13px; }
+
+    .kbd {
+      display: inline-block;
+      padding: 1px 5px;
+      font-size: 9px;
+      font-family: 'JetBrains Mono', 'MiSans', 'Consolas', 'Courier New', monospace;
+      background: rgba(143,188,143,0.08);
+      border: 1px solid rgba(143,188,143,0.12);
+      border-radius: 3px;
+      color: rgba(143,188,143,0.5);
+      margin-left: 2px;
+    }
+
+    /* ============ Settings Panel - 全屏覆盖主界面，强化背景遮蔽 ============ */
+    .settings-overlay {
+      position: fixed;
+      top: 40px; left: 0; right: 0; bottom: 0;
+      background: rgba(4,10,4,0.72);
+      backdrop-filter: blur(24px) saturate(1.2);
+      -webkit-backdrop-filter: blur(24px) saturate(1.2);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .settings-overlay.open {
+      opacity: 1; pointer-events: auto;
+    }
+    .settings-panel {
+      width: 100%;
+      height: 100%;
+      background: transparent;
+      border: none;
+      border-radius: 0;
+      box-shadow: none;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+    .settings-header {
+      padding: 18px 22px 14px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(143,188,143,0.08);
+    }
+    .settings-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      color: #e0f5e0;
+    }
+    .settings-close {
+      width: 28px; height: 28px;
+      background: transparent; border: none;
+      color: rgba(143,188,143,0.4);
+      cursor: pointer; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px;
+      transition: all 0.12s;
+    }
+    .settings-close:hover {
+      background: rgba(248,113,113,0.12);
+      color: #f87171;
+    }
+    .settings-body {
+      padding: 16px 22px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .settings-desc {
+      font-size: 11px;
+      color: rgba(143,188,143,0.45);
+      letter-spacing: 0.2px;
+      margin-bottom: 14px;
+      line-height: 1.7;
+    }
+    .detected-usb-section {
+      margin-bottom: 18px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid rgba(143,188,143,0.08);
+    }
+    .detected-usb-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .detected-usb-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: rgba(224,245,224,0.8);
+    }
+    .detected-usb-refresh {
+      width: 24px; height: 24px;
+      background: rgba(143,188,143,0.06);
+      border: 1px solid rgba(143,188,143,0.1);
+      border-radius: 5px;
+      color: rgba(143,188,143,0.5);
+      cursor: pointer;
+      font-size: 14px;
+      line-height: 1;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+    }
+    .detected-usb-refresh:hover {
+      background: rgba(74,222,128,0.1);
+      border-color: rgba(74,222,128,0.25);
+      color: #4ade80;
+    }
+    .detected-usb-refresh.scanning {
+      animation: spin 0.8s linear infinite;
+      color: #4ade80;
+      border-color: rgba(74,222,128,0.3);
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .detected-usb-status {
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: rgba(143,188,143,0.55);
+      padding: 4px 0 8px;
+      min-height: 16px;
+    }
+    .detected-usb-status.scanning {
+      color: #4ade80;
+      animation: pulse-text 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse-text {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+    .detected-usb-status.empty {
+      color: rgba(143,188,143,0.3);
+    }
+    .detected-usb-empty {
+      font-size: 11px;
+      color: rgba(143,188,143,0.35);
+      padding: 10px 0;
+    }
+    .detected-usb-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      background: rgba(0,0,0,0.18);
+      border: 1px solid rgba(143,188,143,0.06);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .detected-usb-item:hover {
+      border-color: rgba(74,222,128,0.2);
+      background: rgba(74,222,128,0.05);
+    }
+    .detected-usb-item.selected {
+      border-color: rgba(74,222,128,0.35);
+      background: rgba(74,222,128,0.08);
+    }
+    .detected-usb-item input[type="checkbox"] {
+      margin-top: 2px;
+      accent-color: #4ade80;
+      pointer-events: none;
+    }
+    .detected-usb-info {
+      flex: 1;
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .detected-usb-name {
+      font-size: 12px;
+      color: #c0e4c0;
+      font-weight: 500;
+    }
+    .detected-usb-meta {
+      font-size: 10px;
+      color: rgba(143,188,143,0.45);
+      font-family: 'JetBrains Mono', 'MiSans', 'Consolas', 'Courier New', monospace;
+      line-height: 1.5;
+    }
+    .usb-device-item {
+      background: rgba(0,0,0,0.2);
+      border: 1px solid rgba(143,188,143,0.06);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 10px;
+      position: relative;
+      transition: border-color 0.2s;
+    }
+    .usb-device-item:hover {
+      border-color: rgba(74,222,128,0.15);
+    }
+    .usb-device-item .remove-btn {
+      position: absolute; top: 8px; right: 8px;
+      width: 20px; height: 20px;
+      background: transparent; border: none;
+      color: rgba(248,113,113,0.3);
+      cursor: pointer; border-radius: 4px;
+      font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.12s;
+    }
+    .usb-device-item .remove-btn:hover {
+      background: rgba(248,113,113,0.12);
+      color: #f87171;
+    }
+    .field {
+      display: flex; flex-direction: column; gap: 3px;
+    }
+    .field label {
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: rgba(143,188,143,0.4);
+      text-transform: uppercase;
+      font-weight: 500;
+    }
+    .field input {
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(143,188,143,0.08);
+      border-radius: 5px;
+      padding: 6px 9px;
+      font-size: 11px;
+      color: #c0e4c0;
+      font-family: 'JetBrains Mono', 'MiSans', 'Consolas', 'Courier New', monospace;
+      transition: border-color 0.2s;
+    }
+    .field input:focus {
+      outline: none;
+      border-color: rgba(74,222,128,0.35);
+      box-shadow: 0 0 0 2px rgba(74,222,128,0.08);
+    }
+    .field input::placeholder {
+      color: rgba(143,188,143,0.25);
+    }
+    .field.full { grid-column: 1 / -1; }
+    .add-device-btn {
+      width: 100%;
+      padding: 10px;
+      background: rgba(74,222,128,0.03);
+      border: 1px dashed rgba(74,222,128,0.15);
+      border-radius: 8px;
+      color: rgba(74,222,128,0.5);
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      font-weight: 500;
+      margin-top: 4px;
+    }
+    .add-device-btn:hover {
+      background: rgba(74,222,128,0.06);
+      border-color: rgba(74,222,128,0.3);
+      color: #4ade80;
+    }
+    .settings-error {
+      margin-top: 8px;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      color: #f87171;
+      min-height: 14px;
+      line-height: 14px;
+    }
+    .settings-footer {
+      padding: 12px 22px;
+      border-top: 1px solid rgba(143,188,143,0.08);
+      display: flex; justify-content: flex-end; gap: 8px;
+    }
+    .btn-primary, .btn-secondary {
+      padding: 7px 18px;
+      border-radius: 6px;
+      font-size: 11px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: rgba(74,222,128,0.2);
+      border: 1px solid rgba(74,222,128,0.3);
+      color: #4ade80;
+    }
+    .btn-primary:hover {
+      background: rgba(74,222,128,0.3);
+      box-shadow: 0 0 16px rgba(74,222,128,0.15);
+    }
+    .btn-secondary {
+      background: rgba(143,188,143,0.05);
+      border: 1px solid rgba(143,188,143,0.1);
+      color: rgba(143,188,143,0.6);
+    }
+    .btn-secondary:hover {
+      background: rgba(143,188,143,0.1);
+      color: #c0e4c0;
+    }
+
+    /* ============ UI Language Switch（与主控制台 www 设置页语言组同语义） ============ */
+    .lang-section {
+      margin-bottom: 18px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid rgba(143,188,143,0.08);
+    }
+    .lang-section-title {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      color: rgba(224,245,224,0.8);
+      margin-bottom: 10px;
+    }
+    .lang-switch {
+      display: flex;
+      gap: 8px;
+    }
+    .lang-btn {
+      flex: 1;
+      padding: 8px 0;
+      background: rgba(143,188,143,0.05);
+      border: 1px solid rgba(143,188,143,0.1);
+      border-radius: 6px;
+      color: rgba(143,188,143,0.6);
+      font-size: 11px;
+      letter-spacing: 1px;
+      font-family: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .lang-btn:hover {
+      background: rgba(74,222,128,0.08);
+      border-color: rgba(74,222,128,0.25);
+      color: #c0e4c0;
+    }
+    .lang-btn.active {
+      background: rgba(74,222,128,0.12);
+      border-color: rgba(74,222,128,0.35);
+      color: #4ade80;
+      box-shadow: 0 0 14px rgba(74,222,128,0.12);
+    }
+
+    /* ============ Enter Transition ============ */
+    .enter-transition {
+      position: fixed; inset: 0;
+      z-index: 500;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(circle at center, rgba(74,222,128,0.2) 0%, rgba(8,26,8,0.85) 40%, rgba(4,10,4,1) 75%);
+      transition: opacity 0.35s ease;
+    }
+    .enter-transition.active {
+      opacity: 1;
+    }
+    .enter-loading {
+      position: absolute;
+      bottom: 30%;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      letter-spacing: 4px;
+      color: rgba(160,230,170,0.8);
+      opacity: 0;
+      transition: opacity 0.25s 0.15s;
+      font-family: 'JetBrains Mono', 'MiSans', 'Consolas', 'Courier New', monospace;
+    }
+    .enter-transition.active .enter-loading {
+      opacity: 1;
+    }
+    .enter-loading .dots::after {
+      content: '';
+      animation: dots 1.2s steps(4, end) infinite;
+    }
+    @keyframes dots {
+      0% { content: ''; }
+      25% { content: '.'; }
+      50% { content: '..'; }
+      75% { content: '...'; }
+    }
+
+    /* ============ Test Mode Badge ============ */
+    .test-badge {
+      position: fixed;
+      top: 46px; right: 16px;
+      padding: 3px 10px;
+      background: rgba(210,126,36,0.08);
+      border: 1px solid rgba(210,126,36,0.2);
+      border-radius: 4px;
+      font-size: 9px;
+      letter-spacing: 1px;
+      color: rgba(210,126,36,0.8);
+      font-family: 'JetBrains Mono', 'MiSans', 'Consolas', 'Courier New', monospace;
+      z-index: 50;
+      opacity: 0;
+      transform: translateY(-4px);
+      transition: all 0.25s ease;
+    }
+    .test-badge.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ============ Connecting dots ============ */
+    .connecting-dots span {
+      display: inline-block;
+      width: 3px; height: 3px;
+      border-radius: 50%;
+      background: #8fbc8f;
+      margin: 0 1px;
+      animation: dot-bounce 1.2s ease-in-out infinite;
+    }
+    .connecting-dots span:nth-child(2) { animation-delay: 0.15s; }
+    .connecting-dots span:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes dot-bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.3; }
+      40% { transform: translateY(-3px); opacity: 1; }
+    }
+
+    /* Scrollbar - thin green */
+    .settings-body::-webkit-scrollbar { width: 3px; }
+    .settings-body::-webkit-scrollbar-track { background: transparent; }
+    .settings-body::-webkit-scrollbar-thumb { background: rgba(74,222,128,0.15); border-radius: 2px; }
+
+    /* Plain-browser / iframe demo mode: no Electron acrylic exists behind the
+       transparent frosted body, so give it a self-contained dark base */
+    body.browser-demo {
+      background:
+        radial-gradient(ellipse 85% 65% at 50% 42%, rgba(74,222,128,0.07) 0%, transparent 62%),
+        linear-gradient(170deg, rgba(8,20,11,0.97) 0%, rgba(5,14,7,0.98) 50%, rgba(7,18,8,0.97) 100%);
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Custom Titlebar -->
+  <div class="titlebar">
+    <div class="titlebar-brand">
+      <img src="launcher-assets/logo.png" alt="logo">
+      <span>男性机器人控制终端</span>
+    </div>
+    <div class="titlebar-controls">
+      <button class="titlebar-btn" id="btn-minimize" title="最小化" aria-label="最小化">
+        <svg viewBox="0 0 10 10"><path d="M0.5 5h9" stroke="currentColor" stroke-width="1"/></svg>
+      </button>
+      <button class="titlebar-btn titlebar-btn-close" id="btn-close" title="关闭" aria-label="关闭">
+        <svg viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.1"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- App Content -->
+  <div class="app" id="app">
+    <h1 class="app-title">T31-750型仿人男性机器人</h1>
+    <div class="app-subtitle">Humanoid Robot Control Terminal</div>
+    <!-- 版权行（v1.6.0 R10）：固定真公司归属，不受型号信息设置影响 -->
+    <div class="app-copyright">© 芮誊智能虚构公司</div>
+
+    <div class="device-area">
+      <div class="device-glow idle" id="device-glow"></div>
+      <div class="orbit-ring" id="orbit-ring"></div>
+
+      <div class="device-btn-wrap disabled" id="device-btn">
+        <canvas id="sprite-canvas" width="480" height="1120"></canvas>
+        <div class="scanline" id="scanline"></div>
+        <div class="morph-flash" id="morph-flash"></div>
+        <div class="ground-shadow"></div>
+      </div>
+
+      <!-- 首屏加载占位：精灵图较大，先显示 Logo 与提示，避免空白 -->
+      <div class="boot-splash" id="boot-splash">
+        <img src="launcher-assets/logo.png" alt="Rt5 Logo">
+        <div class="boot-text">系统初始化中</div>
+      </div>
+
+      <div class="enter-cue" id="enter-cue">
+        <span>点击进入控制界面</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </div>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-text" id="status-text">等待设备接入</div>
+      <div class="status-hint hidden" id="status-hint">请连接机器人USB设备</div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="toolbar-left">
+        <button class="tool-btn" id="btn-test-mode" title="模拟设备接入 (F2)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span>测试模式</span>
+          <span class="kbd">F2</span>
+        </button>
+      </div>
+      <div class="toolbar-right">
+        <button class="tool-btn" id="btn-settings" title="USB设备设置">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+          <span>设置</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Test Mode Badge -->
+  <div class="test-badge" id="test-badge">TEST MODE</div>
+
+  <!-- Settings Panel -->
+  <div class="settings-overlay" id="settings-overlay">
+    <div class="settings-panel">
+      <div class="settings-header">
+        <h3>USB 设备配置</h3>
+        <button class="settings-close" id="settings-close">&#10005;</button>
+      </div>
+      <div class="settings-body">
+        <div class="lang-section">
+          <div class="lang-section-title">界面语言</div>
+          <div class="lang-switch">
+            <button class="lang-btn active" id="lang-zh-btn" data-launcher-lang="zh">中文</button>
+            <button class="lang-btn" id="lang-en-btn" data-launcher-lang="en">English</button>
+          </div>
+        </div>
+        <p class="settings-desc">
+          配置需要识别的USB设备列表，支持多设备判断。未配置规则时不会自动连接；每条规则至少填写 VID、PID 或设备/磁盘 ID，留空字段不作为匹配条件。
+        </p>
+
+        <div class="detected-usb-section" id="detected-usb-section" style="display:none;">
+          <div class="detected-usb-header">
+            <span class="detected-usb-title">已检测到的 USB 设备</span>
+            <button class="detected-usb-refresh" id="detected-usb-refresh" title="刷新列表">&#x21bb;</button>
+          </div>
+          <div class="detected-usb-status" id="detected-usb-status"></div>
+          <div id="detected-usb-list"></div>
+          <button class="add-device-btn" id="add-selected-device-btn">+ 添加选中设备</button>
+        </div>
+
+        <div id="usb-device-list"></div>
+        <button class="add-device-btn" id="add-device-btn">+ 手动添加设备</button>
+        <div class="settings-error" id="settings-error"></div>
+      </div>
+      <div class="settings-footer">
+        <button class="btn-secondary" id="settings-cancel">取消</button>
+        <button class="btn-primary" id="settings-save">保存配置</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Enter Transition Overlay -->
+  <div class="enter-transition" id="enter-transition">
+    <div class="enter-loading">正在进入控制台<span class="dots"></span></div>
+  </div>
+
+  <!-- 界面语言覆盖层（默认中文，与主控制台 www 设置对齐；EN 模式下替换显示文本） -->
+  <script src="./launcher-i18n.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    // ============ Constants ============
+    const FRAME_W = 216;
+    const FRAME_H = 504;
+    const COLS = 11;
+    const FRAME_COUNT = 56;
+    const FPS = 30;
+    const FRAME_MS = 1000 / FPS;
+    const FRONT_FRAME = 0;
+    const CANVAS_SCALE = 2;
+
+    // Display size - slightly smaller than before for cleaner proportions
+    const DISPLAY_W = 240;
+    const DISPLAY_H = 560;
+    // 绘制区域内缩留边，确保呼吸/变形缩放（最大约1.025）时精灵图不裁剪
+    const DRAW_W = 226;
+    const DRAW_H = 528;
+
+    const STATE = {
+      IDLE: 'idle',
+      CONNECTING: 'connecting',
+      WAIT_FRONT_AFTER_CONNECT: 'wait_front_connect',
+      PAUSE_AFTER_CONNECT: 'pause_connect',
+      MORPH_IN: 'morph_in',
+      CONNECTED: 'connected',
+      WAIT_FRONT_AFTER_DISCONNECT: 'wait_front_disconnect',
+      PAUSE_AFTER_DISCONNECT: 'pause_disconnect',
+      MORPH_OUT: 'morph_out',
+    };
+
+    // ============ DOM refs ============
+    const canvas = document.getElementById('sprite-canvas');
+    const ctx = canvas.getContext('2d');
+    const deviceBtn = document.getElementById('device-btn');
+    const deviceGlow = document.getElementById('device-glow');
+    const orbitRing = document.getElementById('orbit-ring');
+    const scanline = document.getElementById('scanline');
+    const statusText = document.getElementById('status-text');
+    const statusHint = document.getElementById('status-hint');
+    const enterCue = document.getElementById('enter-cue');
+    const morphFlash = document.getElementById('morph-flash');
+    const testBadge = document.getElementById('test-badge');
+    const btnTestMode = document.getElementById('btn-test-mode');
+    const btnSettings = document.getElementById('btn-settings');
+    const btnMinimize = document.getElementById('btn-minimize');
+    const btnClose = document.getElementById('btn-close');
+    const settingsOverlay = document.getElementById('settings-overlay');
+    const settingsClose = document.getElementById('settings-close');
+    const settingsCancel = document.getElementById('settings-cancel');
+
+    // ============ 型号信息（v1.6.0）============
+    // 主控制台保存的型号信息经主进程 huancun/model-info.json 中转（app://design 与
+    // app://bundle 的 localStorage 不互通），此处读取生效值刷新主标题；EN 由
+    // launcher-i18n 覆盖层按默认词条翻译，自定义名无词条自动原文显示
+    (function applyModelInfo() {
+      try {
+        if (!(window.electronAPI && typeof window.electronAPI.getModelInfo === 'function')) return;
+        window.electronAPI.getModelInfo().then(function (info) {
+          if (!info || typeof info.fullName !== 'string' || !info.fullName) return;
+          var el = document.querySelector('.app-title');
+          if (el && el.textContent !== info.fullName) el.textContent = info.fullName;
+        }).catch(function () { /* ignore */ });
+      } catch (e) { /* ignore */ }
+    })();
+    const settingsSave = document.getElementById('settings-save');
+    const settingsError = document.getElementById('settings-error');
+    const addDeviceBtn = document.getElementById('add-device-btn');
+    const addSelectedDeviceBtn = document.getElementById('add-selected-device-btn');
+    const usbDeviceList = document.getElementById('usb-device-list');
+    const detectedUsbSection = document.getElementById('detected-usb-section');
+    const detectedUsbList = document.getElementById('detected-usb-list');
+    const detectedUsbRefresh = document.getElementById('detected-usb-refresh');
+    const detectedUsbStatus = document.getElementById('detected-usb-status');
+    const enterTransition = document.getElementById('enter-transition');
+
+    // Canvas DPR setup
+    canvas.width = DISPLAY_W * CANVAS_SCALE;
+    canvas.height = DISPLAY_H * CANVAS_SCALE;
+    canvas.style.width = DISPLAY_W + 'px';
+    canvas.style.height = DISPLAY_H + 'px';
+    ctx.scale(CANVAS_SCALE, CANVAS_SCALE);
+
+    const DRAW_SCALE_X = DRAW_W / FRAME_W;
+    const DRAW_SCALE_Y = DRAW_H / FRAME_H;
+
+    // ============ Sprite Loading ============
+    let huimoImg = null;
+    let colorImg = null;
+    let spritesLoaded = false;
+
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    async function loadSprites() {
+      try {
+        [huimoImg, colorImg] = await Promise.all([
+          loadImage('launcher-assets/rotation-huimo-sprite.png'),
+          loadImage('launcher-assets/rotation-color-sprite.png')
+        ]);
+        spritesLoaded = true;
+      } catch(e) {
+        console.error('Failed to load sprites:', e);
+      }
+    }
+
+    // ============ State Machine ============
+    let currentState = STATE.IDLE;
+    let currentVariant = 'huimo';
+    let currentFrame = FRONT_FRAME;
+    let breathingPhase = 0;
+    let scaleMultiplier = 1.0;
+    let morphProgress = 0;
+    let stateTimer = 0;
+    let settleAccum = 0;
+    let idleDrift = false;
+let animRunning = true;
+let spriteRafId = null;
+    let connectedHoldMs = 0;
+    let testMode = false;
+    let activeDevice = null;
+    let unmatchedHintTimer = null;
+    let enterFallbackTimer = null;
+    let detectedUsbDevices = [];
+    let selectedDetectedIndices = new Set();
+    let usbScanTimer = null;
+    let usbScanBusy = false;
+    let settingsScanTimer = null;
+
+    // ============ Settings ============
+    const DEFAULT_DEVICES = [
+      { name: 'RT-5 主控模块', vid: '0x1234', pid: '0x5678' }
+    ];
+    let usbDevices = loadUsbDevices();
+
+    // 已保存的 USB 设备规则：localStorage 为同步快照（首帧即刻可用），win-app 另经 IPC
+    // 读/写 huancun 文件作为持久源（跨启动永续，不随便携版解压目录/localStorage 丢失）。
+    function loadUsbDevices() {
+      try {
+        const saved = localStorage.getItem('rt5_usb_devices');
+        if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      return JSON.parse(JSON.stringify(DEFAULT_DEVICES));
+    }
+
+    function saveUsbDevices() {
+      try {
+        if (window.electronAPI && window.electronAPI.setUsbDevicesConfig) {
+          window.electronAPI.setUsbDevicesConfig(usbDevices);
+        }
+      } catch(e) {}
+      try {
+        localStorage.setItem('rt5_usb_devices', JSON.stringify(usbDevices));
+      } catch(e) {}
+    }
+
+    // 启动时用 huancun 文件覆盖 localStorage 快照（文件为持久源，最早为 localStorage 的镜像）。
+    // 仅 win-app 提供文件桥接；浏览器直开时静默跳过。
+    async function reconcileUsbDevicesFromFile() {
+      try {
+        if (!window.electronAPI || !window.electronAPI.getUsbDevicesConfig) return;
+        const fileSaved = await window.electronAPI.getUsbDevicesConfig();
+        if (Array.isArray(fileSaved) && fileSaved.length > 0) {
+          usbDevices = fileSaved;
+          try { localStorage.setItem('rt5_usb_devices', JSON.stringify(fileSaved)); } catch(e) {}
+        } else if (Array.isArray(usbDevices) && usbDevices.length > 0) {
+          // 文件尚无记录（首次升级到文件持久化）：以当前 localStorage 内容回填文件
+          window.electronAPI.setUsbDevicesConfig(usbDevices);
+        }
+      } catch(e) {}
+    }
+
+    // ============ 启动器状态持久化（测试模式仅本次启动内保留，跨启动不记忆） ============
+    const LAUNCHER_STATE_KEY = 'rt5_launcher_state';
+    // 本次应用启动的纪元标识（main.js 注入 URL 查询参数）；缺省（浏览器直开）返回空串
+    function currentLaunchEpoch() {
+      try {
+        const m = /[?&]launch=([^&]+)/.exec(location.search);
+        return m ? decodeURIComponent(m[1]) : '';
+      } catch(e) { return ''; }
+    }
+    function saveLauncherState() {
+      try {
+        localStorage.setItem(LAUNCHER_STATE_KEY, JSON.stringify({
+          testMode: !!testMode,
+          launch: currentLaunchEpoch(),
+          state: currentState,
+          device: activeDevice
+        }));
+      } catch(e) {}
+    }
+    function loadLauncherState() {
+      try {
+        const s = localStorage.getItem(LAUNCHER_STATE_KEY);
+        return s ? JSON.parse(s) : null;
+      } catch(e) { return null; }
+    }
+    function restoreLauncherState(saved) {
+      saved = saved || loadLauncherState();
+      if (!saved) return;
+      if (saved.testMode && saved.launch && saved.launch === currentLaunchEpoch()) {
+        // 测试模式：仅同一应用启动内（控制台返回）恢复；跨启动一律不记忆
+        testMode = true;
+        btnTestMode.classList.add('active');
+        testBadge.classList.add('visible');
+        activeDevice = saved.device || null;
+        transitionTo(STATE.CONNECTED);
+      } else if (!saved.testMode && !testMode && saved.state === STATE.CONNECTED && saved.device) {
+        // 真实设备连接：恢复已连接，随后由 USB 扫描校验设备仍在
+        activeDevice = saved.device;
+        transitionTo(STATE.CONNECTED);
+      }
+    }
+    function saveDetectedUsbDevices() {
+      try {
+        localStorage.setItem('rt5_detected_usb_devices', JSON.stringify(detectedUsbDevices || []));
+      } catch(e) {}
+    }
+    function restoreDetectedUsbDevices() {
+      try {
+        const cached = localStorage.getItem('rt5_detected_usb_devices');
+        if (cached) {
+          detectedUsbDevices = JSON.parse(cached) || [];
+          renderDetectedUsbDevices();
+        }
+      } catch(e) {}
+    }
+
+    // ============ USB 匹配（与主进程 usb.js 语义一致） ============
+    function normalizeHex(v) {
+      return String(v || '').trim().toLowerCase().replace(/^0x/, '');
+    }
+    function ruleIsValid(rule) {
+      return !!(rule && (
+        String(rule.vid || '').trim() ||
+        String(rule.pid || '').trim() ||
+        String(rule.deviceId || '').trim()
+      ));
+    }
+    function activeRules() {
+      return usbDevices.filter(ruleIsValid);
+    }
+    function matchesRule(device, rule) {
+      if (!ruleIsValid(rule)) return false;
+      const deviceId = String(rule.deviceId || '').trim();
+      const vid = normalizeHex(rule.vid);
+      const pid = normalizeHex(rule.pid);
+      const serial = String(rule.serial || '').trim();
+      const manufacturer = String(rule.manufacturer || '').trim();
+      const volumeName = String(rule.volumeName || '').trim();
+      const driveLetter = String(rule.driveLetter || '').trim();
+      if (deviceId) {
+        if (!device.deviceId || String(device.deviceId) !== deviceId) return false;
+      }
+      if (vid && normalizeHex(device.vid) !== vid) return false;
+      if (pid && normalizeHex(device.pid) !== pid) return false;
+      if (serial && String(device.serialNumber || '') !== serial) return false;
+      if (manufacturer && !String(device.manufacturer || '').includes(manufacturer)) return false;
+      if (volumeName && String(device.volumeName || '') !== volumeName) return false;
+      if (driveLetter && String(device.driveLetter || '') !== driveLetter) return false;
+      return true;
+    }
+    function matchesAnyRule(device) {
+      return activeRules().some(rule => matchesRule(device, rule));
+    }
+    function deviceMatches(device, info) {
+      if (!device || !info) return false;
+      if (device.deviceId && info.deviceId) return device.deviceId === info.deviceId;
+      return normalizeHex(device.vid) === normalizeHex(info.vid)
+        && normalizeHex(device.pid) === normalizeHex(info.pid)
+        && String(device.serialNumber || '') === String(info.serialNumber || '');
+    }
+
+    function renderUsbDeviceList() {
+      usbDeviceList.innerHTML = '';
+      usbDevices.forEach((dev, i) => {
+        const item = document.createElement('div');
+        item.className = 'usb-device-item';
+        item.innerHTML = `
+          <button class="remove-btn" data-idx="${i}" title="移除">&#10005;</button>
+          <div class="field full">
+            <label>设备名称</label>
+            <input type="text" data-field="name" data-idx="${i}" value="${escapeAttr(dev.name || '')}" placeholder="例: RT-5 主控">
+          </div>
+          <div class="field full">
+            <label>设备/磁盘 ID (存储设备自动填充)</label>
+            <input type="text" data-field="deviceId" data-idx="${i}" value="${escapeAttr(dev.deviceId || '')}" placeholder="例: \\.\PHYSICALDRIVE1">
+          </div>
+          <div class="field">
+            <label>VID (十六进制)</label>
+            <input type="text" data-field="vid" data-idx="${i}" value="${escapeAttr(dev.vid || '')}" placeholder="0x1234">
+          </div>
+          <div class="field">
+            <label>PID (十六进制)</label>
+            <input type="text" data-field="pid" data-idx="${i}" value="${escapeAttr(dev.pid || '')}" placeholder="0x5678">
+          </div>
+          <div class="field">
+            <label>序列号 (可选)</label>
+            <input type="text" data-field="serial" data-idx="${i}" value="${escapeAttr(dev.serial || '')}" placeholder="留空则不匹配">
+          </div>
+          <div class="field">
+            <label>厂商名 (可选)</label>
+            <input type="text" data-field="manufacturer" data-idx="${i}" value="${escapeAttr(dev.manufacturer || '')}" placeholder="留空则不匹配">
+          </div>
+        `;
+        usbDeviceList.appendChild(item);
+      });
+
+      usbDeviceList.querySelectorAll('.remove-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = parseInt(btn.dataset.idx);
+          usbDevices.splice(idx, 1);
+          renderUsbDeviceList();
+        });
+      });
+
+      usbDeviceList.querySelectorAll('input').forEach(input => {
+        input.addEventListener('input', () => {
+          const idx = parseInt(input.dataset.idx);
+          const field = input.dataset.field;
+          if (usbDevices[idx]) usbDevices[idx][field] = input.value;
+        });
+      });
+    }
+
+    function escapeAttr(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+    }
+
+    function formatHexId(v) {
+      const s = String(v || '').trim();
+      if (!s) return '-';
+      const n = parseInt(s, s.toLowerCase().startsWith('0x') ? 16 : 10);
+      if (isNaN(n)) return s;
+      return '0x' + n.toString(16).padStart(4, '0').toUpperCase();
+    }
+
+    function deviceKey(dev) {
+      return (dev && (dev.deviceId || dev.driveLetter || dev.volumeName || (dev.vid + ':' + dev.pid))) || '';
+    }
+
+    async function refreshDetectedUsbDevices() {
+      if (!window.electronAPI || !window.electronAPI.getUsbDevices) return;
+      // 显示扫描过程：面板常显 + 状态文案 + 刷新按钮旋转
+      detectedUsbSection.style.display = 'block';
+      if (detectedUsbStatus) {
+        detectedUsbStatus.textContent = '正在扫描 USB 设备…';
+        detectedUsbStatus.className = 'detected-usb-status scanning';
+      }
+      if (detectedUsbRefresh) detectedUsbRefresh.classList.add('scanning');
+      // 保留当前选中（按设备标识），避免自动扫描刷新打断用户选择
+      const prevSelected = new Set();
+      detectedUsbDevices.forEach((dev, i) => {
+        if (selectedDetectedIndices.has(i)) prevSelected.add(deviceKey(dev));
+      });
+      try {
+        detectedUsbDevices = await window.electronAPI.getUsbDevices() || [];
+      } catch (e) {
+        detectedUsbDevices = [];
+      }
+      selectedDetectedIndices.clear();
+      detectedUsbDevices.forEach((dev, i) => {
+        const key = deviceKey(dev);
+        if (key && prevSelected.has(key)) selectedDetectedIndices.add(i);
+      });
+      if (detectedUsbRefresh) detectedUsbRefresh.classList.remove('scanning');
+      saveDetectedUsbDevices();
+      renderDetectedUsbDevices();
+    }
+
+    function renderDetectedUsbDevices() {
+      detectedUsbList.innerHTML = '';
+      detectedUsbSection.style.display = 'block';
+      if (!detectedUsbDevices.length) {
+        if (detectedUsbStatus) {
+          detectedUsbStatus.textContent = '未检测到 USB 存储设备';
+          detectedUsbStatus.className = 'detected-usb-status empty';
+        }
+        return;
+      }
+      if (detectedUsbStatus) {
+        detectedUsbStatus.textContent = `已检测到 ${detectedUsbDevices.length} 个 USB 存储设备，点击选中后添加到配置`;
+        detectedUsbStatus.className = 'detected-usb-status';
+      }
+      detectedUsbDevices.forEach((dev, i) => {
+        const item = document.createElement('div');
+        item.className = 'detected-usb-item' + (selectedDetectedIndices.has(i) ? ' selected' : '');
+        item.dataset.idx = i;
+        // 名称：卷标优先，其次“盘符 + 型号”，再回退到厂商/未知
+        const name = dev.displayName
+          || dev.volumeName
+          || (dev.driveLetter ? dev.driveLetter + ' ' + dev.name : '')
+          || dev.name
+          || dev.manufacturer
+          || '未知 USB 设备';
+        const metaParts = [];
+        if (dev.driveLetter) metaParts.push(`盘符: ${escapeAttr(dev.driveLetter)}`);
+        if (dev.volumeName) metaParts.push(`卷标: ${escapeAttr(dev.volumeName)}`);
+        if (dev.name) metaParts.push(`型号: ${escapeAttr(dev.name)}`);
+        if (dev.vid) metaParts.push(`VID: ${formatHexId(dev.vid)}`);
+        if (dev.pid) metaParts.push(`PID: ${formatHexId(dev.pid)}`);
+        if (dev.serialNumber) metaParts.push(`序列号: ${escapeAttr(dev.serialNumber)}`);
+        if (dev.manufacturer) metaParts.push(`厂商: ${escapeAttr(dev.manufacturer)}`);
+        if (dev.deviceId) metaParts.push(`ID: ${escapeAttr(dev.deviceId)}`);
+        const meta = metaParts.join(' / ');
+        item.innerHTML = `
+          <input type="checkbox" ${selectedDetectedIndices.has(i) ? 'checked' : ''}>
+          <div class="detected-usb-info">
+            <div class="detected-usb-name">${escapeAttr(name)}</div>
+            <div class="detected-usb-meta">${escapeAttr(meta)}</div>
+          </div>
+        `;
+        item.addEventListener('click', (e) => {
+          if (e.target.tagName === 'INPUT') {
+            e.stopPropagation();
+          }
+          if (selectedDetectedIndices.has(i)) selectedDetectedIndices.delete(i);
+          else selectedDetectedIndices.add(i);
+          renderDetectedUsbDevices();
+        });
+        detectedUsbList.appendChild(item);
+      });
+    }
+
+    function addSelectedDetectedDevices() {
+      if (selectedDetectedIndices.size === 0) return;
+      selectedDetectedIndices.forEach(i => {
+        const dev = detectedUsbDevices[i];
+        if (!dev) return;
+        const name = dev.displayName
+          || dev.volumeName
+          || (dev.driveLetter ? dev.driveLetter + ' ' + dev.name : '')
+          || dev.name
+          || dev.manufacturer
+          || 'USB 设备';
+        const rule = { name: name };
+        if (dev.deviceId) rule.deviceId = String(dev.deviceId);
+        if (dev.vid) rule.vid = formatHexId(dev.vid);
+        if (dev.pid) rule.pid = formatHexId(dev.pid);
+        if (dev.serialNumber) rule.serial = String(dev.serialNumber);
+        if (dev.manufacturer) rule.manufacturer = String(dev.manufacturer);
+        if (dev.driveLetter) rule.driveLetter = String(dev.driveLetter);
+        if (dev.volumeName) rule.volumeName = String(dev.volumeName);
+        usbDevices.push(rule);
+      });
+      selectedDetectedIndices.clear();
+      // 立即持久化（写入 huancun 文件 + localStorage），避免关设置/下次进入时遗忘已添加的规则
+      saveUsbDevices();
+      renderUsbDeviceList();
+      renderDetectedUsbDevices();
+    }
+
+    // ============ Drawing ============
+    function drawFrame(frameIdx, variant, alpha, morphMode) {
+      if (!spritesLoaded) return;
+      const img = variant === 'color' ? colorImg : huimoImg;
+      if (!img) return;
+
+      const srcX = (frameIdx % COLS) * FRAME_W;
+      const srcY = Math.floor(frameIdx / COLS) * FRAME_H;
+
+      ctx.globalAlpha = alpha;
+      ctx.save();
+      ctx.translate(DISPLAY_W / 2, DISPLAY_H / 2);
+      ctx.scale(scaleMultiplier * DRAW_SCALE_X, scaleMultiplier * DRAW_SCALE_Y);
+      ctx.translate(-FRAME_W / 2, -FRAME_H / 2);
+
+      if (morphMode === 'in' && morphProgress > 0) {
+        ctx.globalAlpha = alpha * (1 - morphProgress);
+        ctx.drawImage(img, srcX, srcY, FRAME_W, FRAME_H, 0, 0, FRAME_W, FRAME_H);
+        ctx.globalAlpha = alpha * morphProgress;
+        ctx.drawImage(colorImg, srcX, srcY, FRAME_W, FRAME_H, 0, 0, FRAME_W, FRAME_H);
+      } else if (morphMode === 'out' && morphProgress < 1) {
+        ctx.globalAlpha = alpha * morphProgress;
+        ctx.drawImage(colorImg, srcX, srcY, FRAME_W, FRAME_H, 0, 0, FRAME_W, FRAME_H);
+        ctx.globalAlpha = alpha * (1 - morphProgress);
+        ctx.drawImage(huimoImg, srcX, srcY, FRAME_W, FRAME_H, 0, 0, FRAME_W, FRAME_H);
+      } else {
+        ctx.drawImage(img, srcX, srcY, FRAME_W, FRAME_H, 0, 0, FRAME_W, FRAME_H);
+      }
+
+      ctx.restore();
+      ctx.globalAlpha = 1;
+    }
+
+    let lastTimestamp = 0;
+    let accumulator = 0;
+
+    function animate(timestamp) {
+      if (!animRunning) return;
+      // 窗口隐藏时暂停精灵循环，恢复后从静止帧继续，避免跳帧/闪动
+      if (document.hidden) { spriteRafId = null; return; }
+      if (!lastTimestamp) lastTimestamp = timestamp;
+      const delta = timestamp - lastTimestamp;
+      lastTimestamp = timestamp;
+      accumulator += delta;
+
+      breathingPhase += delta * 0.0025;
+
+      // 旋转仅在 CONNECTING / CONNECTED 进行；MORPH 期间锁定正面帧，等灰模↔彩色切换完成后再转
+      const isRotating = [STATE.CONNECTING, STATE.CONNECTED].includes(currentState);
+      const isSettling = [STATE.WAIT_FRONT_AFTER_CONNECT, STATE.WAIT_FRONT_AFTER_DISCONNECT].includes(currentState);
+
+      settleAccum += delta;
+
+      if (currentState === STATE.CONNECTED && connectedHoldMs > 0) {
+        // 变形成彩色后先停顿，再恢复旋转，避免切换破绽
+        connectedHoldMs -= delta;
+        accumulator = 0;
+        settleAccum = 0;
+      } else if (isRotating && accumulator >= FRAME_MS) {
+        const steps = Math.floor(accumulator / FRAME_MS);
+        accumulator -= steps * FRAME_MS;
+        for (let i = 0; i < steps; i++) {
+          currentFrame = (currentFrame + 1) % FRAME_COUNT;
+        }
+      } else if (isSettling && settleAccum >= FRAME_MS) {
+        // 匀速转到正面（回正），避免变速造成顿挫
+        settleAccum = 0;
+        currentFrame = (currentFrame + 1) % FRAME_COUNT;
+        if (currentFrame === FRONT_FRAME) {
+          transitionTo(currentState === STATE.WAIT_FRONT_AFTER_CONNECT
+            ? STATE.PAUSE_AFTER_CONNECT
+            : STATE.PAUSE_AFTER_DISCONNECT);
+        }
+      } else if (currentState === STATE.IDLE && idleDrift && settleAccum >= FRAME_MS) {
+        // 断连收尾：huimo 继续匀速转回正面后再静止，避免画面跳帧
+        settleAccum = 0;
+        currentFrame = (currentFrame + 1) % FRAME_COUNT;
+        if (currentFrame === FRONT_FRAME) idleDrift = false;
+      } else if (currentState === STATE.IDLE) {
+        // 长驻 IDLE 时 currentFrame 锁定 FRONT_FRAME，立即静止
+        currentFrame = FRONT_FRAME;
+        settleAccum = 0;
+      } else {
+        // 其余状态封顶计时器即可
+        settleAccum = Math.min(settleAccum, FRAME_MS * 4);
+      }
+
+      // 移除所有呼吸缩放，统一 scale=1.0
+      scaleMultiplier = 1.0;
+
+      switch(currentState) {
+        case STATE.PAUSE_AFTER_CONNECT:
+        case STATE.PAUSE_AFTER_DISCONNECT:
+          stateTimer += delta;
+          if (stateTimer >= 320) {
+            triggerMorphFlash();
+            transitionTo(currentState === STATE.PAUSE_AFTER_CONNECT ? STATE.MORPH_IN : STATE.MORPH_OUT);
+          }
+          break;
+        case STATE.MORPH_IN:
+          stateTimer += delta;
+          morphProgress = Math.min(1, stateTimer / 500);
+          if (morphProgress >= 1) {
+            currentVariant = 'color';
+            morphProgress = 0;
+            transitionTo(STATE.CONNECTED);
+          }
+          break;
+        case STATE.MORPH_OUT:
+          stateTimer += delta;
+          morphProgress = Math.max(0, 1 - stateTimer / 500);
+          if (morphProgress <= 0) {
+            currentVariant = 'huimo';
+            morphProgress = 0;
+            transitionTo(STATE.IDLE);
+          }
+          break;
+      }
+
+      ctx.clearRect(0, 0, DISPLAY_W, DISPLAY_H);
+      let morphMode = null;
+      if (currentState === STATE.MORPH_IN) morphMode = 'in';
+      else if (currentState === STATE.MORPH_OUT) morphMode = 'out';
+
+      if (spritesLoaded) {
+        if (morphMode === 'in') drawFrame(currentFrame, 'huimo', 1, 'in');
+        else if (morphMode === 'out') drawFrame(currentFrame, 'color', 1, 'out');
+        else drawFrame(currentFrame, currentVariant, 1, null);
+      }
+
+      spriteRafId = requestAnimationFrame(animate);
+    }
+
+    function triggerMorphFlash() {
+      morphFlash.classList.remove('go');
+      void morphFlash.offsetWidth;
+      morphFlash.classList.add('go');
+    }
+
+    // ============ State Transitions ============
+    function transitionTo(newState) {
+      const oldState = currentState;
+      currentState = newState;
+      stateTimer = 0;
+      accumulator = 0;
+      settleAccum = 0;
+      if (newState !== STATE.CONNECTED) connectedHoldMs = 0;
+      updateUI();
+
+      switch(newState) {
+        case STATE.IDLE:
+          currentVariant = 'huimo';
+          morphProgress = 0;
+          activeDevice = null;
+          if (oldState === STATE.MORPH_OUT) {
+            // 断连收尾：保持当前帧，由 animate 匀速转回正面后静止
+            idleDrift = true;
+          } else {
+            currentFrame = FRONT_FRAME;
+            idleDrift = false;
+          }
+          break;
+        case STATE.CONNECTING:
+          currentVariant = 'huimo';
+          if (oldState === STATE.IDLE) currentFrame = 0;
+          break;
+        case STATE.PAUSE_AFTER_CONNECT:
+        case STATE.PAUSE_AFTER_DISCONNECT:
+          currentFrame = FRONT_FRAME;
+          break;
+        case STATE.MORPH_IN:
+          currentFrame = FRONT_FRAME;
+          morphProgress = 0;
+          break;
+        case STATE.MORPH_OUT:
+          currentFrame = FRONT_FRAME;
+          morphProgress = 1;
+          break;
+        case STATE.CONNECTED:
+          currentVariant = 'color';
+          connectedHoldMs = 600;
+          break;
+      }
+      saveLauncherState();
+    }
+
+    function updateUI() {
+      deviceGlow.className = 'device-glow';
+      orbitRing.className = 'orbit-ring';
+      scanline.className = 'scanline';
+      deviceBtn.classList.remove('connected', 'disabled');
+      enterCue.classList.remove('visible');
+      statusHint.classList.remove('visible', 'hidden');
+
+      switch(currentState) {
+        case STATE.IDLE:
+          statusText.textContent = '等待设备接入';
+          statusText.className = 'status-text';
+          statusHint.textContent = activeRules().length ? '请连接机器人USB设备' : '请在设置中配置USB设备规则';
+          statusHint.classList.add('visible');
+          deviceGlow.classList.add('idle');
+          deviceBtn.classList.add('disabled');
+          break;
+        case STATE.CONNECTING:
+          statusText.innerHTML = '正在建立连接<span class="connecting-dots"><span></span><span></span><span></span></span>';
+          statusText.className = 'status-text connecting';
+          deviceGlow.classList.add('connecting');
+          orbitRing.classList.add('connecting');
+          scanline.classList.add('connecting');
+          deviceBtn.classList.add('disabled');
+          statusHint.classList.add('hidden');
+          break;
+        case STATE.WAIT_FRONT_AFTER_CONNECT:
+          statusText.innerHTML = '设备已识别<span class="connecting-dots"><span></span><span></span><span></span></span>';
+          statusText.className = 'status-text connecting';
+          deviceGlow.classList.add('connecting');
+          orbitRing.classList.add('connecting');
+          scanline.classList.add('connecting');
+          deviceBtn.classList.add('disabled');
+          statusHint.classList.add('hidden');
+          break;
+        case STATE.PAUSE_AFTER_CONNECT:
+          statusText.textContent = '设备就绪';
+          statusText.className = 'status-text connecting';
+          deviceGlow.classList.add('connecting');
+          orbitRing.classList.add('connecting');
+          scanline.classList.add('connecting');
+          deviceBtn.classList.add('disabled');
+          statusHint.classList.add('hidden');
+          break;
+        case STATE.MORPH_IN:
+        case STATE.MORPH_OUT:
+          statusText.textContent = '正在激活...';
+          statusText.className = 'status-text connecting';
+          deviceGlow.classList.add('connecting');
+          orbitRing.classList.add('connecting');
+          scanline.classList.add('connecting');
+          deviceBtn.classList.add('disabled');
+          statusHint.classList.add('hidden');
+          break;
+        case STATE.CONNECTED:
+          statusText.textContent = '设备已连接';
+          statusText.className = 'status-text connected';
+          deviceGlow.classList.add('connected');
+          orbitRing.classList.add('connected');
+          deviceBtn.classList.add('connected');
+          statusHint.classList.add('hidden');
+          setTimeout(() => {
+            if (currentState === STATE.CONNECTED) enterCue.classList.add('visible');
+          }, 600);
+          break;
+        case STATE.WAIT_FRONT_AFTER_DISCONNECT:
+          statusText.innerHTML = '连接断开<span class="connecting-dots"><span></span><span></span><span></span></span>';
+          statusText.className = 'status-text';
+          deviceGlow.classList.add('connecting');
+          orbitRing.classList.add('connecting');
+          scanline.classList.add('connecting');
+          deviceBtn.classList.add('disabled');
+          statusHint.classList.add('hidden');
+          break;
+        case STATE.PAUSE_AFTER_DISCONNECT:
+          statusText.textContent = '正在断开...';
+          statusText.className = 'status-text';
+          deviceGlow.classList.add('connecting');
+          orbitRing.classList.add('connecting');
+          deviceBtn.classList.add('disabled');
+          statusHint.classList.add('hidden');
+          break;
+      }
+    }
+
+    // ============ Connection Actions ============
+    function startConnect(deviceInfo) {
+      if (currentState !== STATE.IDLE) return;
+      activeDevice = deviceInfo ? {
+        deviceId: deviceInfo.deviceId,
+        vid: deviceInfo.vid,
+        pid: deviceInfo.pid,
+        serialNumber: deviceInfo.serialNumber
+      } : null;
+      transitionTo(STATE.CONNECTING);
+      setTimeout(() => {
+        if (currentState === STATE.CONNECTING) {
+          transitionTo(STATE.WAIT_FRONT_AFTER_CONNECT);
+        }
+      }, 1500 + Math.random() * 1000);
+    }
+
+    function startDisconnect() {
+      if (currentState !== STATE.CONNECTED) return;
+      enterCue.classList.remove('visible');
+      transitionTo(STATE.WAIT_FRONT_AFTER_DISCONNECT);
+    }
+
+    function resetToIdle() {
+      activeDevice = null;
+      transitionTo(STATE.IDLE);
+    }
+
+    function showUnmatchedHint(name) {
+      if (currentState !== STATE.IDLE) return;
+      const devName = name ? String(name).trim() : '';
+      statusHint.textContent = devName
+        ? `检测到 USB 设备：${devName}（未匹配，请在设置中添加）`
+        : '检测到USB设备，未匹配当前配置';
+      statusHint.classList.add('visible');
+      clearTimeout(unmatchedHintTimer);
+      unmatchedHintTimer = setTimeout(() => {
+        unmatchedHintTimer = null;
+        if (currentState === STATE.IDLE) {
+          statusHint.textContent = activeRules().length ? '请连接机器人USB设备' : '请在设置中配置USB设备规则';
+        }
+      }, 3000);
+    }
+
+    function enterConsole() {
+      if (currentState !== STATE.CONNECTED) return;
+      enterTransition.classList.add('active');
+      clearTimeout(enterFallbackTimer);
+      if (window.electronAPI && window.electronAPI.enterConsole) {
+        // 按下立即弹出加载界面并进入控制台，不做人为延迟
+        // 传入进入方式：真实 USB 设备进入（非测试模式）时，默认电量设置下显示正在充电
+        window.electronAPI.enterConsole({
+          enteredViaUsb: !testMode && !!activeDevice,
+          deviceId: activeDevice ? activeDevice.deviceId : null
+        });
+      } else {
+        console.log('[Launcher] Entering main console...');
+        setTimeout(() => { enterTransition.classList.remove('active'); }, 2000);
+      }
+      // 兜底：若主窗口未能正常接管，2.5s 后移除遮罩，避免永久卡在过渡层
+      enterFallbackTimer = setTimeout(() => {
+        enterTransition.classList.remove('active');
+      }, 2500);
+    }
+
+    // ============ Test Mode ============
+    function toggleTestMode() {
+      testMode = !testMode;
+      btnTestMode.classList.toggle('active', testMode);
+      testBadge.classList.toggle('visible', testMode);
+      if (testMode) {
+        if (currentState === STATE.IDLE) startConnect();
+      } else {
+        if (currentState === STATE.CONNECTED) startDisconnect();
+      }
+      saveLauncherState();
+    }
+
+    // ============ Event Handlers ============
+    deviceBtn.addEventListener('click', () => {
+      if (currentState === STATE.CONNECTED) enterConsole();
+    });
+
+    btnTestMode.addEventListener('click', toggleTestMode);
+
+    btnMinimize.addEventListener('click', () => {
+      if (window.electronAPI && window.electronAPI.minimize) window.electronAPI.minimize();
+    });
+    btnClose.addEventListener('click', () => {
+      if (window.electronAPI && window.electronAPI.close) window.electronAPI.close();
+    });
+
+    btnSettings.addEventListener('click', () => {
+      renderUsbDeviceList();
+      refreshDetectedUsbDevices();
+      // 设置面板打开期间持续自动扫描 USB 存储设备
+      if (settingsScanTimer) clearInterval(settingsScanTimer);
+      settingsScanTimer = setInterval(refreshDetectedUsbDevices, 2000);
+      settingsOverlay.classList.add('open');
+      document.getElementById('app').classList.add('settings-open');
+    });
+
+    function closeSettings() {
+      if (settingsScanTimer) {
+        clearInterval(settingsScanTimer);
+        settingsScanTimer = null;
+      }
+      settingsOverlay.classList.remove('open');
+      document.getElementById('app').classList.remove('settings-open');
+    }
+    settingsClose.addEventListener('click', closeSettings);
+    settingsCancel.addEventListener('click', closeSettings);
+
+    // ============ 界面语言切换（设置面板） ============
+    // 与主控制台/主进程共用 robot_ui_lang：本地写入（浏览器/影片 iframe 模式）+
+    // IPC 持久化（win-app，主控制台下次加载经 preload bootLang 跟随）+ 界面即时切换。
+    const langSwitchBtns = document.querySelectorAll('.lang-btn');
+    function refreshLangBtns(cur) {
+      langSwitchBtns.forEach(b => b.classList.toggle('active', b.dataset.launcherLang === cur));
+    }
+    langSwitchBtns.forEach(b => b.addEventListener('click', () => {
+      const next = b.dataset.launcherLang;
+      if (window.LauncherI18N && LauncherI18N.getLang() === next) return;
+      try { localStorage.setItem('robot_ui_lang', next); } catch (e) {}
+      try { if (window.electronAPI && window.electronAPI.setUiLang) window.electronAPI.setUiLang(next); } catch (e) {}
+      if (window.LauncherI18N) LauncherI18N.setLang(next);
+      refreshLangBtns(next);
+    }));
+    document.addEventListener('launcher-lang-changed', (e) => refreshLangBtns(e.detail && e.detail.lang));
+
+    settingsSave.addEventListener('click', async () => {
+      const invalid = usbDevices.filter(d => !ruleIsValid(d));
+      if (invalid.length > 0) {
+        settingsError.textContent = '每条规则至少填写 VID、PID 或设备/磁盘 ID';
+        return;
+      }
+      settingsError.textContent = '';
+      saveUsbDevices();
+      closeSettings();
+      if (currentState === STATE.IDLE) {
+        statusHint.textContent = activeRules().length ? '请连接机器人USB设备' : '请在设置中配置USB设备规则';
+        // 保存后若存在已连接设备匹配成功则自动触发连接
+        if (window.electronAPI && window.electronAPI.getUsbDevices) {
+          try {
+            const devices = await window.electronAPI.getUsbDevices();
+            const matched = (devices || []).filter(dev => matchesAnyRule(dev));
+            if (matched.length > 0) startConnect(matched[0]);
+          } catch (e) {}
+        }
+      }
+    });
+
+    addDeviceBtn.addEventListener('click', () => {
+      usbDevices.push({ name: '新设备', vid: '', pid: '', serial: '', manufacturer: '' });
+      renderUsbDeviceList();
+    });
+
+    addSelectedDeviceBtn.addEventListener('click', () => {
+      addSelectedDetectedDevices();
+    });
+
+    detectedUsbRefresh.addEventListener('click', () => {
+      refreshDetectedUsbDevices();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'F2') { e.preventDefault(); toggleTestMode(); }
+      if (e.key === 'Escape') { if (settingsOverlay.classList.contains('open')) closeSettings(); }
+      if (e.key === 'Enter' && currentState === STATE.CONNECTED) enterConsole();
+    });
+
+    // 周期扫描：弥补热插拔事件遗漏，IDLE 时若发现已匹配设备则自动连接
+    async function periodicUsbScan() {
+      if (currentState !== STATE.IDLE || testMode || usbScanBusy) return;
+      if (!window.electronAPI || !window.electronAPI.getUsbDevices) return;
+      usbScanBusy = true;
+      try {
+        const devices = await window.electronAPI.getUsbDevices() || [];
+        if (currentState !== STATE.IDLE) return;
+        if (!devices.length) return;
+        const matched = devices.filter(dev => matchesAnyRule(dev));
+        if (matched.length > 0) {
+          startConnect(matched[0]);
+        } else if (!unmatchedHintTimer) {
+          showUnmatchedHint(devices[0].displayName || devices[0].volumeName || devices[0].name || '');
+        }
+      } catch (e) {
+      } finally {
+        usbScanBusy = false;
+      }
+    }
+
+    // 窗口隐藏/未显示：暂停全部 CSS 动画与精灵循环；显示时从静止帧恢复，避免首帧跳变/闪动
+    document.addEventListener('visibilitychange', function() {
+      if (document.hidden) {
+        document.documentElement.classList.add('pre-hide');
+        if (spriteRafId) { cancelAnimationFrame(spriteRafId); spriteRafId = null; }
+        lastTimestamp = 0;
+      } else {
+        document.documentElement.classList.remove('pre-hide');
+        if (!spriteRafId && animRunning) spriteRafId = requestAnimationFrame(animate);
+      }
+    });
+    // 窗口尚未显示时立即进入暂停态，避免加载期间动画空转
+    if (document.hidden) document.documentElement.classList.add('pre-hide');
+
+    // 首帧内容渲染完成后通知主进程显示窗口（避免无控件空窗）
+    function signalLauncherRendered() {
+      const send = function() {
+        if (window.electronAPI && window.electronAPI.markRendered) window.electronAPI.markRendered();
+      };
+      if (!document.hidden) {
+        requestAnimationFrame(function() { requestAnimationFrame(send); });
+      } else {
+        setTimeout(send, 60);
+      }
+    }
+
+    // 主窗口接管时淡出“正在进入控制台”遮罩，形成连贯过渡
+    if (window.electronAPI && window.electronAPI.onExitFade) {
+      window.electronAPI.onExitFade(function() {
+        const enterTransition = document.getElementById('enter-transition');
+        if (enterTransition) enterTransition.classList.remove('active');
+      });
+    }
+
+    // ============ Init ============
+    async function init() {
+      const bootSplash = document.getElementById('boot-splash');
+      if (bootSplash) bootSplash.classList.remove('hidden');
+
+      // 先让首屏（标题、状态、Logo）渲染出来，精灵图在后台加载
+      const savedForRestore = loadLauncherState();
+      transitionTo(STATE.IDLE);
+      restoreDetectedUsbDevices();
+      restoreLauncherState(savedForRestore);
+      // 用 huancun 文件持久源校准已保存的 USB 设备规则（异步，不阻塞首帧）
+      reconcileUsbDevicesFromFile().then(function() { renderUsbDeviceList(); });
+      if (!document.hidden) spriteRafId = requestAnimationFrame(animate);
+      // 内容就绪：显式触发柔和淡入，并强制兜底保证可见（不依赖 visibilitychange）
+      document.body.classList.add('launcher-reveal');
+      setTimeout(function() {
+        document.body.style.opacity = '1';
+        document.body.style.animation = 'none';
+      }, 500);
+      // 兜底移除暂停态：即使 visibilitychange 未触发，装饰动画也能恢复
+      setTimeout(function() {
+        document.documentElement.classList.remove('pre-hide');
+      }, 300);
+      signalLauncherRendered();
+
+      loadSprites().then(() => {
+        // 仅在实际可见时淡出首屏，避免窗口未显示时过渡已结束导致首帧空白/闪动
+        const hideBoot = () => { if (bootSplash) bootSplash.classList.add('hidden'); };
+        if (document.hidden) {
+          document.addEventListener('visibilitychange', function onVis() {
+            if (!document.hidden) {
+              hideBoot();
+              document.removeEventListener('visibilitychange', onVis);
+            }
+          });
+        } else {
+          hideBoot();
+        }
+      });
+
+      window.launcherAPI = Object.assign({}, window.launcherAPI, {
+        onDeviceAttached: startConnect,
+        onDeviceDetached: startDisconnect,
+        setTestMode: (on) => { if (on !== testMode) toggleTestMode(); },
+        getState: () => currentState,
+        getFrame: () => currentFrame
+      });
+
+      if (window.electronAPI) {
+        try {
+          const devices = await window.electronAPI.getUsbDevices();
+          // 恢复的真实设备连接：校验设备仍在列表中，已移除则退回未连接状态
+          if (!testMode && currentState === STATE.CONNECTED && activeDevice) {
+            const stillThere = (devices || []).some(dev => deviceMatches(activeDevice, dev));
+            if (!stillThere) resetToIdle();
+          }
+          if (devices && devices.length > 0) {
+            const matched = devices.filter(dev => matchesAnyRule(dev));
+            if (matched.length > 0) {
+              startConnect(matched[0]);
+            } else {
+              showUnmatchedHint(devices[0].displayName || devices[0].volumeName || devices[0].name || '');
+            }
+          }
+        } catch(e) {}
+
+        window.electronAPI.onUsbAttached((deviceInfo) => {
+          if (testMode || !deviceInfo) return;
+          // 设置面板打开时同步刷新检测列表（自动搜索）
+          if (settingsOverlay.classList.contains('open')) refreshDetectedUsbDevices();
+          if (!matchesAnyRule(deviceInfo)) {
+            showUnmatchedHint(deviceInfo.displayName || deviceInfo.volumeName || deviceInfo.name || '');
+            return;
+          }
+          startConnect(deviceInfo);
+        });
+        window.electronAPI.onUsbDetached((deviceInfo) => {
+          if (testMode || !deviceInfo) return;
+          if (settingsOverlay.classList.contains('open')) refreshDetectedUsbDevices();
+          if (!deviceMatches(activeDevice, deviceInfo)) return;
+          if (currentState === STATE.CONNECTED) {
+            startDisconnect();
+          } else if (currentState !== STATE.IDLE) {
+            resetToIdle();
+          }
+        });
+      }
+      usbScanTimer = setInterval(periodicUsbScan, 4000);
+
+      /* Plain-browser / embedded demo (e.g. the promo film opens this page in
+         an iframe): give the frosted body a solid base so it stays readable
+         without the Electron acrylic behind it */
+      if (!window.electronAPI) document.body.classList.add('browser-demo');
+    }
+
+    // ============ Deterministic demo API (promo film driver only; no
+    // production path calls these) ============
+    function demoSetState(s) {
+      const bootSplash = document.getElementById('boot-splash');
+      const enterTransition = document.getElementById('enter-transition');
+      if (s === 'waiting') {
+        enterTransition.classList.remove('active');
+        if (settingsOverlay.classList.contains('open')) closeSettings();
+        testMode = false;
+        btnTestMode.classList.remove('active');
+        testBadge.classList.remove('visible');
+        activeDevice = null;
+        enterCue.classList.remove('visible');
+        if (currentState !== STATE.IDLE) transitionTo(STATE.IDLE); else updateUI();
+        if (bootSplash) bootSplash.classList.add('hidden');
+      } else if (s === 'testmode') {
+        enterTransition.classList.remove('active');
+        testMode = true;
+        btnTestMode.classList.add('active');
+        testBadge.classList.add('visible');
+        // if a connect chain is already running (F2 was pressed), let it run
+        if ([STATE.CONNECTED, STATE.WAIT_FRONT_AFTER_DISCONNECT,
+             STATE.PAUSE_AFTER_DISCONNECT, STATE.MORPH_OUT].includes(currentState)) {
+          activeDevice = null;
+          transitionTo(STATE.IDLE);
+        }
+        enterCue.classList.remove('visible');
+        if (bootSplash) bootSplash.classList.add('hidden');
+      } else if (s === 'connected') {
+        if (settingsOverlay.classList.contains('open')) closeSettings();
+        enterTransition.classList.remove('active');
+        testMode = true;
+        btnTestMode.classList.add('active');
+        testBadge.classList.add('visible');
+        activeDevice = { deviceId: 'DEMO-KEY-01', vid: '0x1a2b', pid: '0x3c4d', serialNumber: 'T31750-DEMO' };
+        if (currentState !== STATE.CONNECTED) transitionTo(STATE.CONNECTED); else updateUI();
+        // direct seeks never mature updateUI()'s 600ms wall-clock cue timer
+        enterCue.classList.add('visible');
+        if (bootSplash) bootSplash.classList.add('hidden');
+      }
+    }
+    function demoOpenSettings() {
+      if (!settingsOverlay.classList.contains('open')) btnSettings.click();
+    }
+    function demoAddRule() {
+      addDeviceBtn.click();
+      const items = document.querySelectorAll('#usb-device-list .usb-device-item');
+      const item = items[items.length - 1];
+      if (!item) return;
+      const fill = (field, val) => {
+        const inp = item.querySelector('input[data-field="' + field + '"]');
+        if (!inp) return;
+        inp.value = val;
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+      };
+      fill('name', 'T31-750 Security Key');
+      fill('vid', '0x1A2B');
+      fill('pid', '0x3C4D');
+      fill('serial', 'T31750-KEY-01');
+    }
+    function demoCloseSettings() {
+      if (settingsOverlay.classList.contains('open')) settingsSave.click();
+    }
+    function demoEnter() {
+      if (currentState === STATE.CONNECTED) enterConsole();
+    }
+    window.launcherAPI = window.launcherAPI || {};
+    window.launcherAPI.demo = {
+      setState: demoSetState,
+      openSettings: demoOpenSettings,
+      addRule: demoAddRule,
+      closeSettings: demoCloseSettings,
+      testMode: function () { if (!testMode) toggleTestMode(); },
+      connect: function () { demoSetState('connected'); },
+      enter: demoEnter
+    };
+
+    init();
+  })();
+  </script>
+</body>
+</html>

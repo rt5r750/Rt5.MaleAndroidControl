@@ -1,0 +1,631 @@
+        /* =========================================================
+           桌面菜单模式（浏览器 + win-app，≥750px 三栏布局；Android WebView 无 desktop-chrome 不生效）：
+           连接/信息/设置窗口 → macOS NSMenu·NSMenuItem 风格下拉面板（锚定菜单栏触发图标下方）；
+           底部自动隐藏 macOS 程序坞（鼠标触底浮起，点击图标打开并高亮窗口）。
+           ========================================================= */
+        #desktop-dock { display: none; }
+        /* 桌面专属浮层默认隐藏：仅 desktop-chrome 且 ≥750px 启用（Android WebView 与移动端不可见） */
+        #about-modal, .ns-menu { display: none; }
+        @media (min-width: 750px) {
+            /* ---- 面板容器：去掉全屏遮罩，改为锚定下拉（right 由 JS 按触发图标位置微调，故不可 !important） ---- */
+            html.desktop-chrome #bt-modal,
+            html.desktop-chrome #info-modal,
+            html.desktop-chrome #settings-modal {
+                position: fixed;
+                inset: auto;
+                top: calc(var(--header-total) + 8px) !important;
+                bottom: auto !important;
+                left: auto;
+                right: 16px;
+                display: block;
+                width: max-content;
+                max-width: calc(100vw - 24px);
+                height: auto;
+                max-height: none;
+                background: transparent !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                padding: 0 !important;
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+                /* v1.6.0 模糊露馅修复：磨砂卡片BackdropFilter在 transform 过渡（scale/位移）期间
+                   背景采样错位，出现"未磨砂穿帮帧"——开合动画只保留纯透明度淡入，
+                   磨砂层全程静止，模糊稳定不闪 */
+                transform: none;
+                transform-origin: top right;
+                z-index: 945 !important;
+                transition: opacity 0.13s ease, visibility 0s linear 0.13s;
+            }
+            html.desktop-chrome #bt-modal.visible,
+            html.desktop-chrome #info-modal.visible,
+            html.desktop-chrome #settings-modal.settings-modal-visible {
+                opacity: 1;
+                visibility: visible;
+                transition: opacity 0.13s ease, visibility 0s;
+            }
+            /* ---- 卡片：NSMenu 深色磨砂材质 + 发丝高光边框 + 大投影 ---- */
+            html.desktop-chrome #bt-modal .bt-modal-card,
+            html.desktop-chrome #info-modal .info-modal-content,
+            html.desktop-chrome #settings-modal .settings-content {
+                pointer-events: auto;
+                position: relative;
+                background: rgba(16, 26, 16, 0.78) !important;
+                backdrop-filter: blur(30px) saturate(1.7) !important;
+                -webkit-backdrop-filter: blur(30px) saturate(1.7) !important;
+                border: 1px solid rgba(255, 255, 255, 0.14) !important;
+                border-radius: 12px !important;
+                box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), 0 2px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+                transform: none !important;
+                opacity: 1 !important;
+                transition: none;
+            }
+            html.desktop-chrome #bt-modal .bt-modal-card { width: min(360px, calc(100vw - 24px)); max-height: calc(100vh - var(--header-total) - 96px); }
+            html.desktop-chrome #info-modal .info-modal-content { width: min(620px, calc(100vw - 24px)); height: auto; max-height: calc(100vh - var(--header-total) - 96px); }
+            html.desktop-chrome #settings-modal .settings-content { width: min(860px, calc(100vw - 24px)); max-width: min(860px, calc(100vw - 24px)) !important; max-height: calc(100vh - var(--header-total) - 96px) !important; }
+            /* ---- 设置侧边导航（v1.6.0）：左侧组标题列表，点击滚动跳转 + 滚动高亮；面板同步加宽 ---- */
+            html.desktop-chrome #settings-modal .settings-columns { display: flex; min-height: 0; flex: 1; align-items: stretch; }
+            html.desktop-chrome #settings-modal #settings-nav {
+                display: block;
+                width: 152px;
+                flex-shrink: 0;
+                border-right: 1px solid rgba(255, 255, 255, 0.08);
+                padding: 0.75rem 0.5rem;
+                overflow-y: auto;
+            }
+            html.desktop-chrome #settings-modal #settings-nav .settings-nav-item {
+                display: block;
+                width: 100%;
+                text-align: left;
+                padding: 0.4rem 0.6rem;
+                border-radius: 7px;
+                font-size: 0.8rem;
+                line-height: 1.35;
+                color: rgba(192, 228, 192, 0.72);
+                cursor: pointer;
+                border: 1px solid transparent;
+                background: transparent;
+                transition: background 0.12s ease, color 0.12s ease;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            html.desktop-chrome #settings-modal #settings-nav .settings-nav-item:hover { background: rgba(255, 255, 255, 0.07); color: #e0ffe0; }
+            html.desktop-chrome #settings-modal #settings-nav .settings-nav-item.active {
+                background: rgba(143, 188, 143, 0.16);
+                color: #e0ffe0;
+                border-color: rgba(143, 188, 143, 0.3);
+            }
+            html.desktop-chrome #settings-modal .settings-body { flex: 1; min-width: 0; overflow-x: hidden; padding-top: 0.9rem; }
+            /* 非 desktop-chrome（移动端/Android）：侧边导航隐藏，布局还原 */
+            #settings-nav { display: none; }
+            /* ---- 菜单语义：隐藏窗口红绿灯/移动端头尾，标题行紧凑化 ---- */
+            html.desktop-chrome #info-modal .modal-mobile-header,
+            html.desktop-chrome #settings-modal .modal-mobile-header,
+            html.desktop-chrome #info-modal .modal-mobile-close-btn,
+            html.desktop-chrome #settings-modal .modal-mobile-close-btn,
+            html.desktop-chrome #info-modal .cp-traffic-lights,
+            html.desktop-chrome #settings-modal .cp-traffic-lights { display: none !important; }
+            html.desktop-chrome #info-modal .cp-title,
+            html.desktop-chrome #settings-modal .cp-title {
+                padding: 0 1.125rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            /* ---- NSMenuItem 悬停高亮：面板内列表行 ---- */
+            html.desktop-chrome #info-modal .file-item {
+                border-radius: 8px;
+                transition: background 0.12s ease, border-color 0.12s ease;
+            }
+            html.desktop-chrome #info-modal .file-item:hover {
+                background: rgba(143, 188, 143, 0.16);
+                border-color: rgba(143, 188, 143, 0.5);
+            }
+            /* ---- 窗口高亮脉冲（程序坞点击时） ---- */
+            html.desktop-chrome .menu-panel-highlight::after,
+            html.desktop-chrome .console-highlight::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                border-radius: inherit;
+                box-shadow: 0 0 0 2.5px rgba(143, 188, 143, 0.6), 0 0 26px rgba(143, 188, 143, 0.3);
+                opacity: 0;
+                animation: chrome-highlight-pulse 0.65s ease 2;
+                pointer-events: none;
+            }
+            html.desktop-chrome .console-highlight { position: relative; }
+            html.desktop-chrome .cp-card.window-highlight {
+                outline: 2.5px solid rgba(143, 188, 143, 0.65);
+                outline-offset: 2px;
+                animation: window-highlight-fade 1.3s ease forwards;
+            }
+            @keyframes window-highlight-fade {
+                0%, 30% { outline-color: rgba(143, 188, 143, 0.75); }
+                100% { outline-color: rgba(143, 188, 143, 0); }
+            }
+            @keyframes chrome-highlight-pulse { 0%, 100% { opacity: 0; } 40% { opacity: 1; } }
+
+            /* ---- 菜单栏触发图标 hover / 选中态（macOS 菜单标题高亮）：
+                    用 outline 外扩一圈的圆角矩形光标块——全部触发图标（含蓝牙按钮）统一 6px 圆角，
+                    指示器形状完全一致；不改 padding/margin/box-shadow/transform，无布局跳动 ---- */
+            html.desktop-chrome .triple-header-icons .triple-status-fa { pointer-events: auto; }
+            html.desktop-chrome .triple-header-icons > * { cursor: pointer; border-radius: 6px; }
+            /* 蓝牙按钮基础样式带 border-radius:0 !important，此处同优先级覆盖为统一圆角矩形 */
+            html.desktop-chrome .triple-header-icons > .bt-btn { border-radius: 6px !important; }
+            html.desktop-chrome #triple-logo-btn { cursor: pointer; border-radius: 6px; }
+            html.desktop-chrome .triple-header-icons > *:hover,
+            html.desktop-chrome #triple-logo-btn:hover { outline: 7px solid rgba(255, 255, 255, 0.16); }
+            html.desktop-chrome .menu-trigger-active { outline: 7px solid rgba(255, 255, 255, 0.22); }
+
+            /* ---- 通用 NSMenu 下拉面板（Rt5 系统菜单 / 电池 / 网络 / 机器人模式） ---- */
+            html.desktop-chrome .ns-menu {
+                position: fixed;
+                inset: auto;
+                top: calc(var(--header-total) + 8px);
+                left: auto;
+                right: 16px;
+                display: block;
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+                transform: translateY(-6px) scaleY(0.97);
+                transform-origin: top right;
+                z-index: 945;
+                transition: opacity 0.13s ease, transform 0.13s ease, visibility 0s linear 0.13s;
+            }
+            html.desktop-chrome .ns-menu.visible {
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
+                transform: translateY(0) scaleY(1);
+                transition: opacity 0.13s ease, transform 0.13s ease, visibility 0s;
+            }
+            html.desktop-chrome .ns-menu-card {
+                min-width: 252px;
+                max-width: calc(100vw - 24px);
+                background: rgba(16, 26, 16, 0.82);
+                backdrop-filter: blur(40px) saturate(1.8);
+                -webkit-backdrop-filter: blur(40px) saturate(1.8);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 12px;
+                box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5), 0 2px 12px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+                padding: 5px;
+            }
+            .ns-menu-label { font-size: 11px; font-weight: bold; color: rgba(192, 228, 192, 0.5); padding: 6px 12px 4px; letter-spacing: 0.04em; }
+            .ns-menu-sep { height: 1px; margin: 5px 11px; background: rgba(255, 255, 255, 0.1); }
+            .ns-menu-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 6px 12px;
+                border-radius: 6px;
+                font-size: 13px;
+                color: #e5f2e5;
+                cursor: pointer;
+                transition: background 0.1s ease;
+            }
+            .ns-menu-item:hover { background: rgba(143, 188, 143, 0.22); }
+            .ns-menu-item.static { cursor: default; color: rgba(229, 242, 229, 0.78); }
+            .ns-menu-item.static:hover { background: transparent; }
+            /* 关机/重启中止期间禁用项（如模式菜单的模式按钮）：灰色不可点 */
+            .ns-menu-item.disabled { cursor: default; color: rgba(229, 242, 229, 0.30); }
+            .ns-menu-item.disabled:hover { background: transparent; }
+            .ns-menu-item.disabled i,
+            .ns-menu-item.disabled .ns-item-icon { color: rgba(229, 242, 229, 0.30); }
+            .ns-menu-item.current { font-weight: bold; }
+            .ns-menu-item.danger:hover { background: rgba(248, 113, 113, 0.2); color: #fca5a5; }
+            .ns-menu-item .ns-item-icon { width: 14px; text-align: center; color: #8fbc8f; font-size: 11px; flex-shrink: 0; }
+            .ns-menu-item .ns-item-value { color: rgba(192, 228, 192, 0.62); font-size: 12px; text-align: right; font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', 'MiSans', monospace; }
+            .ns-menu-mode-row { display: flex; align-items: center; gap: 9px; }
+            .ns-menu-mode-row i { color: rgba(143, 188, 143, 0.8); font-size: 12px; width: 14px; text-align: center; }
+            /* 电池菜单大号电量展示区 */
+            .ns-battery-hero { display: flex; align-items: center; gap: 14px; padding: 10px 12px 12px; }
+            .ns-battery-hero svg { width: 46px; height: 25px; color: #8fbc8f; flex-shrink: 0; }
+            .ns-battery-pct { font-size: 25px; font-weight: bold; color: #e5f2e5; line-height: 1.1; font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', 'MiSans', monospace; }
+            .ns-battery-state { font-size: 12px; color: rgba(192, 228, 192, 0.65); margin-top: 3px; }
+
+            /* ---- 关于本机窗口（macOS About 风格：独立浮窗、无全屏遮罩模糊、大投影；
+                    红灯关闭 / 黄灯最小化到程序坞 / 绿灯最大化（菜单栏保留）；
+                    位置、缩放、拖动与最小化/恢复动画由桌面窗口管理器统一管理 ---- */
+            html.desktop-chrome #about-modal {
+                position: fixed;
+                inset: 0;
+                display: block;
+                background: transparent !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+                z-index: 920;
+                transition: opacity 0.16s ease, visibility 0s linear 0.16s;
+            }
+            html.desktop-chrome #about-modal.visible {
+                opacity: 1;
+                visibility: visible;
+                transition: opacity 0.16s ease, visibility 0s;
+            }
+            html.desktop-chrome .about-window {
+                position: fixed;
+                width: min(900px, calc(100vw - 48px));
+                height: min(680px, calc(100vh - 100px)); /* 右列底部为硬件仪表条，状态列表自适应列数填充 */
+                display: flex;
+                flex-direction: column;
+                background: rgba(16, 26, 16, 0.97);
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 12px;
+                box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 6px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+                overflow: hidden;
+            }
+
+            /* ---- 桌面窗口管理器（DWM）：关于本机 / 过程窗口 / PDF 阅读器统一浮窗化。
+                    遮罩层透明且不拦截点击（真正浮窗语义），窗口本体近实色深底、一律不做背景模糊；
+                    位置/尺寸由 JS 显式 px 矩形管理，拖动/缩放期间关闭过渡保证跟手，
+                    最大化/还原时经 .dwm-anim 启用短暂过渡 ---- */
+            html.desktop-chrome .dwm-modal {
+                display: block;
+                background: transparent !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                pointer-events: none;
+            }
+            html.desktop-chrome .dwm-window {
+                position: fixed;
+                pointer-events: auto;
+                transform: none;
+                transition: none;
+                background: rgba(16, 26, 16, 0.97) !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                border-radius: 12px;
+                box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 6px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+                overflow: hidden;
+            }
+            html.desktop-chrome .dwm-window.dwm-anim { transition: left 0.32s cubic-bezier(0.32, 0.72, 0, 1), top 0.32s cubic-bezier(0.32, 0.72, 0, 1), width 0.32s cubic-bezier(0.32, 0.72, 0, 1), height 0.32s cubic-bezier(0.32, 0.72, 0, 1), border-radius 0.32s cubic-bezier(0.32, 0.72, 0, 1); }
+            /* 绿灯最大化全屏态：四角直角（还原时回 12px 圆角） */
+            html.desktop-chrome .dwm-window.dwm-max { border-radius: 0; }
+            /* 标题栏（.about-titlebar / .cp-title）作为拖动区 */
+            html.desktop-chrome .dwm-window .cp-title,
+            html.desktop-chrome .dwm-window .about-titlebar { cursor: default; user-select: none; }
+            /* 八向拉伸把手（贴内缘，避开 overflow 裁剪） */
+            .dwm-rs { position: absolute; z-index: 40; }
+            .dwm-rs-n { top: 0; left: 14px; right: 14px; height: 5px; cursor: ns-resize; }
+            .dwm-rs-s { bottom: 0; left: 14px; right: 14px; height: 7px; cursor: ns-resize; }
+            .dwm-rs-e { right: 0; top: 14px; bottom: 14px; width: 5px; cursor: ew-resize; }
+            .dwm-rs-w { left: 0; top: 14px; bottom: 14px; width: 5px; cursor: ew-resize; }
+            .dwm-rs-ne { top: 0; right: 0; width: 16px; height: 16px; cursor: nesw-resize; }
+            .dwm-rs-nw { top: 0; left: 0; width: 16px; height: 16px; cursor: nwse-resize; }
+            .dwm-rs-se { bottom: 0; right: 0; width: 18px; height: 18px; cursor: nwse-resize; }
+            .dwm-rs-sw { bottom: 0; left: 0; width: 16px; height: 16px; cursor: nesw-resize; }
+            /* 过程窗口 / PDF 阅读器桌面浮窗化覆盖：基础样式的 flex 居中、缩放过渡、背景模糊全部失效 */
+            html.desktop-chrome .self-check-modal.dwm-modal,
+            html.desktop-chrome #pdf-viewer-modal.dwm-modal { display: block; }
+            html.desktop-chrome .self-check-modal.dwm-modal .self-check-content,
+            html.desktop-chrome #pdf-viewer-modal.dwm-modal .pdf-viewer-container {
+                max-width: none;
+                max-height: none;
+            }
+            /* 系统更新弹窗桌面浮窗化：遮罩透明不拦点击，全屏代码窗/扫描线装饰隐藏（窗口本体保留自身底色） */
+            html.desktop-chrome #update-modal.dwm-modal { display: block; }
+            html.desktop-chrome #update-modal.dwm-modal .update-code-windows,
+            html.desktop-chrome #update-modal.dwm-modal .update-scan-line { display: none; }
+            html.desktop-chrome #update-modal.dwm-modal .update-modal-content {
+                max-width: none;
+                max-height: none;
+            }
+            .about-titlebar { position: relative; display: flex; align-items: center; justify-content: center; height: 38px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); flex-shrink: 0; }
+            .about-titlebar .cp-traffic-lights { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); display: flex; }
+            .about-titlebar .about-title { font-size: 13px; font-weight: bold; color: rgba(229, 242, 229, 0.92); }
+            .about-body { display: flex; min-height: 0; flex: 1; }
+            /* 左列：标题块在上（居左）+ 机器人图填充下方剩余空间（视觉平衡） */
+            .about-left { flex: 0 0 300px; display: flex; flex-direction: column; padding: 18px 20px 20px; border-right: 1px solid rgba(255, 255, 255, 0.07); min-height: 0; }
+            .about-head { padding: 2px 2px 13px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); flex-shrink: 0; }
+            .about-left img { flex: 1 1 0; min-height: 0; width: 100%; object-fit: contain; border-radius: 10px; padding-top: 14px; }
+            .about-right { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; }
+            .about-model { font-size: 17px; font-weight: bold; color: #c0e4c0; }
+            .about-sub { font-size: 12px; color: rgba(143, 188, 143, 0.6); margin-top: 4px; line-height: 1.45; }
+            .about-sub-org { word-break: break-word; }
+            .about-sub-meta { margin-top: 2px; letter-spacing: 0.01em; }
+            .about-status-list { flex: 1; overflow-y: auto; padding: 14px 20px 12px; min-height: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0 22px; align-content: start; }
+            .about-status-item { display: flex; justify-content: space-between; gap: 10px; padding: 7px 2px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); font-size: 12px; min-width: 0; }
+            .about-status-item .asi-label { color: rgba(143, 188, 143, 0.6); flex-shrink: 0; }
+            .about-status-item .asi-value { color: #e5f2e5; text-align: right; word-break: break-all; }
+            /* EN 关于页：长标签行改为上下两行（标签/值），不靠缩窄硬挤，布局稳定不抽搐 */
+            html[lang='en'] .about-status-item {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 2px;
+                padding: 8px 2px;
+            }
+            html[lang='en'] .about-status-item .asi-label {
+                flex-shrink: 1;
+                white-space: normal;
+                line-height: 1.35;
+            }
+            html[lang='en'] .about-status-item .asi-value {
+                text-align: left;
+                word-break: break-word;
+            }
+            /* 右列底部硬件仪表条：CPU/GPU/NPU 任务管理器式迷你折线（canvas 自绘）+ 内存/存储实时进度条 */
+            .about-hw { flex-shrink: 0; border-top: 1px solid rgba(255, 255, 255, 0.07); padding: 11px 20px 14px; display: flex; flex-direction: column; gap: 9px; }
+            .about-hw-label { font-size: 11px; letter-spacing: 0.18em; color: rgba(143, 188, 143, 0.55); }
+            .about-hw-charts { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+            .about-hw-bars { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            .about-hw-card { background: rgba(255, 255, 255, 0.045); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 9px 12px 10px; min-width: 0; }
+            .about-hw-head { display: flex; align-items: baseline; gap: 7px; margin-bottom: 7px; min-width: 0; }
+            .about-hw-name { font-size: 13px; font-weight: bold; color: rgba(229, 242, 229, 0.92); }
+            .about-hw-model { font-size: 10px; color: rgba(143, 188, 143, 0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .about-hw-val { margin-left: auto; font-size: 14px; font-weight: bold; color: #c0e4c0; }
+            .about-hw-chart { width: 100%; height: 56px; display: block; }
+            .about-hw-bar { height: 8px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+            .about-hw-bar-fill { height: 100%; width: 0%; border-radius: 4px; background: linear-gradient(90deg, #47a05a, #8fbc8f); transition: width 0.6s cubic-bezier(0.32, 0.72, 0, 1); }
+            .about-hw-bar-fill-sto { background: linear-gradient(90deg, #4d8f96, #94d2da); }
+            .about-hw-sub { margin-top: 5px; font-size: 11px; color: rgba(143, 188, 143, 0.6); }
+
+            /* ---- 登录 → 主界面衔接：系统加载动画属于登录界面的一部分——登录卡片下半部（表单）
+                    收缩消失、原位换入 macOS 式细进度条；主标题与图标保持不变，副标题切换为加载文案；
+                    卡片向上收缩并保持居中（背景仍是登录页背景，无全屏遮罩）。
+                    进入登录页不播放；Android 与移动端经 JS 守卫跳过。
+                    加载全程登录层置于最上层（z-index 950）——菜单栏在进入主界面（淡出）时才显现；
+                    退出登录时主界面整体淡出后再切回登录页，两端对称 ---- */
+            html.desktop-chrome #login-modal { z-index: 950; }
+            html.desktop-chrome #main-content { transition: opacity 0.4s ease; }
+            html.desktop-chrome #main-content.fading-out { opacity: 0; pointer-events: none; }
+            html.desktop-chrome .login-modal.entering #login-form {
+                overflow: hidden;
+                animation: login-form-collapse 0.5s cubic-bezier(0.5, 0, 0.85, 0.4) forwards;
+            }
+            @keyframes login-form-collapse {
+                0% { max-height: 480px; opacity: 1; }
+                100% { max-height: 0; opacity: 0; }
+            }
+            .login-boot { display: none; }
+            html.desktop-chrome .login-modal.entering .login-boot {
+                display: block;
+                animation: login-boot-in 0.3s ease 0.42s both;
+            }
+            @keyframes login-boot-in {
+                from { opacity: 0; transform: translateY(6px); }
+                to { opacity: 1; transform: none; }
+            }
+            .login-boot .boot-progress { width: 200px; height: 4px; border-radius: 3px; background: rgba(255, 255, 255, 0.1); overflow: hidden; position: relative; margin: 0 auto; }
+            .boot-progress-fill { height: 100%; width: 0%; border-radius: 3px; background: linear-gradient(90deg, #4e6f4e, #8fbc8f); position: relative; overflow: hidden; }
+            .boot-progress-fill::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent); animation: boot-sheen 1s linear infinite; }
+            @keyframes boot-sheen { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+            /* ---- 退出登录 → 登录页：简单过渡动画（登录层淡入 + 卡片自上方轻微落下） ---- */
+            html.desktop-chrome .login-modal.revealing { animation: login-modal-reveal 0.4s ease; }
+            html.desktop-chrome .login-modal.revealing .login-container { animation: login-card-reveal 0.42s cubic-bezier(0.22, 1, 0.36, 1); }
+            @keyframes login-modal-reveal { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes login-card-reveal {
+                from { opacity: 0; transform: translateY(-16px) scale(0.97); }
+                to { opacity: 1; transform: none; }
+            }
+
+            /* ---- 更新/自检过程窗口：与菜单面板一致去除全屏遮罩模糊，仅保留窗口投影
+                    （提示对话框 self-check-alert/reset-defaults-modal/toast 保留模糊遮罩，不在此列）；
+                    z 提到菜单面板之上，保证过程窗口/提示可覆盖菜单 ---- */
+            html.desktop-chrome .self-check-modal {
+                background: transparent !important;
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+                z-index: 930;
+            }
+            html.desktop-chrome .self-check-modal .self-check-modal-content {
+                box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+            }
+            html.desktop-chrome .self-check-alert { z-index: 952; }
+
+            /* ---- NSMenu 面板精修：macOS 式细滚动条（面板范围生效，不影响移动端） ---- */
+            html.desktop-chrome #bt-modal ::-webkit-scrollbar,
+            html.desktop-chrome #info-modal ::-webkit-scrollbar,
+            html.desktop-chrome #settings-modal ::-webkit-scrollbar,
+            html.desktop-chrome #about-modal ::-webkit-scrollbar,
+            html.desktop-chrome .ns-menu ::-webkit-scrollbar { width: 8px; height: 8px; }
+            html.desktop-chrome #bt-modal ::-webkit-scrollbar-thumb,
+            html.desktop-chrome #info-modal ::-webkit-scrollbar-thumb,
+            html.desktop-chrome #settings-modal ::-webkit-scrollbar-thumb,
+            html.desktop-chrome #about-modal ::-webkit-scrollbar-thumb,
+            html.desktop-chrome .ns-menu ::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.18);
+                border-radius: 4px;
+                border: 2px solid transparent;
+                background-clip: padding-box;
+            }
+            html.desktop-chrome #bt-modal ::-webkit-scrollbar-track,
+            html.desktop-chrome #info-modal ::-webkit-scrollbar-track,
+            html.desktop-chrome #settings-modal ::-webkit-scrollbar-track,
+            html.desktop-chrome #about-modal ::-webkit-scrollbar-track,
+            html.desktop-chrome .ns-menu ::-webkit-scrollbar-track { background: transparent; }
+            /* ---- 连接面板行 hover（与信息面板 file-item 一致的 NSMenuItem 高亮） ---- */
+            html.desktop-chrome #bt-modal .bt-modal-card .bt-modal-subtitle,
+            html.desktop-chrome #bt-modal .bt-modal-card .bt-device-row { border-radius: 8px; }
+
+            /* ---- 底部 macOS 程序坞（自动隐藏：鼠标触底缘浮起，离开收回；大尺寸彩色图标 + 最小化窗口区） ---- */
+            html.desktop-chrome body.dock-enabled #desktop-dock { display: flex; }
+            #desktop-dock {
+                position: fixed;
+                left: 50%;
+                bottom: 6px;
+                z-index: 45;
+                align-items: flex-end;
+                gap: 10px;
+                padding: 9px 12px 13px;
+                border-radius: 26px;
+                background: rgba(18, 30, 18, 0.55);
+                backdrop-filter: blur(40px) saturate(1.8);
+                -webkit-backdrop-filter: blur(40px) saturate(1.8);
+                border: 1px solid rgba(255, 255, 255, 0.16);
+                box-shadow: 0 22px 55px rgba(0, 0, 0, 0.55), 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+                transform: translateX(-50%) translateY(calc(100% + 16px));
+                /* 只过渡浮起/收回的位移；宽度由 JS 逐帧直写（随放大挤压即时跟随，消除居中重排漂移） */
+                transition: transform 0.28s cubic-bezier(0.32, 1.3, 0.42, 1);
+            }
+            /* 浮起时置于浮窗之上（macOS 语义：Dock 永远在最上层）；收回时保持底层不遮挡 */
+            html.desktop-chrome body.dock-open #desktop-dock { transform: translateX(-50%) translateY(0); z-index: 950; }
+            .dock-item {
+                position: relative;
+                width: 60px;
+                height: 60px;
+                flex: 0 0 auto;
+                border: none;
+                background: transparent;
+                border-radius: 14px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                padding: 0;
+                transform-origin: 50% 100%;
+                will-change: transform;
+                /* 放大由 JS rAF 循环逐帧插值驱动（目标值/当前值指数平滑，收敛自停），全程无 CSS 过渡；
+                   弹跳作用于内层 .dock-icon，与本层放大 transform 叠加互不覆盖，点击不瞬移 */
+            }
+            .dock-item .dock-icon {
+                width: 52px;
+                height: 52px;
+                border-radius: 13px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 23px;
+                transform-origin: 50% 100%;
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 3px 8px rgba(0, 0, 0, 0.3);
+                pointer-events: none;
+            }
+            .dock-item .dock-icon svg { width: 23px; height: 23px; }
+            /* macOS 应用式彩色图标：控制台绿 / 关于本机 Rt5 LOGO（深色底衬白标） */
+            .dock-item[data-action="console"] .dock-icon { background: linear-gradient(180deg, #47a05a, #1d5c2e); border: 1px solid rgba(143, 188, 143, 0.4); color: #eafbea; }
+            #dock-about-window .dock-icon { background: linear-gradient(180deg, #3a413a, #1d241d); border: 1px solid rgba(255, 255, 255, 0.18); }
+            #dock-about-window .dock-icon img { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45)); pointer-events: none; }
+            /* 主界面窗口区图标（9 窗口全量）：终端 / 机器人控制台 / 情绪 / 任务 / 参数 / 日志 / 实时代码 / 双图 / 信息参数 */
+            .dock-item[data-action="win-terminal"] .dock-icon { background: linear-gradient(180deg, #3c7a55, #1c4530); border: 1px solid rgba(143, 188, 143, 0.35); color: #e3f5e6; }
+            .dock-item[data-action="win-console"] .dock-icon { background: linear-gradient(180deg, #4d8f96, #235158); border: 1px solid rgba(94, 190, 200, 0.4); color: #e0f7fa; }
+            .dock-item[data-action="win-emotion"] .dock-icon { background: linear-gradient(180deg, #c25b93, #6e2347); border: 1px solid rgba(244, 114, 182, 0.4); color: #ffe9f4; }
+            .dock-item[data-action="win-tasks"] .dock-icon { background: linear-gradient(180deg, #5a7bd0, #2c3f7e); border: 1px solid rgba(129, 155, 235, 0.4); color: #e8eeff; }
+            .dock-item[data-action="win-params"] .dock-icon { background: linear-gradient(180deg, #b0783f, #6e4419); border: 1px solid rgba(226, 168, 106, 0.4); color: #ffeeda; }
+            .dock-item[data-action="win-logs"] .dock-icon { background: linear-gradient(180deg, #6b7f6b, #3a4a3a); border: 1px solid rgba(160, 180, 160, 0.35); color: #e8f0e8; }
+            .dock-item[data-action="win-code-window"] .dock-icon { background: linear-gradient(180deg, #6259c9, #312d6e); border: 1px solid rgba(139, 132, 250, 0.4); color: #ece9ff; }
+            .dock-item[data-action="win-robot-images"] .dock-icon { background: linear-gradient(180deg, #3f83c9, #1e4a80); border: 1px solid rgba(96, 165, 250, 0.4); color: #e3f1ff; }
+            .dock-item[data-action="win-status-bar"] .dock-icon { background: linear-gradient(180deg, #8a8570, #4a4636); border: 1px solid rgba(214, 205, 160, 0.35); color: #f2eedd; }
+            .dock-item.window-open .dock-icon { filter: brightness(1.12); }
+            /* 分隔线右侧浮窗区：关于本机常驻（Rt5 LOGO）；过程窗口 / PDF 阅读器打开或最小化时
+               显示对应图标（window-shown 由桌面窗口管理器同步），点击恢复/聚焦窗口 */
+            .dock-separator {
+                width: 1px;
+                align-self: stretch;
+                margin: 8px 2px;
+                background: rgba(255, 255, 255, 0.16);
+                flex-shrink: 0;
+            }
+            .dock-window-item { display: none; }
+            .dock-window-item.window-shown { display: flex; }
+            #dock-about-window { display: flex; }
+            /* 过程窗口 / PDF 阅读器独立配色 */
+            #dock-process-window .dock-icon { background: linear-gradient(180deg, #b0556b, #6e2337); border: 1px solid rgba(244, 114, 182, 0.4); color: #ffe9f1; }
+            #dock-pdf-window .dock-icon { background: linear-gradient(180deg, #c25b4e, #7a2a22); border: 1px solid rgba(248, 113, 113, 0.4); color: #ffe9e5; }
+            .dock-item .dock-dot {
+                position: absolute;
+                bottom: -8px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 5px;
+                height: 5px;
+                border-radius: 50%;
+                background: rgba(215, 240, 215, 0.95);
+                box-shadow: 0 0 6px rgba(143, 188, 143, 0.8);
+                opacity: 0;
+                transition: opacity 0.2s;
+                pointer-events: none;
+            }
+            .dock-item.window-open .dock-dot { opacity: 1; }
+            .dock-item .dock-tip {
+                position: absolute;
+                bottom: calc(100% + 14px);
+                left: 50%;
+                transform: translateX(-50%) scale(0.94);
+                background: rgba(16, 26, 16, 0.88);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                color: #e5f2e5;
+                font-size: 11px;
+                line-height: 1;
+                padding: 5px 9px;
+                border-radius: 7px;
+                white-space: nowrap;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.12s ease, transform 0.12s ease;
+            }
+            .dock-item:hover .dock-tip { opacity: 1; transform: translateX(-50%) scale(1); transition-delay: 0.3s; }
+            /* 弹跳作用于内层图标：外层 .dock-item 保留 JS 直写的放大 transform，两层叠加点击不瞬移 */
+            .dock-item.dock-bounce .dock-icon { animation: dock-bounce 0.6s ease; }
+            /* macOS 弹跳：起跳挤压 → 腾空 → 落地回弹 → 余跳 */
+            @keyframes dock-bounce {
+                0% { transform: translateY(0) scale(1); }
+                18% { transform: translateY(3px) scale(1.06, 0.92); }
+                45% { transform: translateY(-22px) scale(0.98, 1.04); }
+                70% { transform: translateY(0) scale(1.03, 0.97); }
+                85% { transform: translateY(-7px) scale(1); }
+                100% { transform: translateY(0) scale(1); }
+            }
+
+            /* ===== macOS 风格通知堆栈（desktop-chrome 共享：win-app 与浏览器一致；
+                    win-app 原样式已从 css/win.css 迁移至此，top 随 --header-total 自适应标题栏高度） ===== */
+            html.desktop-chrome .macos-notification-stack {
+                position: fixed;
+                top: calc(var(--header-total) + 20px);
+                right: 12px;
+                width: 360px;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                z-index: 948;
+                pointer-events: none;
+                transition: top 0.35s cubic-bezier(0.32,0.72,0,1);
+            }
+            html.desktop-chrome .macos-notification-stack.stack-shifted { top: calc(var(--header-total) + 190px); }
+            html.desktop-chrome .macos-notification {
+                position: relative;
+                display: flex;
+                gap: 12px;
+                align-items: flex-start;
+                padding: 14px 16px;
+                border-radius: 14px;
+                background: rgba(28,28,30,0.78);
+                backdrop-filter: blur(40px) saturate(180%);
+                -webkit-backdrop-filter: blur(40px) saturate(180%);
+                border: 1px solid rgba(255,255,255,0.08);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 10px 40px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08);
+                color: #f5f5f7;
+                font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', 'MiSans', monospace;
+                opacity: 0;
+                transform: translateX(110%);
+                transition: transform 0.2s ease-out, opacity 0.18s ease-out;
+                pointer-events: auto;
+            }
+            html.desktop-chrome .macos-notification.macos-notification-enter { opacity: 1; transform: translateX(0); }
+            html.desktop-chrome .macos-notification.macos-notification-leave { opacity: 0; transform: translateX(110%); transition: transform 0.2s ease-in, opacity 0.15s ease-in; }
+            html.desktop-chrome .macos-notification .macos-notification-icon {
+                width: 44px; height: 44px; min-width: 44px; border-radius: 10px;
+                display: flex; align-items: center; justify-content: center; font-size: 22px;
+                background: linear-gradient(135deg, #1d3e1d 0%, #173217 55%, #2d4a2d 100%);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 2px 8px rgba(0,0,0,0.25);
+                color: #4ade80;
+            }
+            html.desktop-chrome .macos-notification .macos-notification-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+            html.desktop-chrome .macos-notification .macos-notification-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+            html.desktop-chrome .macos-notification .macos-notification-app { font-size: 13px; font-weight: 600; color: rgba(245,245,247,0.9); }
+            html.desktop-chrome .macos-notification .macos-notification-time { font-size: 12px; color: rgba(245,245,247,0.6); }
+            html.desktop-chrome .macos-notification .macos-notification-title { font-size: 15px; font-weight: 600; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            html.desktop-chrome .macos-notification .macos-notification-msg { font-size: 13px; line-height: 1.35; color: rgba(245,245,247,0.75); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+            html.desktop-chrome .macos-notification.macos-notification-text { padding: 12px 16px; }
+            html.desktop-chrome .macos-notification.macos-notification-text .macos-notification-icon { width: 28px; height: 28px; min-width: 28px; border-radius: 8px; font-size: 14px; }
+            html.desktop-chrome .macos-notification-stack .macos-notification.stacked { transform: scale(0.96); opacity: 0.6; }
+            html.desktop-chrome .macos-notification-stack .macos-notification .macos-notification-clear {
+                position: absolute; top: 6px; right: 8px; width: 16px; height: 16px; border-radius: 50%;
+                display: none; align-items: center; justify-content: center; font-size: 9px;
+                color: rgba(245,245,247,0.75); background: rgba(255,255,255,0.12); cursor: pointer;
+            }
+            html.desktop-chrome .macos-notification-stack .macos-notification:hover .macos-notification-clear { display: flex; }
+        }

@@ -1,0 +1,307 @@
+{
+  "version": "f6176bc70c28",
+  "generatedAt": "2026-10-05T17:29:08.024Z",
+  "totalSize": 15458034,
+  "files": [
+    {
+      "path": "MimoTTSClient.js",
+      "size": 20304,
+      "hash": "d5bddb839895"
+    },
+    {
+      "path": "RotationSprite.js",
+      "size": 15434,
+      "hash": "7d7fe44c4dde"
+    },
+    {
+      "path": "chart.js",
+      "size": 206944,
+      "hash": "ca7ec713ac18"
+    },
+    {
+      "path": "css/android.css",
+      "size": 612,
+      "hash": "fa759641854e"
+    },
+    {
+      "path": "css/app-launch.css",
+      "size": 5843,
+      "hash": "0b67e5a38c6a"
+    },
+    {
+      "path": "css/app.css",
+      "size": 177798,
+      "hash": "2d198c0099a7"
+    },
+    {
+      "path": "css/desktop-chrome.css",
+      "size": 43175,
+      "hash": "f996d59c845f"
+    },
+    {
+      "path": "css/fonts-face.css",
+      "size": 3899,
+      "hash": "adedc9108279"
+    },
+    {
+      "path": "css/fonts.css",
+      "size": 4431,
+      "hash": "da32491bf99d"
+    },
+    {
+      "path": "css/i18n-en.css",
+      "size": 3608,
+      "hash": "6ec0fbece510"
+    },
+    {
+      "path": "css/tailwind.css",
+      "size": 17842,
+      "hash": "42ddace2fe0d"
+    },
+    {
+      "path": "css/titlebar-fusion.css",
+      "size": 6080,
+      "hash": "1e632f73a90d"
+    },
+    {
+      "path": "css/win.css",
+      "size": 3290,
+      "hash": "90d778622604"
+    },
+    {
+      "path": "doc/boot_data.json",
+      "size": 856,
+      "hash": "f6541bdeb8ae"
+    },
+    {
+      "path": "doc/clear_process_data.json",
+      "size": 3914,
+      "hash": "2b208b8db5bf"
+    },
+    {
+      "path": "doc/database_update_data.json",
+      "size": 1037,
+      "hash": "9d743f4c3455"
+    },
+    {
+      "path": "doc/robot_code.txt",
+      "size": 20058,
+      "hash": "b896d8bbef96"
+    },
+    {
+      "path": "doc/system_update_data.json",
+      "size": 2625,
+      "hash": "c0f501323a0d"
+    },
+    {
+      "path": "icons/all.min.css",
+      "size": 73890,
+      "hash": "8230c4590eee"
+    },
+    {
+      "path": "js/android.js",
+      "size": 7487,
+      "hash": "81050e5b307f"
+    },
+    {
+      "path": "js/app-ble.js",
+      "size": 57672,
+      "hash": "b1a08bb8d088"
+    },
+    {
+      "path": "js/app-boot.js",
+      "size": 3788,
+      "hash": "58415ddc1bbc"
+    },
+    {
+      "path": "js/app-core.js",
+      "size": 378486,
+      "hash": "866ec6bbd6fd"
+    },
+    {
+      "path": "js/app-desktop.js",
+      "size": 55029,
+      "hash": "d955df37b151"
+    },
+    {
+      "path": "js/app-launch.js",
+      "size": 11199,
+      "hash": "3922bd534b27"
+    },
+    {
+      "path": "js/cache-console.js",
+      "size": 13527,
+      "hash": "912da2186873"
+    },
+    {
+      "path": "js/i18n.js",
+      "size": 128665,
+      "hash": "5a4a09aaf850"
+    },
+    {
+      "path": "js/platform-bootstrap.js",
+      "size": 13988,
+      "hash": "1a335cd2b040"
+    },
+    {
+      "path": "js/win.js",
+      "size": 1832,
+      "hash": "472e98dc7fb0"
+    },
+    {
+      "path": "pic/Male_2.png",
+      "size": 1666513,
+      "hash": "7ee8ef39632b"
+    },
+    {
+      "path": "pic/Rt5 LOGO_bai.png",
+      "size": 14423,
+      "hash": "34589c36238e"
+    },
+    {
+      "path": "pic/left.webp",
+      "size": 220964,
+      "hash": "b92829bd56d8"
+    },
+    {
+      "path": "pic/links/broadcast.svg",
+      "size": 544,
+      "hash": "d7b6af8f0cb0"
+    },
+    {
+      "path": "pic/links/channel.svg",
+      "size": 296,
+      "hash": "e80594e1f021"
+    },
+    {
+      "path": "pic/links/demo.svg",
+      "size": 323,
+      "hash": "eda917907b35"
+    },
+    {
+      "path": "pic/links/doc.svg",
+      "size": 508,
+      "hash": "a3b3aa665951"
+    },
+    {
+      "path": "pic/links/info.svg",
+      "size": 279,
+      "hash": "22c90b615afe"
+    },
+    {
+      "path": "pic/links/log.svg",
+      "size": 637,
+      "hash": "5d74ddb129f9"
+    },
+    {
+      "path": "pic/links/pdf.svg",
+      "size": 321,
+      "hash": "c1341068e710"
+    },
+    {
+      "path": "pic/links/pixiv.svg",
+      "size": 342,
+      "hash": "6274474aa040"
+    },
+    {
+      "path": "pic/links/social.svg",
+      "size": 256,
+      "hash": "9e78819a994b"
+    },
+    {
+      "path": "pic/links/telegram.svg",
+      "size": 322,
+      "hash": "d1cc0e455ad6"
+    },
+    {
+      "path": "pic/links/twitter.svg",
+      "size": 361,
+      "hash": "c5419ad87a9c"
+    },
+    {
+      "path": "pic/login/6194952517725129632.jpg",
+      "size": 82023,
+      "hash": "f46fd38d936e"
+    },
+    {
+      "path": "pic/login/6194952517725129633.jpg",
+      "size": 93064,
+      "hash": "e4559f0ccb41"
+    },
+    {
+      "path": "pic/login/6195021537849576497.jpg",
+      "size": 87450,
+      "hash": "90a9585991bb"
+    },
+    {
+      "path": "pic/login/6282701469836316342.jpg",
+      "size": 113620,
+      "hash": "58dcc0dbc98a"
+    },
+    {
+      "path": "pic/login/Background.webp",
+      "size": 179312,
+      "hash": "6baf07e46280"
+    },
+    {
+      "path": "pic/login/Gemini_Generated_Image_2d08mr2d08mr2d08.jpg",
+      "size": 237559,
+      "hash": "f7f2d4e8e595"
+    },
+    {
+      "path": "pic/right.webp",
+      "size": 236430,
+      "hash": "f0bd2c19c68e"
+    },
+    {
+      "path": "sprites/rotation-color-sprite.png",
+      "size": 3906787,
+      "hash": "89ee7a478b2c"
+    },
+    {
+      "path": "sprites/rotation-huimo-sprite.png",
+      "size": 3658247,
+      "hash": "0b820a889a4c"
+    },
+    {
+      "path": "sprites/rotation-sprites.json",
+      "size": 4075,
+      "hash": "24f98de88f02"
+    },
+    {
+      "path": "webfonts/JetBrainsMono-Bold.woff2",
+      "size": 94588,
+      "hash": "63fa91757ab0"
+    },
+    {
+      "path": "webfonts/MiSans-Demibold.woff2",
+      "size": 1629332,
+      "hash": "b108eb6f405a"
+    },
+    {
+      "path": "webfonts/MiSans-Regular.woff2",
+      "size": 1640688,
+      "hash": "59100dfb256d"
+    },
+    {
+      "path": "webfonts/MonoNarrow-Bold.woff2",
+      "size": 8384,
+      "hash": "ae4fc1afd677"
+    },
+    {
+      "path": "webfonts/MonoNarrow-Regular.woff2",
+      "size": 8328,
+      "hash": "a206496f4378"
+    },
+    {
+      "path": "webfonts/fa-solid-900.woff2",
+      "size": 158220,
+      "hash": "7cd8afd65019"
+    },
+    {
+      "path": "芮誊T系列仿人男性机器人控制台V1.1.html",
+      "size": 130525,
+      "hash": "0ba5e0d6973d"
+    }
+  ]
+}

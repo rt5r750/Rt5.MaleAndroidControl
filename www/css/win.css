@@ -1,0 +1,61 @@
+/* ===== Windows 专属样式（仅 Electron consoleAPI 环境按需加载；浏览器/Android 不加载） ===== */
+@media (min-width: 750px) {
+            /* 全屏时标题栏隐藏，标题栏偏移变量同步降回 40px（菜单面板/浮层 top 随之对齐 header） */
+            body.win-fullscreen { --header-total: 40px; }
+            body.win-fullscreen .triple-header-right { right: 12px !important; }
+            /* 全屏：隐藏标题栏（无浮窗），通过 Esc / F11 退出全屏 */
+            body.win-fullscreen .win-titlebar { display: none !important; }
+            body.win-fullscreen header { margin-top: 0 !important; }
+            body.win-fullscreen #app-container { height: calc(100vh - 40px) !important; }
+            body.win-fullscreen .triple-column-layout { height: calc(100vh - 40px) !important; }
+
+            /* 灵动岛（仅 win-app）：初始圆点藏在系统菜单栏背后飞出，卡片最终位于菜单栏下方；
+               裁剪容器保证弥散跑马灯最多显示到菜单栏上边缘，绝不进入窗口标题栏 */
+            body.win-desktop #dynamic-island-clip {
+                position: fixed;
+                top: 40px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                overflow: hidden;
+                pointer-events: none;
+                z-index: 54;
+            }
+            body.win-desktop .dynamic-island {
+                /* 灵动岛位于状态栏下方，圆点从状态栏底缘钻出 */
+                top: calc(var(--safe-area-top, 0px) + 120px) !important;
+                left: auto !important;
+                right: 12px;
+                transform: none;
+                z-index: 1;
+            }
+            body.win-desktop .dynamic-island.di-cam-anim {
+                /* 圆点初始藏在标题栏（40px）下面，从状态栏底缘钻出 */
+                transform: translateY(-80px);
+            }
+            /* 退场：圆点回收到标题栏下面（被覆盖），再淡出 */
+            body.win-desktop .dynamic-island.di-cam-exit,
+            body.win-desktop .dynamic-island.di-exiting {
+                transform: translateY(-80px);
+            }
+            body.win-fullscreen #dynamic-island-clip { top: 0; }
+            body.win-fullscreen .dynamic-island {
+                top: calc(var(--safe-area-top, 0px) + 100px) !important;
+                left: auto !important;
+                right: 12px;
+                transform: none;
+            }
+            /* macOS 风格通知堆栈样式已迁移至共享主 HTML（html.desktop-chrome 边界，win-app 与浏览器一致） */
+
+            body.win-fullscreen #win-page-bg { top: 0; }
+            /* 全屏：标题栏隐藏，浮层恢复全屏 */
+            body.win-fullscreen .login-modal,
+            body.win-fullscreen .settings-modal,
+            body.win-fullscreen .self-check-modal,
+            body.win-fullscreen .self-check-alert,
+            body.win-fullscreen .cognitive-modal,
+            body.win-fullscreen .update-modal,
+            body.win-fullscreen .pdf-viewer-modal,
+            body.win-fullscreen .info-modal,
+            body.win-fullscreen .bt-modal { top: 0 !important; }
+}

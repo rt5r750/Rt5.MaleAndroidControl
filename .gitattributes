@@ -1,0 +1,31 @@
+# 默认自动检测文本/二进制
+* text=auto
+
+# 二进制文件
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.bmp binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.mp4 binary
+*.webm binary
+*.pdf binary
+*.zip binary
+*.jar binary
+*.apk binary
+*.aab binary
+*.db binary
+
+# 保持 LF 的脚本
+*.sh text eol=lf
+gradlew text eol=lf
+
+# 保持 CRLF 的 Windows 脚本
+*.bat text eol=crlf
+*.ps1 text eol=crlf

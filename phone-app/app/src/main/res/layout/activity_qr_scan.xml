@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FF000000"
+    android:fitsSystemWindows="false"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- 相机预览 -->
+    <TextureView
+        android:id="@+id/previewView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 扫描遮罩层（代码中添加ScanOverlayView） -->
+    <FrameLayout
+        android:id="@+id/overlayContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- 顶部提示文字 -->
+        <TextView
+            android:id="@+id/hintText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|center_horizontal"
+            android:layout_marginTop="100dp"
+            android:text="将二维码放入框内自动扫描"
+            android:textColor="#CCFFFFFF"
+            android:textSize="17sp" />
+
+        <!-- 底部提示文字 -->
+        <TextView
+            android:id="@+id/bottomHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="200dp"
+            android:text="请对准二维码"
+            android:textColor="#CCFFFFFF"
+            android:textSize="15sp" />
+
+    </FrameLayout>
+
+    <!-- 取消按钮 - 固定48x48dp 正圆形 -->
+    <View
+        android:id="@+id/cancelBtn"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="100dp"
+        android:background="@drawable/qr_btn_circle_bg"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- 取消图标 -->
+    <TextView
+        android:id="@+id/cancelIcon"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="100dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center"
+        android:text="✕"
+        android:textColor="#FFFFFFFF"
+        android:textSize="20sp" />
+
+</FrameLayout>

@@ -1,0 +1,86 @@
+        /* 基础样式（@font-face 已拆至 fonts-face.css：仅全量模式由 platform-bootstrap 注入，
+           首访极简模式 html.lite 不加载 woff2，回退系统字体；字体栈保持不变） */
+        :root {
+            --safe-area-top: 0px;
+            --safe-area-bottom: 0px;
+            /* 顶部标题栏总占位：浏览器/Android 无原生标题栏，仅 40px header；Electron 另加 40px 原生标题栏 */
+            --header-total: 40px;
+        }
+        html.win-desktop {
+            --header-total: 80px;
+        }
+        /* 顶部导航栏固定，只让主内容区滚动 */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #0d1a0d;
+            overscroll-behavior: none;
+            overscroll-behavior-y: none;
+            overscroll-behavior-x: none;
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', 'MiSans', monospace;
+        }
+        body {
+            overflow: hidden;
+            background-color: #0d1a0d;
+        }
+        /* 覆盖 Tailwind .font-mono：数字/英文仍为 JetBrains Mono，中文回退到 MiSans */
+        body.font-mono {
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', 'MiSans', monospace !important;
+        }
+        /* EN 模式自适应缩窄（1.3.2）：等宽英文 75% 横压（advance 0.6em→0.45em）。
+           不做全页缩窄——i18n.js 逐元素实测：仅当 EN 渲染行数/宽度超过中文原文时，
+           给该元素加 .i18n-cn-fit（窄面 + 常规字重窄家族）；仍放不下的整键命中场景
+           再换 i18n.js 内 SHORT 短标签（如模式按钮：拟人模式→Humanoid）。
+           中文默认模式无此类，渲染与字体下载完全不变。
+           窄面声明见 fonts-face.css（tools/gen-mono-narrow.py 生成）。 */
+        .i18n-cn-fit {
+            font-stretch: condensed;
+            font-family: 'MonoNarrow', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', 'MiSans', monospace;
+        }
+        /* EN 首屏拟合遮罩（i18n.js 挂/摘）：拟合完成前隐藏正文及其全部后代
+           （!important 压过后代显式 visibility:visible，防弹窗类穿透暴露），
+           一步到位显形，消除"先正常字宽、后缩窄缩字号"的闪烁与位移；4s 安全超时强制显形 */
+        html.i18n-fitting body,
+        html.i18n-fitting body * {
+            visibility: hidden !important;
+        }
+        /* 中英切换过渡（i18n.js setLang 挂/摘 html.i18n-lang-fade）：
+           先淡出 0.16s → 换文案/完成拟合 → 淡入 0.22s，替代原来"一刀切"的闪现。
+           opacity:0 时整页不可见，与上面的 visibility 遮罩叠加也不冲突（无需再单独遮）。
+           只做 opacity（不加 blur/filter）：安卓 WebView 上滤镜合成的开销远高于纯透明度。 */
+        body {
+            transition: opacity 0.22s ease-out;
+        }
+        html.i18n-lang-fade body {
+            opacity: 0 !important;
+            transition: opacity 0.16s ease-in;
+        }
+        /* 无障碍：偏好减弱动效时不做淡入淡出，直接切换 */
+        @media (prefers-reduced-motion: reduce) {
+            body,
+            html.i18n-lang-fade body {
+                transition: none !important;
+            }
+        }
+        body.paused *, body.paused *::before, body.paused *::after { animation-play-state: paused !important; }
+        input, button, textarea, select {
+            font-family: inherit;
+        }
+        .fa, .fas, .far, .fal, .fab, .fa-solid, .fa-regular, .fa-brands, .fa-classic {
+            font-family: 'Font Awesome 6 Free', 'Font Awesome 5 Free', 'FontAwesome' !important;
+        }
+        header {
+            flex-shrink: 0;
+            position: sticky;
+            top: 0;
+            z-index: 55 !important;
+            transform: translateZ(0);
+        }
+        #app-container {
+            height: calc(100vh - var(--header-total));
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            transform: translateZ(0);
+        }

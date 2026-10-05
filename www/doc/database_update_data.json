@@ -1,0 +1,34 @@
+{
+    "dbs": [
+        "robot_core",
+        "emotion_model",
+        "motion_library",
+        "user_profile",
+        "sensory_log"
+    ],
+    "codeSnippets": [
+        "UPDATE schema SET version=\"D_V2025062001\" WHERE series=\"T31-750\";",
+        "VACUUM ANALYZE robot_core;",
+        "CREATE INDEX idx_motion_timestamp ON sensory_log(timestamp);",
+        "ALTER TABLE emotion_model ADD COLUMN pleasure_curve FLOAT;",
+        "REINDEX DATABASE robot_core;",
+        "CHECKPOINT;",
+        "SELECT pg_upgrade --target D_V2025062002;",
+        "MIGRATE user_profile FROM D_V2025061501;",
+        "PRAGMA integrity_check;",
+        "BACKUP DATABASE TO /var/r5os/db/backup/;"
+    ],
+    "versions": [
+        "D_V2025062001",
+        "D_V2025062002",
+        "D_V2025062003",
+        "D_V2025062004"
+    ],
+    "infos": [
+        "情感模型权重表 12,048 行",
+        "运动库动作条目 88,392 条",
+        "用户偏好记录 256 条",
+        "感官日志分区 1,024 个",
+        "系统配置键值 4,096 项"
+    ]
+}

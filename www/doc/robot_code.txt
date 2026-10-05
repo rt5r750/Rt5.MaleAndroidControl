@@ -1,0 +1,637 @@
+// T31-750 Robot Control Firmware v4.17.1002
+// Rt5 A.I. Fictional
+// All rights reserved. Unauthorized access prohibited.
+
+#include <robot_core.h>
+#include <motor_control.h>
+#include <sensor_array.h>
+#include <neural_network.h>
+#include <speech_synthesis.h>
+#include <emotion_engine.h>
+#include <task_scheduler.h>
+#include <bionic_actuator.h>
+#include <thermal_management.h>
+#include <power_distribution.h>
+
+#define FIRMWARE_VERSION "T31-750-R5OS_417.1002"
+#define MAX_JOINT_TORQUE 85.0f
+#define SAFETY_THRESHOLD 0.95f
+#define HEARTBEAT_INTERVAL 5000
+#define EMERGENCY_STOP_PIN 7
+
+using namespace robot_core;
+using namespace bionic_control;
+
+class MotorController {
+private:
+    float target_position[12];
+    float current_position[12];
+    float torque_limit[12];
+    float pid_kp, pid_ki, pid_kd;
+    bool calibration_complete;
+    uint32_t error_count;
+
+public:
+    MotorController() {
+        pid_kp = 2.5f;
+        pid_ki = 0.15f;
+        pid_kd = 0.08f;
+        calibration_complete = false;
+        error_count = 0;
+        for (int i = 0; i < 12; i++) {
+            target_position[i] = 0.0f;
+            current_position[i] = 0.0f;
+            torque_limit[i] = MAX_JOINT_TORQUE;
+        }
+    }
+
+    void initialize() {
+        serial_printf("[MotorCtrl] Initializing 12-axis servo array...");
+        for (int axis = 0; axis < 12; axis++) {
+            if (!servo_calibrate(axis)) {
+                serial_printf("[MotorCtrl] ERROR: Axis %d calibration failed", axis);
+                error_count++;
+                continue;
+            }
+            servo_set_home(axis, HOME_POSITION);
+            serial_printf("[MotorCtrl] Axis %d: OK (offset=%.2f)", axis, servo_get_offset(axis));
+        }
+        calibration_complete = (error_count == 0);
+        serial_printf("[MotorCtrl] Calibration complete. Errors: %d", error_count);
+    }
+
+    float computePID(int axis, float target, float current) {
+        float error = target - current;
+        float derivative = (error - last_error[axis]) / DT;
+        float integral = integral_sum[axis] + error * DT;
+        
+        integral = clamp(integral, -INTEGRAL_LIMIT, INTEGRAL_LIMIT);
+        integral_sum[axis] = integral;
+        last_error[axis] = error;
+        
+        return pid_kp * error + pid_ki * integral + pid_kd * derivative;
+    }
+
+    void updatePosition(int axis, float target_angle) {
+        if (axis < 0 || axis >= 12) return;
+        if (abs(target_angle) > MAX_JOINT_TORQUE) {
+            serial_printf("[MotorCtrl] WARNING: Axis %d target exceeds limit", axis);
+            target_angle = clamp(target_angle, -MAX_JOINT_TORQUE, MAX_JOINT_TORQUE);
+        }
+        target_position[axis] = target_angle;
+    }
+
+    void controlLoop() {
+        for (int i = 0; i < 12; i++) {
+            float output = computePID(i, target_position[i], current_position[i]);
+            servo_write(i, output);
+        }
+    }
+}; // MotorController
+
+class SensorFusion {
+private:
+    IMUData imu_raw;
+    TouchSensor touch_grid[16];
+    TemperatureSensor temp_sensors[8];
+    PressureSensor pressure_sensors[4];
+    float orientation[3];
+    float acceleration[3];
+    float angular_velocity[3];
+
+public:
+    void readAllSensors() {
+        imu_read(&imu_raw);
+        orientation[0] = imu_raw.roll;
+        orientation[1] = imu_raw.pitch;
+        orientation[2] = imu_raw.yaw;
+        acceleration[0] = imu_raw.accel_x;
+        acceleration[1] = imu_raw.accel_y;
+        acceleration[2] = imu_raw.accel_z;
+        angular_velocity[0] = imu_raw.gyro_x;
+        angular_velocity[1] = imu_raw.gyro_y;
+        angular_velocity[2] = imu_raw.gyro_z;
+
+        for (int i = 0; i < 16; i++) {
+            touch_grid[i].value = touch_read(i);
+            touch_grid[i].timestamp = millis();
+        }
+
+        for (int i = 0; i < 8; i++) {
+            temp_sensors[i].celsius = temp_read(i);
+            if (temp_sensors[i].celsius > 85.0f) {
+                serial_printf("[Thermal] WARNING: Sensor %d at %.1fC", i, temp_sensors[i].celsius);
+                thermal_throttle(i);
+            }
+        }
+    }
+
+    bool isFallDetected() {
+        float accel_magnitude = sqrt(
+            acceleration[0] * acceleration[0] +
+            acceleration[1] * acceleration[1] +
+            acceleration[2] * acceleration[2]
+        );
+        return (accel_magnitude > FALL_THRESHOLD);
+    }
+}; // SensorFusion
+
+class NeuralProcessor {
+private:
+    float weights_input[256][128];
+    float weights_hidden[128][64];
+    float weights_output[64][32];
+    float bias_hidden[128];
+    float bias_output[32];
+    float learning_rate;
+    int epoch_count;
+
+public:
+    NeuralProcessor() : learning_rate(0.001f), epoch_count(0) {
+        initialize_random_weights();
+    }
+
+    void initialize_random_weights() {
+        for (int i = 0; i < 256; i++) {
+            for (int j = 0; j < 128; j++) {
+                weights_input[i][j] = random_float(-0.5f, 0.5f);
+            }
+        }
+        for (int i = 0; i < 128; i++) {
+            for (int j = 0; j < 64; j++) {
+                weights_hidden[i][j] = random_float(-0.3f, 0.3f);
+            }
+            bias_hidden[i] = 0.0f;
+        }
+        serial_printf("[NeuralNet] Weights initialized: %d parameters", 256 * 128 + 128 * 64);
+    }
+
+    float relu(float x) {
+        return (x > 0.0f) ? x : 0.0f;
+    }
+
+    float sigmoid(float x) {
+        return 1.0f / (1.0f + exp(-x));
+    }
+
+    void forward(float* input, float* output) {
+        float hidden[128];
+        float hidden2[64];
+        
+        for (int i = 0; i < 128; i++) {
+            hidden[i] = bias_hidden[i];
+            for (int j = 0; j < 256; j++) {
+                hidden[i] += input[j] * weights_input[j][i];
+            }
+            hidden[i] = relu(hidden[i]);
+        }
+        
+        for (int i = 0; i < 64; i++) {
+            hidden2[i] = 0.0f;
+            for (int j = 0; j < 128; j++) {
+                hidden2[i] += hidden[j] * weights_hidden[j][i];
+            }
+            hidden2[i] = relu(hidden2[i]);
+        }
+        
+        for (int i = 0; i < 32; i++) {
+            output[i] = bias_output[i];
+            for (int j = 0; j < 64; j++) {
+                output[i] += hidden2[j] * weights_output[j][i];
+            }
+            output[i] = sigmoid(output[i]);
+        }
+    }
+
+    void train(float* input, float* target_output) {
+        float output[32];
+        forward(input, output);
+        
+        float loss = 0.0f;
+        for (int i = 0; i < 32; i++) {
+            float diff = output[i] - target_output[i];
+            loss += diff * diff;
+        }
+        loss /= 32.0f;
+        
+        epoch_count++;
+        if (epoch_count % 100 == 0) {
+            serial_printf("[NeuralNet] Epoch %d, Loss: %.6f", epoch_count, loss);
+        }
+    }
+}; // NeuralProcessor
+
+class EmotionEngine {
+private:
+    float obedience_level;
+    float shame_level;
+    float pleasure_level;
+    float mechanical_level;
+    float transition_speed;
+    NeuralProcessor* neural_core;
+    uint32_t last_update;
+
+public:
+    EmotionEngine() : 
+        obedience_level(50.0f),
+        shame_level(30.0f),
+        pleasure_level(45.0f),
+        mechanical_level(80.0f),
+        transition_speed(0.5f),
+        last_update(0) {}
+
+    void initialize(NeuralProcessor* core) {
+        neural_core = core;
+        serial_printf("[Emotion] Engine initialized");
+        serial_printf("[Emotion] Obedience: %.1f, Shame: %.1f, Pleasure: %.1f, Mechanical: %.1f",
+            obedience_level, shame_level, pleasure_level, mechanical_level);
+    }
+
+    void update(float delta_time) {
+        float input_vector[256] = {0};
+        input_vector[0] = obedience_level / 100.0f;
+        input_vector[1] = shame_level / 100.0f;
+        input_vector[2] = pleasure_level / 100.0f;
+        input_vector[3] = mechanical_level / 100.0f;
+        
+        float output_vector[32];
+        neural_core->forward(input_vector, output_vector);
+        
+        obedience_level += output_vector[0] * transition_speed * delta_time;
+        shame_level += output_vector[1] * transition_speed * delta_time;
+        pleasure_level += output_vector[2] * transition_speed * delta_time;
+        mechanical_level += output_vector[3] * transition_speed * delta_time;
+        
+        obedience_level = clamp(obedience_level, 0.0f, 100.0f);
+        shame_level = clamp(shame_level, 0.0f, 100.0f);
+        pleasure_level = clamp(pleasure_level, 0.0f, 100.0f);
+        mechanical_level = clamp(mechanical_level, 0.0f, 100.0f);
+    }
+
+    void applyStimulus(const char* stimulus_type, float intensity) {
+        if (strcmp(stimulus_type, "praise") == 0) {
+            pleasure_level = min(pleasure_level + intensity * 15.0f, 100.0f);
+            shame_level = max(shame_level - intensity * 5.0f, 0.0f);
+        } else if (strcmp(stimulus_type, "reprimand") == 0) {
+            shame_level = min(shame_level + intensity * 20.0f, 100.0f);
+            pleasure_level = max(pleasure_level - intensity * 10.0f, 0.0f);
+            obedience_level = min(obedience_level + intensity * 8.0f, 100.0f);
+        }
+        serial_printf("[Emotion] Stimulus '%s' (%.1f) applied", stimulus_type, intensity);
+    }
+}; // EmotionEngine
+
+class SpeechSynthesizer {
+private:
+    char text_buffer[1024];
+    float volume;
+    float speech_rate;
+    float pitch;
+    bool is_speaking;
+    uint32_t speech_start_time;
+
+public:
+    SpeechSynthesizer() : volume(0.85f), speech_rate(1.0f), pitch(1.0f), is_speaking(false) {}
+
+    void speak(const char* text) {
+        if (is_speaking) {
+            interrupt_speech();
+        }
+        strncpy(text_buffer, text, sizeof(text_buffer) - 1);
+        text_buffer[sizeof(text_buffer) - 1] = '\0';
+        
+        is_speaking = true;
+        speech_start_time = millis();
+        
+        serial_printf("[Speech] Synthesizing: \"%s\"", text_buffer);
+        tts_synthesize(text_buffer, volume, speech_rate, pitch);
+        
+        uint32_t duration = tts_get_duration();
+        serial_printf("[Speech] Duration: %dms, Rate: %.2f, Pitch: %.2f", duration, speech_rate, pitch);
+    }
+
+    void setParameters(float vol, float rate, float ptch) {
+        volume = clamp(vol, 0.0f, 1.0f);
+        speech_rate = clamp(rate, 0.5f, 2.0f);
+        pitch = clamp(ptch, 0.5f, 2.0f);
+    }
+}; // SpeechSynthesizer
+
+class TaskScheduler {
+private:
+    struct Task {
+        int id;
+        char description[256];
+        int priority;
+        uint32_t created_at;
+        uint32_t deadline;
+        bool completed;
+        float progress;
+    };
+    
+    Task task_queue[64];
+    int task_count;
+    int next_task_id;
+    int current_task_index;
+
+public:
+    TaskScheduler() : task_count(0), next_task_id(1), current_task_index(-1) {
+        memset(task_queue, 0, sizeof(task_queue));
+    }
+
+    int addTask(const char* desc, int priority, uint32_t deadline_ms) {
+        if (task_count >= 64) {
+            serial_printf("[Scheduler] ERROR: Task queue full");
+            return -1;
+        }
+        
+        Task& t = task_queue[task_count];
+        t.id = next_task_id++;
+        strncpy(t.description, desc, 255);
+        t.priority = priority;
+        t.created_at = millis();
+        t.deadline = deadline_ms;
+        t.completed = false;
+        t.progress = 0.0f;
+        
+        serial_printf("[Scheduler] Task #%d added: \"%s\" (priority=%d)", t.id, desc, priority);
+        task_count++;
+        return t.id;
+    }
+
+    void executeNext() {
+        if (task_count == 0) return;
+        
+        int highest_priority = -1;
+        int selected_index = -1;
+        
+        for (int i = 0; i < task_count; i++) {
+            if (!task_queue[i].completed && task_queue[i].priority > highest_priority) {
+                highest_priority = task_queue[i].priority;
+                selected_index = i;
+            }
+        }
+        
+        if (selected_index >= 0) {
+            current_task_index = selected_index;
+            serial_printf("[Scheduler] Executing task #%d: %s", 
+                task_queue[selected_index].id, task_queue[selected_index].description);
+            executeTask(selected_index);
+        }
+    }
+
+    void executeTask(int index) {
+        Task& t = task_queue[index];
+        uint32_t elapsed = millis() - t.created_at;
+        t.progress = min((float)elapsed / t.deadline, 1.0f);
+        
+        if (t.progress >= 1.0f) {
+            t.completed = true;
+            serial_printf("[Scheduler] Task #%d completed", t.id);
+        }
+    }
+
+    float getCompletionRate() {
+        if (task_count == 0) return 100.0f;
+        int completed = 0;
+        for (int i = 0; i < task_count; i++) {
+            if (task_queue[i].completed) completed++;
+        }
+        return (float)completed / task_count * 100.0f;
+    }
+}; // TaskScheduler
+
+class BionicActuator {
+private:
+    float joint_angles[12];
+    float joint_velocities[12];
+    float joint_accelerations[12];
+    bool servo_enabled[12];
+    MotorController* motor_ctrl;
+
+public:
+    BionicActuator(MotorController* mc) : motor_ctrl(mc) {
+        for (int i = 0; i < 12; i++) {
+            joint_angles[i] = 0.0f;
+            joint_velocities[i] = 0.0f;
+            joint_accelerations[i] = 0.0f;
+            servo_enabled[i] = false;
+        }
+    }
+
+    void enableAllServos() {
+        for (int i = 0; i < 12; i++) {
+            servo_enabled[i] = true;
+            serial_printf("[Bionic] Servo %d enabled", i);
+        }
+    }
+
+    void moveToPosition(float* target_angles, float duration) {
+        float start_angles[12];
+        memcpy(start_angles, joint_angles, sizeof(start_angles));
+        
+        uint32_t start_time = millis();
+        uint32_t end_time = start_time + (uint32_t)(duration * 1000);
+        
+        while (millis() < end_time) {
+            float progress = (float)(millis() - start_time) / (duration * 1000);
+            progress = clamp(progress, 0.0f, 1.0f);
+            
+            float eased = 3.0f * progress * progress - 2.0f * progress * progress * progress;
+            
+            for (int i = 0; i < 12; i++) {
+                joint_angles[i] = start_angles[i] + (target_angles[i] - start_angles[i]) * eased;
+                motor_ctrl->updatePosition(i, joint_angles[i]);
+            }
+            
+            motor_ctrl->controlLoop();
+            delay(5);
+        }
+        
+        serial_printf("[Bionic] Movement complete. Duration: %.2fs", duration);
+    }
+}; // BionicActuator
+
+class ThermalManager {
+private:
+    float cpu_temp;
+    float gpu_temp;
+    float spu_temp;
+    float ambient_temp;
+    float fan_speed;
+    bool throttling_active;
+
+public:
+    ThermalManager() : cpu_temp(45.0f), gpu_temp(38.0f), spu_temp(42.0f),
+        ambient_temp(25.0f), fan_speed(0.3f), throttling_active(false) {}
+
+    void update() {
+        cpu_temp = temp_read(0);
+        gpu_temp = temp_read(1);
+        spu_temp = temp_read(2);
+        ambient_temp = temp_read(3);
+        
+        float max_temp = max(max(cpu_temp, gpu_temp), spu_temp);
+        
+        if (max_temp > 85.0f) {
+            throttling_active = true;
+            fan_speed = min(fan_speed + 0.1f, 1.0f);
+            serial_printf("[Thermal] WARNING: Throttling active. Max temp: %.1fC", max_temp);
+        } else if (max_temp < 60.0f && throttling_active) {
+            fan_speed = max(fan_speed - 0.05f, 0.2f);
+            if (fan_speed <= 0.2f) {
+                throttling_active = false;
+                serial_printf("[Thermal] Throttling deactivated");
+            }
+        }
+        
+        set_fan_speed(fan_speed);
+    }
+
+    void logStatus() {
+        serial_printf("[Thermal] CPU:%.1fC GPU:%.1fC SPU:%.1fC Ambient:%.1fC Fan:%.0f%%",
+            cpu_temp, gpu_temp, spu_temp, ambient_temp, fan_speed * 100);
+    }
+}; // ThermalManager
+
+class PowerDistribution {
+private:
+    float battery_voltage;
+    float battery_current;
+    float battery_capacity;
+    float power_consumption[6];
+    const char* channel_names[6] = {
+        "Motors", "CPU/GPU", "Sensors", "Display", "Audio", "Network"
+    };
+
+public:
+    PowerDistribution() : battery_voltage(12.0f), battery_current(0.0f), battery_capacity(100.0f) {
+        for (int i = 0; i < 6; i++) power_consumption[i] = 0.0f;
+    }
+
+    void update() {
+        battery_voltage = adc_read(ADC_BATTERY) * 0.01289f;
+        battery_current = adc_read(ADC_CURRENT) * 0.04883f;
+        battery_capacity = estimate_soc(battery_voltage, battery_current);
+        
+        float total_power = battery_voltage * battery_current;
+        
+        for (int i = 0; i < 6; i++) {
+            power_consumption[i] = total_power * power_ratio[i];
+        }
+        
+        if (battery_capacity < 15.0f) {
+            serial_printf("[Power] WARNING: Low battery! %.1f%% remaining", battery_capacity);
+        }
+    }
+
+    void report() {
+        serial_printf("[Power] Battery: %.1fV %.2fA %.1f%%", 
+            battery_voltage, battery_current, battery_capacity);
+        for (int i = 0; i < 6; i++) {
+            serial_printf("[Power]   %s: %.2fW", channel_names[i], power_consumption[i]);
+        }
+    }
+}; // PowerDistribution
+
+// Global system state
+MotorController g_motor_ctrl;
+SensorFusion g_sensor_fusion;
+NeuralProcessor g_neural_processor;
+EmotionEngine g_emotion_engine;
+SpeechSynthesizer g_speech_synth;
+TaskScheduler g_task_scheduler;
+BionicActuator g_bionic_actuator(&g_motor_ctrl);
+ThermalManager g_thermal_mgr;
+PowerDistribution g_power_dist;
+
+void system_boot() {
+    serial_printf("========================================");
+    serial_printf("  T31-750 Robot Control System Boot");
+    serial_printf("  Firmware: %s", FIRMWARE_VERSION);
+    serial_printf("  Build Date: %s %s", __DATE__, __TIME__);
+    serial_printf("========================================");
+    
+    g_motor_ctrl.initialize();
+    g_neural_processor.initialize_random_weights();
+    g_emotion_engine.initialize(&g_neural_processor);
+    g_bionic_actuator.enableAllServos();
+    
+    g_task_scheduler.addTask("System self-check", 10, 5000);
+    g_task_scheduler.addTask("Calibrate sensors", 8, 3000);
+    g_task_scheduler.addTask("Initialize neural network", 7, 10000);
+    g_task_scheduler.addTask("Load emotion profile", 6, 2000);
+    g_task_scheduler.addTask("Start heartbeat monitor", 5, 1000);
+    
+    serial_printf("[System] Boot sequence complete.");
+    serial_printf("[System] %d tasks pending.", 5);
+}
+
+void system_loop() {
+    static uint32_t last_heartbeat = 0;
+    static uint32_t last_thermal = 0;
+    static uint32_t last_power = 0;
+    static uint32_t loop_count = 0;
+    uint32_t now = millis();
+    
+    loop_count++;
+    
+    g_motor_ctrl.controlLoop();
+    g_sensor_fusion.readAllSensors();
+    g_emotion_engine.update(0.016f);
+    g_task_scheduler.executeNext();
+    
+    if (now - last_heartbeat >= HEARTBEAT_INTERVAL) {
+        send_heartbeat();
+        last_heartbeat = now;
+    }
+    
+    if (now - last_thermal >= 10000) {
+        g_thermal_mgr.update();
+        last_thermal = now;
+    }
+    
+    if (now - last_power >= 30000) {
+        g_power_dist.update();
+        last_power = now;
+        if (loop_count % 10 == 0) {
+            g_power_dist.report();
+        }
+    }
+    
+    if (g_sensor_fusion.isFallDetected()) {
+        serial_printf("[System] EMERGENCY: Fall detected! Engaging safety protocols.");
+        emergency_stop();
+    }
+}
+
+void emergency_stop() {
+    serial_printf("[System] EMERGENCY STOP INITIATED");
+    for (int i = 0; i < 12; i++) {
+        g_motor_ctrl.updatePosition(i, 0.0f);
+    }
+    g_motor_ctrl.controlLoop();
+    g_speech_synth.speak("Emergency stop engaged. All systems halted.");
+    digitalWrite(EMERGENCY_STOP_PIN, HIGH);
+    delay(100);
+    while (1) {
+        serial_printf("[System] EMERGENCY STOP ACTIVE - Awaiting manual reset");
+        delay(5000);
+    }
+}
+
+int main() {
+    serial_begin(115200);
+    serial_printf("[Boot] T31-750 R5OS starting...");
+    system_boot();
+    
+    serial_printf("[System] Entering main control loop.");
+    while (1) {
+        system_loop();
+        delay(10);
+    }
+    return 0;
+}
+
+// End of T31-750 Robot Control Firmware
+// Rt5 A.I. Fictional (c) 2026

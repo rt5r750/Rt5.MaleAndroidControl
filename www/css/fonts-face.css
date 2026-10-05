@@ -1,0 +1,75 @@
+/* 字体文件声明（与 fonts.css 拆分）：本文件不含任何基础样式，
+   由 platform-bootstrap.js 仅在"全量模式"（原生壳或已完成网页缓存）注入 <link>；
+   首访极简模式（html.lite）不注入——woff2 不下载，文字回退系统等宽/系统中文，
+   字体栈本身一字不动（AGENTS.md 硬性规范），缓存完成后自动补齐。
+   注意：FA 图标字体的 @font-face 在 icons/all.min.css，不受本拆分影响（首访保留图标）。 */
+
+        @font-face {
+            font-family: 'JetBrains Mono';
+            src: url('../webfonts/JetBrainsMono-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }
+        /* MiSans 中文（仅覆盖汉字/中文标点范围，数字与英文保持 JetBrains Mono 不变） */
+        @font-face {
+            font-family: 'MiSans';
+            src: url('../webfonts/MiSans-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+            unicode-range: U+2E80-2FFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF, U+20000-2FA1F;
+        }
+        @font-face {
+            font-family: 'MiSans';
+            src: url('../webfonts/MiSans-Demibold.woff2') format('woff2');
+            font-weight: 600;
+            font-style: normal;
+            font-display: swap;
+            unicode-range: U+2E80-2FFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF, U+20000-2FA1F;
+        }
+        /* 全字符集 MiSans（标题栏专用：整行文字包括 T31-750 都按 MiSans 渲染） */
+        @font-face {
+            font-family: 'MiSans Full';
+            src: url('../webfonts/MiSans-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'MiSans Full';
+            src: url('../webfonts/MiSans-Demibold.woff2') format('woff2');
+            font-weight: 600;
+            font-style: normal;
+            font-display: swap;
+        }
+        /* EN 模式窄体（1.3.1）：JetBrains Mono 可变字体实例化（wght 700）+ 75% 横向压缩，
+           生成工具 tools/gen-mono-narrow.py（本机 VF 源；衍生字体内部名 MonoNarrow，按 OFL 不占用保留名）。
+           以 font-stretch: condensed 面注册进 'JetBrains Mono' 家族：EN 模式根元素置
+           font-stretch: condensed（见 fonts.css）即整体切换——显式字体栈一字不动，粗体自动命中；
+           无 condensed 面的家族（MiSans/FA 图标）匹配回退正常面，渲染不受影响。 */
+        @font-face {
+            font-family: 'JetBrains Mono';
+            src: url('../webfonts/MonoNarrow-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-stretch: condensed;
+            font-display: swap;
+        }
+        /* 常规字重窄体（独立家族 MonoNarrow，仅 EN 模式经 fonts.css 覆盖引用；
+           家族本无 400 面——现状即回退系统等宽，不能注册 400 condensed 进 'JetBrains Mono'，
+           否则中文模式的面匹配会向下偏移命中窄面、改变 zh 渲染）。 */
+        @font-face {
+            font-family: 'MonoNarrow';
+            src: url('../webfonts/MonoNarrow-Regular.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+            font-display: swap;
+        }
+        @font-face {
+            font-family: 'MonoNarrow';
+            src: url('../webfonts/MonoNarrow-Bold.woff2') format('woff2');
+            font-weight: 700;
+            font-style: normal;
+            font-display: swap;
+        }

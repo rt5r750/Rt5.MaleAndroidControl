@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- English app label for the T31-750 console (WebView shell). Chinese source in values/ is unchanged. -->
+<resources>
+    <string name="app_name">750 Control Panel</string>
+</resources>

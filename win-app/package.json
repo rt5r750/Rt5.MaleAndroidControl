@@ -1,0 +1,71 @@
+{
+  "name": "robotcontrol-windows-console",
+  "version": "1.0.0",
+  "description": "RobotControl 控制台 Windows 桌面版（宽屏）",
+  "main": "app/main.js",
+  "scripts": {
+    "test": "node --test",
+    "prestart": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync-www.ps1",
+    "start": "electron .",
+    "predist": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-ble-host.ps1 && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sync-www.ps1",
+    "dist": "electron-builder --win dir"
+  },
+  "author": "RobotControl",
+  "license": "UNLICENSED",
+  "build": {
+    "appId": "com.robotcontrol.console.win",
+    "productName": "RobotControl控制台",
+    "executableName": "RobotControl-Console-Main",
+    "electronDist": "node_modules/electron/dist",
+    "files": [
+      "app/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../design",
+        "to": "design",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "build/icon.ico",
+        "to": "icon.ico"
+      },
+      {
+        "from": "ble-host/publish",
+        "to": "ble-host",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asar": false,
+    "compression": "maximum",
+    "electronLanguages": [
+      "zh-CN",
+      "en-US"
+    ],
+    "directories": {
+      "output": "dist-new"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "dir",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "wallpaper": "^7.3.1"
+  },
+  "devDependencies": {
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3"
+  }
+}

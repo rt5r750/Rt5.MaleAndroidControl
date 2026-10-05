@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>正在进入控制系统</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    video {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      background: #000;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- 横屏闪屏视频（16:9，无额外文字） -->
+  <!-- 横屏闪屏视频（16:9，无额外文字，带声音） -->
+  <video id="splash" src="www/pic/Rt5Open_169.mp4" autoplay playsinline preload="auto"></video>
+  <script>
+    (function () {
+      var MAIN = 'www/' + encodeURIComponent('芮誊T系列仿人男性机器人控制台V1.1.html');
+      var done = false;
+      function go() {
+        if (done) return;
+        done = true;
+        location.replace(MAIN);
+      }
+      // 按下（点击/任意按键）立即跳出加载界面
+      document.addEventListener('click', go);
+      document.addEventListener('keydown', go);
+      var video = document.getElementById('splash');
+      video.addEventListener('ended', go);
+      video.addEventListener('error', go);
+      var playPromise = video.play();
+      if (playPromise && playPromise.catch) playPromise.catch(go);
+      setTimeout(go, 8000);
+      // 界面语言（默认中文）：EN 模式下闪屏窗口标题随动（经 preload 的 consoleAPI 读取 robot_ui_lang）
+      try {
+        if (window.consoleAPI && typeof consoleAPI.getUiLang === 'function') {
+          Promise.resolve(consoleAPI.getUiLang()).then(function (l) {
+            if (l === 'en') document.title = 'Entering the control system';
+          }).catch(function () {});
+        }
+      } catch (e) { /* ignore */ }
+    })();
+  </script>
+</body>
+</html>

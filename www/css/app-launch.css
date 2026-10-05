@@ -1,0 +1,235 @@
+/* 浏览器端 App 拉起引导弹窗（仅纯浏览器由 platform-bootstrap 按需注入；
+   弹窗 DOM 位于 body 直下，避免 desktop-chrome 模式 #dynamic-island-clip 裁剪 fixed 子元素） */
+
+.app-launch-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 960; /* 高于登录层(950)与设置(945) */
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background-color: rgba(0, 0, 0, 0.6);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+.app-launch-modal.visible {
+    display: flex;
+}
+.app-launch-modal.shown {
+    opacity: 1;
+}
+
+.app-launch-card {
+    position: relative;
+    width: 400px;
+    max-width: 100%;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    padding: 28px 24px 20px;
+    background-color: rgba(13, 26, 13, 0.94);
+    border: 1px solid rgba(143, 188, 143, 0.3);
+    border-radius: 12px;
+    box-shadow: 0 0 30px rgba(143, 188, 143, 0.18);
+    text-align: center;
+    transform: scale(0.96);
+    transition: transform 0.25s ease;
+}
+.app-launch-modal.shown .app-launch-card {
+    transform: scale(1);
+}
+
+.app-launch-close {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background-color: transparent;
+    border: none;
+    border-radius: 6px;
+    color: rgba(192, 228, 192, 0.5);
+    font-size: 16px;
+    cursor: pointer;
+}
+.app-launch-close:hover {
+    color: rgba(192, 228, 192, 0.9);
+    background-color: rgba(45, 74, 45, 0.4);
+}
+
+.app-launch-icon {
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(45, 74, 45, 0.35);
+    border: 1px solid rgba(143, 188, 143, 0.4);
+    border-radius: 14px;
+    color: #8fbc8f;
+    font-size: 24px;
+}
+
+.app-launch-title {
+    margin: 0 0 8px;
+    color: #c0e4c0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.app-launch-desc {
+    margin: 0 0 18px;
+    color: rgba(192, 228, 192, 0.75);
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.app-launch-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.app-launch-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 11px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.app-launch-btn-primary {
+    background-color: #4e6f4e;
+    border: 1px solid rgba(143, 188, 143, 0.4);
+    color: #e6f4e6;
+}
+.app-launch-btn-primary:hover {
+    background-color: #5a7f5a;
+}
+.app-launch-btn-primary.missed {
+    background-color: rgba(45, 74, 45, 0.4);
+    border-style: dashed;
+    color: rgba(192, 228, 192, 0.55);
+    cursor: default;
+}
+.app-launch-btn-secondary {
+    background-color: rgba(45, 74, 45, 0.3);
+    border: 1px solid rgba(143, 188, 143, 0.35);
+    color: #c0e4c0;
+}
+.app-launch-btn-secondary:hover {
+    background-color: rgba(45, 74, 45, 0.55);
+}
+/* 缓存控制台入口：第三行弱化样式（点击后关引导弹窗、直接打开缓存过程窗口） */
+.app-launch-btn-tertiary {
+    background-color: transparent;
+    border: 1px dashed rgba(143, 188, 143, 0.3);
+    color: rgba(192, 228, 192, 0.65);
+    padding-top: 9px;
+    padding-bottom: 9px;
+    font-weight: 500;
+    font-size: 13px;
+}
+.app-launch-btn-tertiary:hover {
+    border-color: rgba(143, 188, 143, 0.55);
+    color: #c0e4c0;
+}
+/* 首访强制模式下的缓存主按钮：挪到第一位（JS 设 order:-1）、实底缓绿 + 脉冲光晕突出 */
+.app-launch-btn-cache-main {
+    background-color: #8fbc8f;
+    border: 1px solid #a5d0a5;
+    color: #1c331c;
+    font-size: 15px;
+    padding: 13px 16px;
+    animation: rc-cache-pulse 2.2s ease-in-out infinite;
+}
+.app-launch-btn-cache-main:hover {
+    background-color: #9ccb9c;
+}
+@keyframes rc-cache-pulse {
+    0%, 100% { box-shadow: 0 4px 18px rgba(143, 188, 143, 0.35); }
+    50% { box-shadow: 0 4px 28px rgba(143, 188, 143, 0.65); }
+}
+
+/* 缓存更新提示横幅（移动端/无 macOS 通知堆栈时的兜底；cache-console.js 动态创建，body 直下） */
+.rc-cache-banner {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translate(-50%, 16px);
+    z-index: 965; /* 低于首开引导(960)之上、与通知层级协调 */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    max-width: calc(100vw - 32px);
+    padding: 10px 14px;
+    border-radius: 10px;
+    background-color: rgba(26, 47, 26, 0.94);
+    border: 1px solid rgba(143, 188, 143, 0.35);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    color: #c0e4c0;
+    font-size: 13px;
+    opacity: 0;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.rc-cache-banner.visible {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+.rc-cache-banner-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.rc-cache-banner-btn {
+    flex-shrink: 0;
+    background-color: #8fbc8f;
+    color: #2d4a2d;
+    font-weight: 600;
+    border: none;
+    border-radius: 7px;
+    padding: 5px 10px;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+.rc-cache-banner-close {
+    flex-shrink: 0;
+    opacity: 0.6;
+    cursor: pointer;
+}
+
+.app-launch-fallback {
+    margin: 14px 0 0;
+    color: rgba(143, 188, 143, 0.55);
+    font-size: 11.5px;
+    line-height: 1.6;
+}
+.app-launch-fallback strong {
+    color: rgba(143, 188, 143, 0.85);
+    font-weight: 600;
+}
+
+.app-launch-remember {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 14px;
+    color: rgba(192, 228, 192, 0.6);
+    font-size: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+.app-launch-remember input {
+    accent-color: #8fbc8f;
+    cursor: pointer;
+}

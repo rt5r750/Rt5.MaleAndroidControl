@@ -1,0 +1,12 @@
+/* Android 终端形态设计差异（仅 Android WebView 加载；www/win 保持各自现值） */
+.dynamic-island.di-charging .di-charging-body { display: flex; }
+.di-charging-body .di-charging-bolt { transform-origin: center center; }
+.dynamic-island.di-pop .di-robot-wrap canvas,
+.dynamic-island.di-settle .di-robot-wrap canvas,
+.dynamic-island.di-outline .di-robot-wrap canvas,
+.dynamic-island.di-pop .di-charging-bolt,
+.dynamic-island.di-settle .di-charging-bolt,
+.dynamic-island.di-outline .di-charging-bolt {
+    animation-play-state: paused;
+}
+.di-robot-wrap canvas { transform-origin: center center; }

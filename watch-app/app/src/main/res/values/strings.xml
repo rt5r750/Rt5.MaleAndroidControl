@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">750接收端</string>
+    <string name="capsule_text_default">调试模式</string>
+    <string name="no_tasks">暂无任务</string>
+    <string name="emotion_obedience">服从度</string>
+    <string name="emotion_shame">羞耻度</string>
+    <string name="emotion_pleasure">愉悦度</string>
+    <string name="emotion_mechanical">机械度</string>
+    <string name="test_button">测试</string>
+    <!-- BLE 保活前台服务常驻通知 -->
+    <string name="keepalive_channel_name">蓝牙连接保活</string>
+    <string name="keepalive_title">750接收端运行中</string>
+    <string name="keepalive_connected_fmt">已连接：%1$s</string>
+    <string name="keepalive_connecting">正在连接控制台…</string>
+    <string name="keepalive_reconnecting">连接断开，正在重连…</string>
+    <string name="keepalive_unbonded">未绑定控制台</string>
+</resources>

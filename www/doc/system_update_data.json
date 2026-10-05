@@ -1,0 +1,79 @@
+{
+    "stages": [
+        {
+            "name": "准备阶段",
+            "texts": [
+                "正在连接服务器…",
+                "正在验证身份…",
+                "正在检查更新…",
+                "正在获取更新信息…",
+                "正在分析系统差异…",
+                "正在准备更新环境…"
+            ]
+        },
+        {
+            "name": "下载更新包",
+            "texts": [
+                "正在下载核心模块 (1/4)…",
+                "正在下载核心模块 (2/4)…",
+                "正在下载驱动程序…",
+                "正在下载数据库更新…",
+                "正在下载安全补丁…",
+                "正在解压更新包…"
+            ]
+        },
+        {
+            "name": "安装更新",
+            "texts": [
+                "正在更新内核组件…",
+                "正在更新系统服务…",
+                "正在更新仿真模块…",
+                "正在更新数据库结构…",
+                "正在更新通讯协议…",
+                "正在更新运动控制系统…"
+            ]
+        },
+        {
+            "name": "验证更新",
+            "texts": [
+                "正在验证系统完整性…",
+                "正在验证数据库一致性…",
+                "正在运行兼容性测试…",
+                "正在优化系统参数…",
+                "正在清理临时文件…"
+            ]
+        },
+        {
+            "name": "完成更新",
+            "texts": [
+                "正在应用最终配置…",
+                "正在重启系统服务…",
+                "更新完成！"
+            ]
+        }
+    ],
+    "codeSnippets": [
+        "kernel_patch --apply R5OS_T31_750_514.02",
+        "systemctl restart r5-core.service",
+        "apt update && apt upgrade -y",
+        "rsync -avz /patch/core /system/core",
+        "openssl verify /usr/share/r5os/certs/server.pem",
+        "neural-net reload --model T31_MotionNet_v3",
+        "sync && echo 3 > /proc/sys/vm/drop_caches",
+        "regen-index --db robot_core",
+        "update-grub --target=T31-750",
+        "iotop -p r5os -o"
+    ],
+    "contents": [
+        "核心系统补丁 R5OS_T31_750_514.02",
+        "安全策略库 2025-06-20",
+        "运动控制固件 v417.1003",
+        "仿真模块数据库 D_V2025062001",
+        "神经网络模型 T31_MotionNet_v3",
+        "通讯协议 TLS 1.7",
+        "用户配置与权限表",
+        "传感器校准参数包",
+        "语音合成资源库",
+        "情感模型权重文件"
+    ]
+}

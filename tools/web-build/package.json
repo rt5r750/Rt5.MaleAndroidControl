@@ -1,0 +1,13 @@
+{
+  "name": "robotcontrol-web-build",
+  "version": "1.0.0",
+  "private": true,
+  "description": "www 静态 Tailwind CSS 构建工具（产物提交到 www/css/tailwind.css，运行时零联网依赖）",
+  "scripts": {
+    "build": "tailwindcss -i ./input.css -o ../../www/css/tailwind.css --minify && node generate-cache-manifest.mjs",
+    "watch": "tailwindcss -i ./input.css -o ../../www/css/tailwind.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.16"
+  }
+}

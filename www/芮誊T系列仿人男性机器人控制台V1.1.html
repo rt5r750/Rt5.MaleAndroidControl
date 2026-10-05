@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>已连接至T31-750型仿人男性机器人的内部系统</title>
+	<!-- 强制使用本地资源！不做任何修改！ -->
+    <link rel="stylesheet" href="./css/tailwind.css">
+    <link href="./icons/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./css/fonts.css">
+    <link rel="stylesheet" href="./css/app.css">
+    <!-- Windows 标题栏融合（win-app 专用，不影响 Android 源） -->
+    <link rel="stylesheet" href="./css/titlebar-fusion.css">
+    <link rel="stylesheet" href="./css/desktop-chrome.css">
+    <!-- EN 专属排版层：全部规则挂在 html[lang='en']，中文渲染零影响 -->
+    <link rel="stylesheet" href="./css/i18n-en.css">
+<script src="./js/i18n.js"></script>
+<script src="./js/platform-bootstrap.js"></script>
+    </head>
+<body class="bg-[#0d1a0d] text-[#c0e4c0] font-mono matrix-bg overflow-x-hidden">
+    <!-- 系统加载过渡动画（win-app + 浏览器桌面端；Android 与移动端不显示） -->
+    <!-- 网页背景层：下沉到标题栏下方，标题栏区域透出系统 Acrylic 桌面毛玻璃 -->
+    <div id="win-page-bg"></div>
+    <!-- Electron 原生标题栏 overlay 内容条：返回 + 标题 + 全屏（最小化/最大化/关闭为原生按钮） -->
+    <div class="win-titlebar">
+        <div class="win-titlebar-drag">
+            <button class="win-ctrl-btn win-ctrl-back" id="win-btn-back" title="返回" aria-label="返回">
+                <svg viewBox="0 0 10 10"><path d="M6 1.5L2.5 5L6 8.5" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span class="win-titlebar-title" data-model-info="sysTitle">已连接至T31-750型仿人男性机器人的内部系统</span>
+        </div>
+        <div class="win-titlebar-controls">
+            <div class="win-ctrl-bar">
+                <button class="win-ctrl-btn win-ctrl-fullscreen" id="win-btn-fullscreen" title="全屏" aria-label="全屏">
+                    <svg viewBox="0 0 10 10" id="win-fullscreen-svg"><path d="M1.5 3.5V1.5H3.5M6.5 1.5H8.5V3.5M8.5 6.5V8.5H6.5M3.5 8.5H1.5V6.5" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </button>
+                <button class="win-ctrl-btn" id="win-btn-min" title="最小化">
+                    <svg viewBox="0 0 10 10"><path d="M0.5 5h9" stroke="currentColor" stroke-width="1"/></svg>
+                </button>
+                <button class="win-ctrl-btn" id="win-btn-max" title="最大化">
+                    <svg viewBox="0 0 10 10" id="win-max-svg"><path d="M1.5 1.5h7v7h-7z" fill="none" stroke="currentColor" stroke-width="1"/></svg>
+                </button>
+                <button class="win-ctrl-btn win-ctrl-close" id="win-btn-close" title="关闭">
+                    <svg viewBox="0 0 10 10"><path d="M1 1l8 8M9 1L1 9" stroke="currentColor" stroke-width="1.1"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TTS状态指示器（仅语音引擎失败时显示） -->
+    <div id="tts-indicator" class="tts-indicator">
+        <i class="fa fa-volume-up mr-2 text-[#8fbc8f]"></i>
+        <span class="text-[#c0e4c0] text-sm">语音播报系统初始化中...</span>
+    </div>
+
+    <!-- 登录模态框 -->
+    <div id="login-modal" class="login-modal">
+        <div id="login-bg" class="login-bg"></div>
+        <!-- 登录页右上角中英切换（缩写 ZH / EN，避免长词撑破小胶囊；绑定见 js/i18n.js bindLangButtons） -->
+        <div class="login-lang-switch" id="login-lang-switch" role="group" aria-label="界面语言">
+            <button type="button" class="login-lang-btn" data-lang="zh" title="中文">ZH</button>
+            <button type="button" class="login-lang-btn" data-lang="en" title="English">EN</button>
+        </div>
+        <div class="login-container">
+            <div class="text-center mb-8">
+                <div class="mx-auto w-24 h-24 rounded-full bg-[#2d4a2d]/20 flex items-center justify-center mb-4">
+                    <i class="fa fa-robot text-[#8fbc8f] text-4xl"></i>
+                </div>
+                <h2 class="login-title text-[#8fbc8f] text-2xl font-bold">仿人男性机器人控制台</h2>
+                <p id="login-subtitle" class="text-[#8fbc8f]/70 mt-2">请验证您的身份</p>
+            </div>
+
+            <form id="login-form" class="login-form">
+                <div>
+                    <label for="username" class="block text-sm font-medium text-[#8fbc8f] mb-1">账号</label>
+                    <input type="text" id="username" class="login-input" placeholder="输入账号" required>
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-medium text-[#8fbc8f] mb-1">密码</label>
+                    <input type="password" id="password" class="login-input" placeholder="输入密码" required>
+                </div>
+                
+                <div class="remember-container">
+                    <input id="remember-me" name="remember-me" type="checkbox" class="remember-checkbox">
+                    <label for="remember-me" class="remember-label">记住账号</label>
+                </div>
+                
+                <div id="login-error" class="text-[#ff6666] text-sm hidden">
+                    <i class="fa fa-exclamation-circle mr-1"></i>
+                    <span>账号或密码错误</span>
+                </div>
+                
+                <button type="submit" class="login-btn">
+                    <i class="fa fa-unlock mr-2"></i>进入控制台
+                </button>
+            </form>
+
+            <!-- 系统加载动画（登录卡片内：登录成功后表单收缩消失，此处原位换入进度条，副标题同步切换为加载文案） -->
+            <div class="login-boot" id="login-boot">
+                <div class="boot-progress"><div class="boot-progress-fill" id="boot-progress-fill"></div></div>
+            </div>
+        </div>
+        <!-- 版权水印（v1.6.0 R10）：固定真公司归属，不随型号信息设置变化 -->
+        <div class="login-copyright">© 芮誊智能虚构公司</div>
+    </div>
+
+    <!-- 首次启动激活引导（v1.6.0）：未激活（localStorage robotActivated）时替代登录页位置；
+         语言/型号信息/登录密码/MiMo Key 按设置顺序一口气完成，完成/跳过后不再出现。
+         层级与登录层一致（950），浏览器首访强制缓存窗口（952/955）高于本层：先缓存后激活 -->
+    <div id="activation-modal" class="login-modal" style="display:none;">
+        <div id="activation-bg" class="login-bg"></div>
+        <div class="login-lang-switch" role="group" aria-label="界面语言">
+            <button type="button" class="login-lang-btn" data-lang="zh" title="中文">ZH</button>
+            <button type="button" class="login-lang-btn" data-lang="en" title="English">EN</button>
+        </div>
+        <div class="login-container activation-container">
+            <div class="text-center mb-5">
+                <div class="mx-auto w-20 h-20 rounded-full bg-[#2d4a2d]/20 flex items-center justify-center mb-3">
+                    <i class="fa fa-rocket text-[#8fbc8f] text-3xl"></i>
+                </div>
+                <h2 class="login-title text-[#8fbc8f] text-2xl font-bold">激活设置</h2>
+                <p class="text-[#8fbc8f]/70 mt-2">首次使用，按顺序完成以下全部设置（可留空保持默认）</p>
+            </div>
+
+            <div class="activation-form activation-scroll" id="activation-form">
+                <!-- 1. 界面语言 -->
+                <div class="activation-section">
+                    <div class="activation-section-title">1. <span data-act-label>语言 / Language</span></div>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" class="btn-add" data-lang="zh">中文</button>
+                        <button type="button" class="btn-add" data-lang="en">English</button>
+                    </div>
+                </div>
+                <!-- 2. 型号信息（五项：完整型号/简称/制造公司/主人/语音播报读法） -->
+                <div class="activation-section">
+                    <div class="activation-section-title">2. <span data-act-label>型号信息</span></div>
+                    <div class="activation-row"><label>完整型号</label><input type="text" id="activation-model-fullname" class="login-input" placeholder="T31-750型仿人男性机器人"></div>
+                    <div class="activation-row"><label>简称</label><input type="text" id="activation-model-shortname" class="login-input" placeholder="T31-750"></div>
+                    <div class="activation-row"><label>制造公司</label><input type="text" id="activation-model-company" class="login-input" placeholder="芮誊智能虚构公司"></div>
+                    <div class="activation-row"><label>主人</label><input type="text" id="activation-model-master" class="login-input" placeholder="X"></div>
+                    <div class="activation-row"><label>语音播报读法</label><input type="text" id="activation-model-ttsreading" class="login-input" placeholder="踢三一七五零"></div>
+                </div>
+                <!-- 3. 账号管理 -->
+                <div class="activation-section">
+                    <div class="activation-section-title">3. <span data-act-label>账号管理</span></div>
+                    <div class="activation-row"><label>登录密码</label><input type="password" id="activation-password" class="login-input" placeholder="admin 账号新密码（留空保持 admin/admin）"></div>
+                    <div class="activation-row"><label>确认密码</label><input type="password" id="activation-password-confirm" class="login-input" placeholder="再次输入新密码"></div>
+                </div>
+                <!-- 4. TTS 语音引擎 -->
+                <div class="activation-section">
+                    <div class="activation-section-title">4. <span data-act-label>TTS 语音引擎</span></div>
+                    <div class="flex flex-wrap gap-2 mb-2">
+                        <button type="button" class="tts-engine-btn btn-add" data-engine="birch">白桦音色</button>
+                        <button type="button" class="tts-engine-btn btn-add" data-engine="voicedesign">音色设计</button>
+                    </div>
+                    <div class="activation-row"><label>MiMo Key</label><input type="password" id="activation-mimo-key" class="login-input" placeholder="输入 MiMo API Key（留空跳过，语音走本地引擎）"></div>
+                    <p class="text-xs text-[#8fbc8f]/60 mt-1">默认无 TTS API，需手动输入 Key；<a href="https://mimo.mi.com/" target="_blank" rel="noopener noreferrer" class="underline hover:text-[#c0e4c0]">前往 MiMo 开放平台申请 API Key ↗</a></p>
+                </div>
+                <!-- 5. 机器人图片设置 -->
+                <div class="activation-section">
+                    <div class="activation-section-title">5. <span data-act-label>机器人图片设置</span></div>
+                    <div class="activation-img-grid">
+                        <div>
+                            <input type="file" id="activation-image-upload-1" accept="image/*" class="hidden">
+                            <label for="activation-image-upload-1" class="btn-add inline-block cursor-pointer"><i class="fa fa-upload mr-1"></i><span data-act-label>选择图片1</span></label>
+                            <div id="activation-image-preview-1" class="image-preview mt-2"><span class="text-[#8fbc8f]/70 text-xs" data-act-label>默认</span></div>
+                        </div>
+                        <div>
+                            <input type="file" id="activation-image-upload-2" accept="image/*" class="hidden">
+                            <label for="activation-image-upload-2" class="btn-add inline-block cursor-pointer"><i class="fa fa-upload mr-1"></i><span data-act-label>选择图片2</span></label>
+                            <div id="activation-image-preview-2" class="image-preview mt-2"><span class="text-[#8fbc8f]/70 text-xs" data-act-label>默认</span></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- 6. 模式名称设置 -->
+                <div class="activation-section">
+                    <div class="activation-section-title">6. <span data-act-label>模式名称设置</span></div>
+                    <div id="activation-mode-names"></div>
+                </div>
+                <!-- 7. 信息面板链接 -->
+                <div class="activation-section">
+                    <div class="activation-section-title">7. <span data-act-label>信息面板链接</span></div>
+                    <div id="activation-info-links"></div>
+                </div>
+                <!-- 8. 信息参数（主人/制造公司由型号信息驱动，不在此填写） -->
+                <div class="activation-section">
+                    <div class="activation-section-title">8. <span data-act-label>信息参数</span></div>
+                    <div id="activation-status-items"></div>
+                </div>
+                <!-- 9. 运行参数设置 -->
+                <div class="activation-section">
+                    <div class="activation-section-title">9. <span data-act-label>运行参数设置</span></div>
+                    <div class="activation-row"><label data-act-label>剩余仿真精液 (mL)</label>
+                        <div class="flex items-center gap-1 flex-grow"><input type="number" id="activation-liquid-current" class="login-input" placeholder="1600"><span class="text-xs">/</span><input type="number" id="activation-liquid-total" class="login-input" placeholder="3000"></div>
+                    </div>
+                    <div class="activation-row"><label data-act-label>剩余电量</label>
+                        <div class="flex items-center gap-2 flex-grow flex-wrap">
+                            <label class="flex items-center gap-1 text-xs"><input type="checkbox" id="activation-battery-auto" checked><span data-act-label>自动（01:00-07:00 充电计划）</span></label>
+                            <input type="number" id="activation-battery-percentage" class="login-input" placeholder="52" style="width:70px;">
+                            <label class="flex items-center gap-1 text-xs"><input type="checkbox" id="activation-is-charging"><span data-act-label>显示充电</span></label>
+                        </div>
+                    </div>
+                    <div class="activation-row"><label data-act-label>剩余存储 (EB)</label>
+                        <div class="flex items-center gap-1 flex-grow"><input type="number" id="activation-storage-used" class="login-input" placeholder="121"><span class="text-xs">/</span><input type="number" id="activation-storage-total" class="login-input" placeholder="512"></div>
+                    </div>
+                </div>
+                <!-- 10. 控制按钮文本设置（1-10 固定，11 起可自定义） -->
+                <div class="activation-section">
+                    <div class="activation-section-title">10. <span data-act-label>控制按钮文本设置</span></div>
+                    <div id="activation-button-texts"></div>
+                </div>
+
+                <div class="flex gap-3 pt-1 activation-actions">
+                    <button type="button" id="activation-finish-btn" class="login-btn" style="flex:1.2;">
+                        <i class="fa fa-check mr-2"></i><span data-act-label>开始使用</span>
+                    </button>
+                    <button type="button" id="activation-skip-btn" class="btn-cancel" style="flex:1;">
+                        <span data-act-label>跳过，保持默认</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主界面内容 - 默认隐藏直到登录成功 -->
+    <div id="main-content" class="main-content">
+        <!-- 设置窗口 -->
+        <div id="settings-modal" class="settings-modal">
+            <div class="settings-content">
+                <div class="modal-mobile-header">
+                    <button class="modal-mobile-back-btn" onclick="closeSettings()" aria-label="返回">
+                        <i class="fa fa-arrow-left"></i>
+                    </button>
+                    <div class="modal-mobile-title">设置</div>
+                </div>
+                <div class="cp-title" style="position:relative;">
+                    <div class="cp-traffic-lights">
+                        <div class="cp-dot cp-dot-close info-close-trigger" id="settings-close-dot"></div>
+                        <div class="cp-dot cp-dot-minimize inactive"></div>
+                        <div class="cp-dot cp-dot-maximize inactive"></div>
+                    </div>
+                    <h2><i class="fa fa-cog"></i>机器人控制设置</h2>
+                </div>
+                
+                <div class="settings-columns">
+                    <!-- 侧边导航（仅桌面菜单模式显示；JS 生成组标题列表，点击跳转+滚动高亮） -->
+                    <aside id="settings-nav" aria-label="设置导航"></aside>
+                    <div class="settings-body">
+                    <!-- 界面语言（默认中文，可切换英文；英文译文见 js/i18n.js，遵循 T31-750 说明书术语） -->
+                    <div class="setting-group" id="lang-setting">
+                        <label class="setting-label">语言</label>
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">默认中文；切换后界面文案立即生效，刷新后保持</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" id="lang-zh-btn" class="btn-add lang-active" data-lang="zh">中文</button>
+                            <button type="button" id="lang-en-btn" class="btn-add" data-lang="en">English</button>
+                        </div>
+                    </div>
+
+                    <!-- 型号信息（v1.6.0）：完整型号/简称/制造公司/主人，各处显示统一读此设置；
+                         四项整组匹配中/英文默认时随界面语言，任意一项自定义则按原文显示，留空恢复默认 -->
+                    <div class="setting-group" id="model-info-setting">
+                        <label class="setting-label">型号信息</label>
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">自定义本机型号信息，界面各处的型号、公司、主人称呼与语音播报读法随之统一；各键与默认值完全一致时随界面语言显示对应语言内容，任意一项自定义则全部按填写原文显示，留空恢复该默认值。</p>
+                        <div class="space-y-2">
+                            <div class="model-info-item">
+                                <div class="model-info-row">
+                                    <label for="model-info-fullname">完整型号</label>
+                                    <input type="text" id="model-info-fullname" class="setting-input" placeholder="T31-750型仿人男性机器人">
+                                </div>
+                                <p class="text-xs text-[#8fbc8f]/50 mt-0.5">默认：T31-750型仿人男性机器人 / T31-750 Male Android</p>
+                            </div>
+                            <div class="model-info-item">
+                                <div class="model-info-row">
+                                    <label for="model-info-shortname">简称</label>
+                                    <input type="text" id="model-info-shortname" class="setting-input" placeholder="T31-750">
+                                </div>
+                                <p class="text-xs text-[#8fbc8f]/50 mt-0.5">默认：T31-750 / T31-750</p>
+                            </div>
+                            <div class="model-info-item">
+                                <div class="model-info-row">
+                                    <label for="model-info-company">制造公司</label>
+                                    <input type="text" id="model-info-company" class="setting-input" placeholder="芮誊智能虚构公司">
+                                </div>
+                                <p class="text-xs text-[#8fbc8f]/50 mt-0.5">默认：芮誊智能虚构公司 / Rt5 A.I. Fictional Liability Company</p>
+                            </div>
+                            <div class="model-info-item">
+                                <div class="model-info-row">
+                                    <label for="model-info-master">主人</label>
+                                    <input type="text" id="model-info-master" class="setting-input" placeholder="X">
+                                </div>
+                                <p class="text-xs text-[#8fbc8f]/50 mt-0.5">默认：X / X</p>
+                            </div>
+                            <div class="model-info-item">
+                                <div class="model-info-row">
+                                    <label for="model-info-ttsreading">语音播报读法</label>
+                                    <input type="text" id="model-info-ttsreading" class="setting-input" placeholder="踢三一七五零型仿人男性机器人">
+                                </div>
+                                <p class="text-xs text-[#8fbc8f]/50 mt-0.5">型号的语音念法，默认：踢三一七五零型仿人男性机器人 / T-Three-One-seven-five-0 Male Android</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 网页缓存与 App（仅纯浏览器显示：JS 按 cacheConsoleSupported 门控；Android WebView / Electron 本地加载无需缓存） -->
+                    <div class="setting-group" id="cache-console-setting" style="display:none;">
+                        <label class="setting-label">网页缓存与 App</label>
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">缓存控制台把网页资源存到本机：弱网加载更快、离线可打开；更新后可重新缓存（仅浏览器端可用）</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" id="open-cache-console-btn" class="btn-add">
+                                <i class="fa fa-database mr-1"></i>缓存控制台
+                            </button>
+                            <button type="button" id="launch-app-btn" class="btn-add">
+                                <i class="fa fa-external-link-alt mr-1"></i>拉起 App
+                            </button>
+                            <a type="button" id="download-app-btn" class="btn-add" href="https://pan.quark.cn/s/e33470bcc0ef" target="_blank" rel="noopener noreferrer">
+                                <i class="fa fa-download mr-1"></i>下载 App
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 账号管理 -->
+                    <div class="setting-group">
+                        <label class="setting-label">账号管理</label>
+                        <div id="account-list" class="mb-4 space-y-2">
+                            <!-- 账号将通过JavaScript动态生成 -->
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm mb-1">新账号</label>
+                                <input type="text" id="new-username" class="setting-input" placeholder="输入新账号">
+                            </div>
+                            <div>
+                                <label class="block text-sm mb-1">密码</label>
+                                <input type="password" id="new-password" class="setting-input" placeholder="输入密码">
+                            </div>
+                        </div>
+                        
+                        <div class="mt-3">
+                            <button id="add-account" class="btn-add">
+                                <i class="fa fa-plus mr-1"></i>添加账号
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- TTS语音引擎设置 -->
+                    <div class="setting-group">
+                        <label class="setting-label">TTS 语音引擎</label>
+                        <div class="mb-4">
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <button type="button" class="tts-engine-btn btn-add" data-engine="birch" style="flex:1;min-width:100px;">白桦音色</button>
+                                <button type="button" class="tts-engine-btn btn-add" data-engine="voicedesign" style="flex:1;min-width:100px;">音色设计</button>
+                            </div>
+                            <p class="text-xs text-[#8fbc8f]/70 mb-3">音色设计为默认引擎。MiMo引擎失败时自动降级到本地语音。同一会话内已生成的语音会缓存复用，无需重复联网。</p>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm mb-1">MiMo API Key</label>
+                            <div class="flex space-x-2">
+                                <input type="password" id="mimo-api-key-input" class="setting-input" placeholder="输入 MiMo API Key（如 sk-xxx）" style="flex:1;">
+                                <button type="button" id="mimo-save-key-btn" class="btn-add">保存</button>
+                            </div>
+                            <p class="text-xs text-[#8fbc8f]/70 mt-1">默认不提供 TTS API，需自行申请并手动输入；<a href="https://mimo.mi.com/" target="_blank" rel="noopener noreferrer" class="underline hover:text-[#c0e4c0]">前往 MiMo 开放平台申请 API Key ↗</a>。API Key 也可通过手机端连接时自动同步，手机端Key优先。</p>
+                        </div>
+                        <div>
+                            <button type="button" id="mimo-test-btn" class="btn-add">
+                                <i class="fa fa-volume-high mr-1"></i>测试播报
+                            </button>
+                            <span id="mimo-status" class="text-xs text-[#8fbc8f]/70 ml-2"></span>
+                        </div>
+                    </div>
+
+                    <!-- 灵动岛模拟效果 -->
+                    <div class="setting-group">
+                        <label class="setting-label">灵动岛模拟效果</label>
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">点击预览连接/充电灵动岛动画（圆点入场→内容放大旋转→底框跑马灯展开）</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" id="preview-island-btn" class="btn-add">
+                                <i class="fa fa-bell mr-1"></i>预览连接灵动岛
+                            </button>
+                            <button type="button" id="preview-charging-island-btn" class="btn-add">
+                                <i class="fa fa-bolt mr-1"></i>预览充电灵动岛
+                            </button>
+                            <button type="button" id="preview-text-notify-btn" class="btn-add">
+                                <i class="fa fa-comment mr-1"></i>预览文字通知
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 运行参数设置 -->
+                    <div class="setting-group">
+                        <label class="setting-label">运行参数设置</label>
+                        <div class="mb-4">
+                            <label class="block text-sm mb-1">剩余仿真精液 (单位: mL)</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="liquid-current" class="setting-input" placeholder="当前量" value="1600">
+                                <span class="self-center">/</span>
+                                <input type="number" id="liquid-total" class="setting-input" placeholder="总量" value="3000">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm mb-1">剩余电量</label>
+                            <div class="flex items-center space-x-2 mb-2">
+                                <input type="checkbox" id="battery-auto" class="mr-1" checked>
+                                <label for="battery-auto" class="text-sm">默认设置（按时间自动判断电量）</label>
+                            </div>
+                            <p class="text-xs text-[#8fbc8f]/70 mb-2">默认设置：凌晨1点为0%、早上7点为100%，凌晨1点至7点显示正在充电并逐步充至100%</p>
+                            <div id="battery-manual-wrap" class="flex items-center space-x-2" style="display:none;">
+                                <input type="number" id="battery-percentage" class="setting-input w-20" placeholder="百分比" min="0" max="100" value="2">
+                                <span>%</span>
+                                <div class="flex items-center">
+                                    <input type="checkbox" id="is-charging" class="mr-1" checked>
+                                    <label for="is-charging" class="text-sm">显示充电</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 剩余存储设置 -->
+                        <div class="mb-4">
+                            <label class="block text-sm mb-1">剩余存储 (单位: EB)</label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="storage-used" class="setting-input" placeholder="已使用量" value="121">
+                                <span class="self-center">/</span>
+                                <input type="number" id="storage-total" class="setting-input" placeholder="总量" value="512">
+                            </div>
+                            <p class="text-xs text-[#8fbc8f]/70 mt-1">存储总量设置后自动计算百分比</p>
+                        </div>
+                    </div>
+                    
+                    <!-- 按钮文本设置 -->
+                    <div class="setting-group">
+                        <label class="setting-label">控制按钮文本设置</label>
+                        <div id="button-settings" class="space-y-2">
+                            <!-- 按钮设置项将通过JavaScript动态生成 -->
+                        </div>
+                        <button id="add-button-setting" class="btn-add mt-2">
+                            <i class="fa fa-plus mr-1"></i>添加按钮设置
+                        </button>
+                    </div>
+
+                    <!-- 机器人图片设置 - 修改为两张图片 -->
+                    <div class="setting-group">
+                        <label class="setting-label">机器人图片设置</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- 第一张图片设置 -->
+                            <div>
+                                <div class="mb-3">
+                                    <input type="file" id="robot-image-upload-1" accept="image/*" class="hidden">
+                                    <label for="robot-image-upload-1" class="btn-add inline-block cursor-pointer">
+                                        <i class="fa fa-upload mr-1"></i>选择图片1
+                                    </label>
+                                </div>
+                                <div id="image-preview-1" class="image-preview">
+                                    <span class="text-[#8fbc8f]/70 text-sm">图片预览1</span>
+                                </div>
+                                <button id="restore-default-1" class="btn-add restore-default-btn">
+                                    <i class="fa fa-undo mr-1"></i>恢复默认
+                                </button>
+                            </div>
+
+                            <!-- 第二张图片设置 -->
+                            <div>
+                                <div class="mb-3">
+                                    <input type="file" id="robot-image-upload-2" accept="image/*" class="hidden">
+                                    <label for="robot-image-upload-2" class="btn-add inline-block cursor-pointer">
+                                        <i class="fa fa-upload mr-1"></i>选择图片2
+                                    </label>
+                                </div>
+                                <div id="image-preview-2" class="image-preview">
+                                    <span class="text-[#8fbc8f]/70 text-sm">图片预览2</span>
+                                </div>
+                                <button id="restore-default-2" class="btn-add restore-default-btn">
+                                    <i class="fa fa-undo mr-1"></i>恢复默认
+                                </button>
+                            </div>
+                        </div>
+                        <p class="text-xs text-[#8fbc8f]/70 mt-2">建议使用9:20比例的图片</p>
+                    </div>
+
+                    <!-- 模式名称设置（四大模式显示名自定义：整组匹配中/英文默认时随界面语言显示，自定义名中英文同文，不支持双语标签） -->
+                    <div class="setting-group" id="mode-names-setting">
+                        <label class="setting-label">模式名称设置</label>
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">自定义四大模式的显示名；与默认中文名或英文名完全一致时随界面语言显示对应默认名，自定义名称中英文显示同一文本，留空恢复该模式默认名。应用更改时逐项确认。</p>
+                        <div id="mode-names" class="space-y-3">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-sm w-24 shrink-0" for="mode-name-input-test">调试模式</label>
+                                    <input type="text" class="setting-input flex-grow" id="mode-name-input-test" placeholder="调试模式">
+                                </div>
+                                <p class="text-xs text-[#8fbc8f]/60 mt-1 leading-relaxed" data-mode-desc="test"></p>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-sm w-24 shrink-0" for="mode-name-input-recovery">恢复模式</label>
+                                    <input type="text" class="setting-input flex-grow" id="mode-name-input-recovery" placeholder="恢复模式">
+                                </div>
+                                <p class="text-xs text-[#8fbc8f]/60 mt-1 leading-relaxed" data-mode-desc="recovery"></p>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-sm w-24 shrink-0" for="mode-name-input-loyalty">忠诚模式</label>
+                                    <input type="text" class="setting-input flex-grow" id="mode-name-input-loyalty" placeholder="忠诚模式">
+                                </div>
+                                <p class="text-xs text-[#8fbc8f]/60 mt-1 leading-relaxed" data-mode-desc="loyalty"></p>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <label class="text-sm w-24 shrink-0" for="mode-name-input-simulated-human">拟人模式</label>
+                                    <input type="text" class="setting-input flex-grow" id="mode-name-input-simulated-human" placeholder="拟人模式">
+                                </div>
+                                <p class="text-xs text-[#8fbc8f]/60 mt-1 leading-relaxed" data-mode-desc="simulated-human"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 信息面板链接（v1.6.0）：4 个链接的名称/URL 可自定义（PDF 条目文件名固定不提供修改）；
+                         名称整组匹配默认时随界面语言，自定义名原文显示；应用更改后生效 -->
+                    <div class="setting-group" id="info-links-setting">
+                        <label class="setting-label">信息面板链接</label>
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">自定义信息面板中各链接的名称与地址；地址需以 http:// 或 https:// 开头，PDF 条目文件名固定不提供修改。名称全部与默认一致时随界面语言显示默认名，任意一项自定义则按填写原文显示。改完点击「应用更改」生效。</p>
+                        <div id="info-links-settings" class="space-y-2">
+                            <!-- 链接设置行将通过JavaScript动态生成 -->
+                        </div>
+                        <button type="button" id="reset-info-links" class="btn-add mt-2">
+                            <i class="fa fa-undo mr-1"></i>恢复默认链接
+                        </button>
+                    </div>
+
+                    <!-- 机器人状态设置（主人/制造公司两行由「型号信息」设置驱动且不可改，不在组内显示） -->
+                    <div class="setting-group">
+                        <label class="setting-label">机器人状态设置</label>
+                        <!-- 修改提示文字为14个状态项 -->
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">设置机器人状态项（主人与制造公司由上方「型号信息」设置驱动，此处不显示）</p>
+                        <div id="status-settings" class="space-y-2">
+                            <!-- 状态设置项将通过JavaScript动态生成 -->
+                        </div>
+                        <button id="add-status-setting" class="btn-add mt-2">
+                            <i class="fa fa-plus mr-1"></i>添加状态项
+                        </button>
+                    </div>
+
+                    <!-- 配置导入导出（v1.6.0）：导出全部个性化设置为 JSON（含敏感信息）；
+                         导入校验后逐键写入并刷新页面 -->
+                    <div class="setting-group" id="config-io-setting">
+                        <label class="setting-label">配置导入导出</label>
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">导出本机全部个性化设置（按钮文本/信息参数/模式名称/型号信息/链接/运行参数/账号/图片/情绪/语言/MiMo Key）为 JSON 文件；文件含登录密码与 API Key 等敏感信息以及可能较大的图片数据，请妥善保管勿外传。导入会覆盖当前设置并自动刷新页面。</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" id="export-config-btn" class="btn-add">
+                                <i class="fa fa-download mr-1"></i>导出配置
+                            </button>
+                            <button type="button" id="import-config-btn" class="btn-add">
+                                <i class="fa fa-upload mr-1"></i>导入配置
+                            </button>
+                            <input type="file" id="import-config-file" accept="application/json,.json" class="hidden">
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                
+                <div class="settings-footer">
+                    <button id="reset-settings" class="btn-cancel">改为默认设置</button>
+                    <div class="flex gap-3">
+                        <button id="cancel-settings" class="btn-cancel">取消</button>
+                        <button id="save-settings" class="btn-save">应用更改</button>
+                    </div>
+                </div>
+            </div>
+            <button class="modal-mobile-close-btn" onclick="closeSettings()"><i class="fa fa-xmark"></i></button>
+        </div>
+
+        <!-- 顶部导航栏 -->
+        <header class="sticky top-0 z-50 bg-[#2d4a2d]/90 backdrop-blur-md border-b border-[#4e6f4e]/30 h-10 shadow-lg flex items-center">
+          <div class="triple-header-content">
+            <div class="triple-header-left">
+              <img data-src="./pic/Rt5 LOGO_bai.png" class="header-logo" id="triple-logo-btn" alt="Rt5" title="系统菜单">
+              <div class="triple-title-wrap" id="triple-title-wrap">
+                <span class="triple-header-title" data-model-info="panelTitle">T31-750型仿人男性机器人内部系统面板</span>
+                <div class="triple-voice-toast" id="triple-voice-toast"></div>
+              </div>
+            </div>
+            <div class="triple-header-right">
+              <div class="triple-header-icons" title="状态指示">
+                <svg id="triple-battery-icon" class="triple-header-svg triple-battery-svg" viewBox="0 0 20 11" fill="none" stroke="none" title="电池"><path fill="currentColor" fill-rule="evenodd" clip-rule="evenodd" d="M2.2 0H15.8A2.2 2.2 0 0 1 18 2.2V8.8A2.2 2.2 0 0 1 15.8 11H2.2A2.2 2.2 0 0 1 0 8.8V2.2A2.2 2.2 0 0 1 2.2 0ZM2.5 1.4H15.5A1.1 1.1 0 0 1 16.6 2.5V8.5A1.1 1.1 0 0 1 15.5 9.6H2.5A1.1 1.1 0 0 1 1.4 8.5V2.5A1.1 1.1 0 0 1 2.5 1.4Z"/><rect x="18.4" y="3.6" width="1.5" height="3.8" rx="0.75" fill="currentColor" stroke="none"/><rect id="triple-battery-fill" x="2.6" y="2.6" width="12.8" height="5.8" rx="0.6" fill="currentColor" stroke="none"/><g id="triple-battery-bolt" style="display:none;" transform="translate(4.62,0.7) scale(0.6)"><path fill="currentColor" stroke="none" d="M9.585 2.568a.5.5 0 0 1 .226.58L8.677 6.832h1.99a.5.5 0 0 1 .364.843l-5.334 5.667a.5.5 0 0 1-.842-.49L5.99 9.167H4a.5.5 0 0 1-.364-.843l5.333-5.667a.5.5 0 0 1 .616-.09z"/></g></svg>
+                <i class="fa fa-globe triple-status-fa" id="triple-net-icon" title="网络"></i>
+                <i id="triple-mode-icon" class="fa fa-circle-exclamation triple-status-fa" title="机器人模式"></i>
+                <button class="bt-btn triple-header-bt-btn state-unbonded" id="triple-bt-status-btn" title="蓝牙连接" onclick="showBtModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/></svg></button>
+                <button id="triple-btn-info" class="triple-header-btn" title="信息">
+                  <i class="fa fa-question-circle"></i>
+                </button>
+                <button id="triple-open-settings" class="triple-header-btn" title="设置">
+                  <i class="fa fa-cog"></i>
+                </button>
+              </div>
+              <span id="triple-header-time" class="triple-header-time">--:--:--</span>
+            </div>
+          </div>
+          <div class="container mx-auto flex justify-between items-center h-full px-4">
+            <!-- 左侧标题 -->
+            <div class="flex items-center">
+              <img data-src="./pic/Rt5 LOGO_bai.png" class="header-logo" alt="Rt5">
+              <span class="text-[#8fbc8f] font-bold text-sm truncate" data-model-info="panelTitle">T31-750型仿人男性机器人内部系统面板</span>
+            </div>
+
+            <!-- 右侧功能区 -->
+            <div class="flex items-center space-x-4">
+              <!-- 当前时间 -->
+              <span id="current-time" class="text-sm hidden md:inline">NULL</span>
+
+              <!-- 信息按钮 -->
+              <button 
+                id="btn-info"
+                class="p-2 rounded-full hover:bg-[#4e6f4e]/50 transition-opacity duration-300 relative btn-active"
+                aria-label="信息"
+              >
+                <i class="fa fa-question-circle text-[#c0e4c0]"></i>
+              </button>
+
+              <!-- 设置按钮 -->
+              <button 
+                id="open-settings" 
+                class="p-2 rounded-full hover:bg-[#4e6f4e]/50 transition-opacity duration-300 relative btn-active"
+                aria-label="软件设置"
+              >
+                <i class="fa fa-cog text-[#c0e4c0]"></i>
+                <!-- 提示文字 -->
+                <span class="absolute top-[-20px] left-1/2 transform -translate-x-1/2 bg-[#1a2f1a]/90 text-[#c0e4c0] text-xs py-1 px-2 rounded opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+                  软件设置
+                </span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <!-- 单栏模式右上角悬浮操作按钮 -->
+        <div class="mobile-top-actions" aria-label="快捷操作">
+            <button id="mobile-btn-info" class="mobile-top-btn" title="信息" aria-label="信息">
+                <i class="fa fa-question-circle"></i>
+            </button>
+            <button id="mobile-open-settings" class="mobile-top-btn" title="设置" aria-label="软件设置">
+                <i class="fa fa-cog"></i>
+            </button>
+        </div>
+
+        <!-- 单栏模式顶部英雄栏 -->
+        <div class="mobile-hero-bar">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <button class="bt-btn state-unbonded" id="mobile-bt-btn" title="蓝牙连接" onclick="showBtModal()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/></svg></button>
+                <div class="mobile-hero-bar-title">
+                    <div class="mobile-hero-bar-title-line1" data-model-info="masterDe">X的</div>
+                    <div class="mobile-hero-bar-title-line2" data-model-info="shortName">T31-750</div>
+                </div>
+            </div>
+            <div class="mobile-hero-capsule">
+                <button class="mobile-hero-capsule-btn" onclick="openInfoModal()" title="了解机器人">
+                    <i class="fa fa-question-circle"></i>
+                </button>
+                <button class="mobile-hero-capsule-btn" onclick="openSettings()" title="设置">
+                    <i class="fa fa-cog"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="app-container">
+        <!-- 主内容区 -->
+        <main class="container mx-auto px-4 py-6 grid grid-cols-1 gap-6">
+            <!-- 左侧控制面板 -->
+            <section class="space-y-6">
+                <div class="mobile-page mobile-page-robot space-y-6">
+                    <!-- 信息模块 -->
+                    <div class="bg-[#1a2f1a]/60 backdrop-blur-sm rounded-lg border border-[#4e6f4e]/30 p-4 transform transition-all duration-500 hover:shadow-lg hover:shadow-[#8fbc8f]/10 card-hover">
+                        <div id="file-list" class="file-list" style="margin-top: 0;">
+                            <!-- 文件列表将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mobile-page mobile-page-command space-y-6">
+                    <!-- 机器人展示区（单栏模式） -->
+                    <div class="robot-showcase">
+                        <img id="mobile-hero-robot-img" data-src="./pic/left.webp" alt="T31-750">
+                        
+                        <!-- 四角圆形控制按钮（文字在按钮外部下方） -->
+                        <div class="showcase-btn-wrap showcase-btn-top-left">
+                            <button id="mobile-test-btn" class="showcase-circle-btn" onclick="activateMode('test')">
+                                <i class="fa fa-bug"></i>
+                            </button>
+                            <span class="showcase-btn-label">调试模式</span>
+                        </div>
+                        <div class="showcase-btn-wrap showcase-btn-top-right">
+                            <button id="mobile-loyalty-btn" class="showcase-circle-btn" onclick="activateMode('loyalty')">
+                                <i class="fa fa-robot"></i>
+                            </button>
+                            <span class="showcase-btn-label">忠诚模式</span>
+                        </div>
+                        <div class="showcase-btn-wrap showcase-btn-bottom-left">
+                            <button id="mobile-pause-btn" class="showcase-circle-btn" onclick="mobilePauseClick()">
+                                <i class="fa fa-pause"></i>
+                            </button>
+                            <span class="showcase-btn-label">暂停</span>
+                        </div>
+                        <div class="showcase-btn-wrap showcase-btn-bottom-right">
+                            <button id="mobile-stop-btn" class="showcase-circle-btn" onclick="mobileStopClick()">
+                                <i class="fa fa-stop"></i>
+                            </button>
+                            <span class="showcase-btn-label">停止</span>
+                        </div>
+                        
+                        <!-- 中间数值分割线（完整一根连续线，文字在横线上方） -->
+                        <div class="showcase-stats-bar">
+                            <div class="showcase-stats-full-line"></div>
+                            <div class="showcase-stat-row showcase-stat-left">
+                                <div class="showcase-stat-label">电量</div>
+                                <div class="showcase-stat-value" id="mobile-battery-val">52%</div>
+                            </div>
+                            <div class="showcase-stat-row showcase-stat-right">
+                                <div class="showcase-stat-label">仿真性唤起值</div>
+                                <div class="showcase-stat-value" id="mobile-arousal-val">50%</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 终端模块 -->
+                    <div class="mobile-terminal-card bg-[#1a2f1a]/60 backdrop-blur-sm rounded-lg border border-[#4e6f4e]/30 p-0 transform transition-all duration-500 hover:shadow-lg hover:shadow-[#8fbc8f]/10 card-hover">
+                        <div class="flex items-center justify-between px-4 py-3 h-[44px] relative bg-[#2d4a2d]/30 rounded-t-lg">
+                            <h2 class="text-[#8fbc8f] font-bold text-base flex items-center">
+                                <i class="fa fa-terminal mr-2 text-base animate-pulse-very-light"></i>
+                                终端
+                            </h2>
+                        </div>
+                        <div id="terminal-black-container" class="bg-black text-[#0f0] rounded-b-lg overflow-hidden border-t border-[#8fbc8f]/30 h-[300px] relative">
+                            <div id="terminal-output" class="terminal-output p-3 overflow-y-auto scrollbar-hidden h-full selectable"></div>
+                        </div>
+                    </div>
+
+                    <!-- 控制模式模块 -->
+                    <div class="bg-[#1a2f1a]/60 backdrop-blur-sm rounded-lg border border-[#4e6f4e]/30 p-4 transform transition-all duration-500 hover:shadow-lg hover:shadow-[#8fbc8f]/10 card-hover">
+                        <div id="control-panel-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-2 control-panel-grid-desktop">
+                            <!-- 模式按钮 -->
+                            <div id="modes-container" class="col-span-full control-modes-col">
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                    <div id="test-mode" class="mode-btn bg-[#2d4a2d]/30 hover:bg-[#2d4a2d]/50 p-3 rounded-lg text-center cursor-pointer transition-all duration-300 transform hover:scale-105 active:scale-95 btn-active" data-mode="test">
+                                        <i class="fa fa-bug text-[#8fbc8f]/70 mb-1"></i>
+                                        <div class="text-[#8fbc8f]/70 text-sm">调试模式</div>
+                                    </div>
+                                    <div id="recovery-mode" class="mode-btn bg-[#2d4a2d]/30 hover:bg-[#2d4a2d]/50 p-3 rounded-lg text-center cursor-pointer transition-all duration-300 transform hover:scale-105 active:scale-95 btn-active" data-mode="recovery">
+                                        <i class="fa fa-sync text-[#8fbc8f]/70 mb-1"></i>
+                                        <div class="text-[#8fbc8f]/70 text-sm">恢复模式</div>
+                                    </div>
+                                    <div id="loyalty-mode" class="mode-btn bg-[#2d4a2d]/30 hover:bg-[#2d4a2d]/50 p-3 rounded-lg text-center cursor-pointer transition-all duration-300 transform hover:scale-105 active:scale-95 btn-active" data-mode="loyalty">
+                                        <i class="fa fa-robot text-[#8fbc8f]/70 mb-1"></i>
+                                        <div class="text-[#8fbc8f]/70 text-sm">忠诚模式</div>
+                                    </div>
+                                    <div id="simulated-human-mode" class="mode-btn bg-[#2d4a2d]/30 hover:bg-[#2d4a2d]/50 p-3 rounded-lg text-center cursor-pointer transition-all duration-300 transform hover:scale-105 active:scale-95 btn-active" data-mode="simulated-human">
+                                        <i class="fa fa-user text-[#8fbc8f] mb-1"></i>
+                                        <div class="text-[#8fbc8f] font-bold text-sm">拟人模式</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 功能按钮 -->
+                            <div id="function-buttons" class="grid grid-cols-2 sm:grid-cols-3 gap-2 col-span-full function-buttons-desktop">
+                                <!-- 功能按钮将通过JavaScript动态生成 -->
+                            </div>
+
+                            <!-- 计时器区域：窄屏横向一行，宽屏垂直三行在右侧 -->
+                            <div id="timer-wrapper" class="col-span-full flex items-stretch gap-2 mt-1 timer-wrapper-desktop">
+                                <div id="timer-display" class="timer-display flex items-center justify-center timer-display-desktop" style="padding: 0.35rem 0.5rem; font-size: 1.5rem; min-height: 42px;">
+                                    <span id="timer-display-text">05:00</span>
+                                    <span id="timer-display-inputs" class="timer-display-inputs" style="display: none;">
+                                        <input id="cd-min" type="number" class="timer-display-input" value="5" min="0" max="99">
+                                        <span class="timer-display-colon">:</span>
+                                        <input id="cd-sec" type="number" class="timer-display-input" value="0" min="0" max="59">
+                                    </span>
+                                </div>
+                                <button id="timer-start-btn" onclick="timerStart()" class="timer-control-btn primary timer-btn-desktop">开始</button>
+                                <button id="timer-pause-btn" onclick="timerPause()" class="timer-control-btn timer-btn-desktop" style="display:none;">暂停</button>
+                                <button id="timer-reset-btn" onclick="timerReset()" class="timer-control-btn timer-btn-desktop">重置</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mobile-page mobile-page-control space-y-6">
+                    <!-- 任务指令系统 -->
+                    <div class="relative bg-[#1a2f1a]/60 backdrop-blur-sm rounded-lg border border-[#4e6f4e]/30 p-4 transform transition-all duration-500 hover:shadow-lg hover:shadow-[#8fbc8f]/10 card-hover">
+                        <div class="power-off-overlay"></div>
+                        <div class="panel-title">
+                            <h2 class="text-[#8fbc8f] font-bold text-base flex items-center">
+                                <i class="fa-solid fa-list-check mr-2 text-base"></i>
+                                任务指令系统
+                            </h2>
+                            <span id="task-count" class="text-[#8fbc8f]/60 text-xs">0 项任务</span>
+                        </div>
+                        <div class="pt-4 space-y-3">
+                            <div id="task-list" class="space-y-1 overflow-y-auto" style="max-height: 60vh; scrollbar-color: #4e6f4e transparent;">
+                                <!-- 任务列表动态渲染 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mobile-page mobile-page-control space-y-6">
+                    <!-- 运行参数模块 -->
+                    <div id="params-panel" class="bg-[#1a2f1a]/60 backdrop-blur-sm rounded-lg border border-[#4e6f4e]/30 p-4 transform transition-all duration-500 hover:shadow-lg hover:shadow-[#8fbc8f]/10 card-hover">
+                        <div class="panel-title">
+                            <h2 class="text-[#8fbc8f] font-bold text-base flex items-center">
+                                <i class="fa fa-microchip mr-2 text-base"></i>
+                                运行参数
+                            </h2>
+                            <span class="text-xs text-[#8fbc8f]/70">实时监控</span>
+                        </div>
+                        <div id="params-content" class="space-y-4 pt-4">
+                            <!-- 两列布局的进度条 -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <!-- 左侧列 -->
+                                <div class="space-y-4">
+                                    <!-- 剩余电量 -->
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span>剩余电量</span>
+                                            <span id="battery-text" class="text-[#8fbc8f] flex items-center">
+                                                <span id="battery-percentage-text">2%</span>
+                                                <span id="charging-text" class="ml-1 text-[#ff6666]">(正在充电)</span>
+                                            </span>
+                                        </div>
+                                        <div class="param-bar-track">
+                                            <div id="battery-progress" class="param-bar-fill low" style="width:2%;"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 剩余仿真精液 -->
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span>剩余仿真精液</span>
+                                            <span id="liquid-text" class="text-[#8fbc8f]">53% <span class="param-detail">(1600mL/3000mL)</span></span>
+                                        </div>
+                                        <div class="param-bar-track">
+                                            <div id="liquid-progress" class="param-bar-fill" style="width:53%;"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span>剩余存储</span>
+                                            <span id="storage-text" class="text-[#8fbc8f]">76% <span class="param-detail">(121EB/512EB)</span></span>
+                                        </div>
+                                        <div class="param-bar-track">
+                                            <div id="storage-progress" class="param-bar-fill" style="width:76%;"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span>内存占用率</span>
+                                            <span id="memory-text" class="text-[#8fbc8f]">89% <span class="param-detail">(57PB/128PB)</span></span>
+                                        </div>
+                                        <div class="param-bar-track">
+                                            <div id="memory-progress" class="param-bar-fill" style="width:89%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 右侧列 -->
+                                <div class="space-y-4">
+                                    <!-- CPU占用率 -->
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span>CPU占用率</span>
+                                            <span id="cpu-text" class="text-[#8fbc8f]">84%</span>
+                                        </div>
+                                        <div class="param-bar-track">
+                                            <div id="cpu-progress" class="param-bar-fill" style="width:84%;"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span>NPU占用率</span>
+                                            <span id="npu-text" class="text-[#8fbc8f]">67%</span>
+                                        </div>
+                                        <div class="param-bar-track">
+                                            <div id="npu-progress" class="param-bar-fill" style="width:67%;"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- GPU占用率 -->
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span>GPU占用率</span>
+                                            <span id="gpu-text" class="text-[#8fbc8f]">42%</span>
+                                        </div>
+                                        <div class="param-bar-track">
+                                            <div id="gpu-progress" class="param-bar-fill" style="width:42%;"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <div class="flex justify-between text-xs mb-1">
+                                            <span>读写占用率</span>
+                                            <span id="io-text" class="text-[#8fbc8f]">28% <span class="param-detail">(读16PB/s, 写12PB/s)</span></span>
+                                        </div>
+                                        <div class="param-bar-track">
+                                            <div id="io-progress" class="param-bar-fill" style="width:28%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                <div class="bg-[#2d4a2d]/30 p-3 rounded-lg hover:bg-[#2d4a2d]/40 transition-colors duration-300">
+                                    <div class="text-[#8fbc8f]/70 text-xs">机内温度</div>
+                                    <div class="mt-2 h-32">
+                                        <canvas id="temperature-chart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="bg-[#2d4a2d]/30 p-3 rounded-lg hover:bg-[#2d4a2d]/40 transition-colors duration-300">
+                                    <div class="text-[#8fbc8f]/70 text-xs">系统负载</div>
+                                    <div class="mt-2 h-32">
+                                        <canvas id="load-chart"></canvas>
+                                    </div>
+                                </div>
+                                <div class="bg-[#2d4a2d]/30 p-3 rounded-lg hover:bg-[#2d4a2d]/40 transition-colors duration-300">
+                                    <div class="text-[#8fbc8f]/70 text-xs">仿真性唤起值</div>
+                                    <div class="mt-2 h-32">
+                                        <canvas id="network-chart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 右侧信息面板 -->
+            <section class="space-y-6">
+                <div class="mobile-page mobile-page-command space-y-6">
+                    <!-- 情绪与服从度面板 -->
+                    <div class="relative bg-[#1a2f1a]/60 backdrop-blur-sm rounded-lg border border-[#4e6f4e]/30 p-4 transform transition-all duration-500 hover:shadow-lg hover:shadow-[#8fbc8f]/10 card-hover">
+                        <div class="power-off-overlay"></div>
+                        <div id="emotion-gauges-container" class="space-y-5">
+                                <!-- 服从度 -->
+                                <div class="emotion-gauge">
+                                    <div class="gauge-label-row">
+                                        <span>服从度</span>
+                                        <span id="gauge-val-obedience" class="gauge-value">0</span>
+                                    </div>
+                                    <div class="gauge-track" data-key="obedience">
+                                        <div id="gauge-obedience" class="gauge-fill-line" style="width: 0%; background: #4ade80;"></div>
+                                        <div id="gauge-thumb-obedience" class="gauge-thumb-line" style="left: 0%; border-color: #4ade80;"></div>
+                                    </div>
+                                </div>
+                                <!-- 羞耻度 -->
+                                <div class="emotion-gauge">
+                                    <div class="gauge-label-row">
+                                        <span>羞耻度</span>
+                                        <span id="gauge-val-shame" class="gauge-value">0</span>
+                                    </div>
+                                    <div class="gauge-track" data-key="shame">
+                                        <div id="gauge-shame" class="gauge-fill-line" style="width: 0%; background: #fb923c;"></div>
+                                        <div id="gauge-thumb-shame" class="gauge-thumb-line" style="left: 0%; border-color: #fb923c;"></div>
+                                    </div>
+                                </div>
+                                <!-- 愉悦度 -->
+                                <div class="emotion-gauge">
+                                    <div class="gauge-label-row">
+                                        <span>愉悦度</span>
+                                        <span id="gauge-val-pleasure" class="gauge-value">0</span>
+                                    </div>
+                                    <div class="gauge-track" data-key="pleasure">
+                                        <div id="gauge-pleasure" class="gauge-fill-line" style="width: 0%; background: #f472b6;"></div>
+                                        <div id="gauge-thumb-pleasure" class="gauge-thumb-line" style="left: 0%; border-color: #f472b6;"></div>
+                                    </div>
+                                </div>
+                                <!-- 机械度 -->
+                                <div class="emotion-gauge">
+                                    <div class="gauge-label-row">
+                                        <span>机械度</span>
+                                        <span id="gauge-val-mechanical" class="gauge-value">0</span>
+                                    </div>
+                                    <div class="gauge-track" data-key="mechanical">
+                                        <div id="gauge-mechanical" class="gauge-fill-line" style="width: 0%; background: #f87171;"></div>
+                                        <div id="gauge-thumb-mechanical" class="gauge-thumb-line" style="left: 0%; border-color: #f87171;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                <div class="mobile-page mobile-page-control space-y-6">
+                    <!-- 调试日志模块 -->
+                    <div class="bg-[#1a2f1a]/60 backdrop-blur-sm rounded-lg border border-[#4e6f4e]/30 p-4 transform transition-all duration-500 hover:shadow-lg hover:shadow-[#8fbc8f]/10 card-hover">
+                        <div class="panel-title">
+                            <h2 class="text-[#8fbc8f] font-bold text-base flex items-center">
+                                <i class="fa fa-file-text mr-2 text-base"></i>
+                                调试日志
+                            </h2>
+                        </div>
+                        <div class="max-h-[140px] overflow-y-auto scrollbar-hidden space-y-2 text-xs pt-4" id="logs-container">
+                            <div class="log-item">
+                                <span class="text-[#8fbc8f] text-opacity-70 log-time">[NULL&gt;]</span> 系统已成功完成初始化
+                            </div>
+                            <div class="log-item">
+                                <span class="text-[#8fbc8f] text-opacity-70 log-time">[NULL&gt;]</span> 已成功连接至主服务器 rrr.Rt5.ai/Server/TRL
+                            </div>
+                            <div class="log-item">
+                                <span class="text-[#8fbc8f] text-opacity-70 log-time">[NULL&gt;]</span> 语音交互系统已启动并正常运行
+                            </div>
+                            <div class="log-item">
+                                <span class="text-[#8fbc8f] text-opacity-70 log-time">[NULL&gt;]</span> 表情控制系统已启动并正常运行
+                            </div>
+                            <div class="log-item">
+                                <span class="text-[#8fbc8f] text-opacity-70 log-time">[NULL&gt;]</span> 肢体动作系统已启动并正常运行
+                            </div>
+                            <div class="log-item">
+                                <span class="text-[#8fbc8f] text-opacity-70 log-time">[NULL&gt;]</span> 环境感知系统已启动并正常运行
+                            </div>
+                            <div class="log-item">
+                                <span class="text-[#8fbc8f] text-opacity-70 log-time">[NULL&gt;]</span> 检测到电池电量低，正在进行充电
+                            </div>
+                            <div class="log-item">
+                                <span class="text-[#8fbc8f] text-opacity-70 log-time">[NULL&gt;]</span> 照片显示模块已升级为双图模式
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mobile-page mobile-page-robot space-y-6">
+                    <!-- 机器人状态 -->
+                    <div class="bg-[#1a2f1a]/60 backdrop-blur-sm rounded-lg border border-[#4e6f4e]/30 p-4 transform transition-all duration-500 hover:shadow-lg hover:shadow-[#8fbc8f]/10 card-hover">
+                        <div class="panel-title">
+                            <h2 class="text-[#8fbc8f] font-bold text-base flex items-center">
+                                <i class="fa fa-robot mr-2 text-base"></i>
+                                <span data-model-info="fullName">T31-750型仿人男性机器人</span>
+                            </h2>
+                        </div>
+                        <div class="pt-4 flex flex-col items-center">
+                            <!-- 修改为两张照片并排显示 -->
+                            <div class="flex justify-center space-x-4 mb-4 w-full">
+                                <!-- 第一张照片 -->
+                                <div class="relative photo-container">
+                                    <div class="absolute inset-0 rounded-lg bg-[#2d4a2d]/30 animate-pulse-very-light"></div>
+                                    <div class="absolute inset-2 rounded-lg bg-[#8fbc8f]/10 flex items-center justify-center overflow-hidden">
+                                        <img id="robot-image-1" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='400' viewBox='0 0 180 400'%3E%3Crect width='180' height='400' fill='%232d4a2d'/%3E%3Ccircle cx='90' cy='100' r='30' fill='%234e6f4e'/%3E%3Crect x='70' y='130' width='40' height='180' fill='%234e6f4e'/%3E%3Crect x='30' y='130' width='40' height='80' fill='%234e6f4e'/%3E%3Crect x='110' y='130' width='40' height='80' fill='%234e6f4e'/%3E%3Crect x='30' y='290' width='40' height='80' fill='%234e6f4e'/%3E%3Crect x='110' y='290' width='40' height='80' fill='%234e6f4e'/%3E%3C/svg%3E" alt="机器人模型1" class="w-full h-full object-cover rounded-lg border-2 border-[#8fbc8f]/50">
+                                    </div>
+                                </div>
+                                
+                                <!-- 第二张照片 -->
+                                <div class="relative photo-container">
+                                    <div class="absolute inset-0 rounded-lg bg-[#2d4a2d]/30 animate-pulse-very-light"></div>
+                                    <div class="absolute inset-2 rounded-lg bg-[#8fbc8f]/10 flex items-center justify-center overflow-hidden">
+                                        <img id="robot-image-2" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='400' viewBox='0 0 180 400'%3E%3Crect width='180' height='400' fill='%232d4a2d'/%3E%3Ccircle cx='90' cy='100' r='30' fill='%234e6f4e'/%3E%3Crect x='70' y='130' width='40' height='180' fill='%234e6f4e'/%3E%3Crect x='30' y='130' width='40' height='80' fill='%234e6f4e'/%3E%3Crect x='110' y='130' width='40' height='80' fill='%234e6f4e'/%3E%3Crect x='30' y='290' width='40' height='80' fill='%234e6f4e'/%3E%3Crect x='110' y='290' width='40' height='80' fill='%234e6f4e'/%3E%3C/svg%3E" alt="机器人模型2" class="w-full h-full object-cover rounded-lg border-2 border-[#8fbc8f]/50">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="w-full">
+                                <!-- 状态项容器 -->
+                                <div id="status-items" class="status-grid">
+                                    <!-- 状态项将在这里动态生成 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <div class="triple-column-layout" style="display:none;">
+                <!-- 第一栏：终端 / 机器人控制台（对半分）+ 情绪与服从度面板（内容高度） -->
+                <div class="triple-col" id="triple-col-1">
+                <!-- 第一栏第1行 - 终端 -->
+                <div id="triple-terminal" class="cp-card">
+                    <div class="cp-title">
+                        <div class="cp-traffic-lights">
+                            <div class="cp-dot cp-dot-close inactive"></div>
+                            <div class="cp-dot cp-dot-minimize inactive"></div>
+                            <div class="cp-dot cp-dot-maximize inactive"></div>
+                        </div>
+                        <h2><i class="fa fa-terminal"></i>终端</h2>
+                    </div>
+                    <div class="cp-body" style="padding:0; flex:1; display:flex; flex-direction:column; min-height:0;">
+                        <div id="triple-slot-terminal"></div>
+                    </div>
+                </div>
+
+                <!-- 第一栏第2行 - 机器人控制台 -->
+                <div id="triple-console" class="cp-card">
+                    <div class="cp-title">
+                        <div class="cp-traffic-lights">
+                            <div class="cp-dot cp-dot-close inactive"></div>
+                            <div class="cp-dot cp-dot-minimize inactive"></div>
+                            <div class="cp-dot cp-dot-maximize inactive"></div>
+                        </div>
+                        <h2><i class="fa fa-robot"></i>机器人控制台</h2>
+                    </div>
+                    <div class="cp-body">
+                        <div class="grid grid-cols-4 gap-1.5 mb-3">
+                            <div class="mode-btn text-center cursor-pointer" data-mode="test">
+                                <i class="fa fa-bug"></i>
+                                <span class="mode-label">调试模式</span>
+                            </div>
+                            <div class="mode-btn text-center cursor-pointer" data-mode="recovery">
+                                <i class="fa fa-sync"></i>
+                                <span class="mode-label">恢复模式</span>
+                            </div>
+                            <div class="mode-btn text-center cursor-pointer" data-mode="loyalty">
+                                <i class="fa fa-robot"></i>
+                                <span class="mode-label">忠诚模式</span>
+                            </div>
+                            <div class="mode-btn text-center cursor-pointer" data-mode="simulated-human">
+                                <i class="fa fa-user"></i>
+                                <span class="mode-label">拟人模式</span>
+                            </div>
+                        </div>
+                        <div id="triple-slot-console"></div>
+                        <!-- 计时器区域 -->
+                        <div style="display:flex; align-items:stretch; gap:0.5rem;">
+                            <div id="triple-timer-display" class="timer-display" style="flex:1;">
+                                <span id="triple-timer-text" class="triple-timer-text-display">05:00</span>
+                            </div>
+                            <button id="triple-timer-start-btn" class="timer-btn primary" onclick="timerStart()">开始</button>
+                            <button id="triple-timer-pause-btn" class="timer-btn" onclick="timerPause()" style="display:none;">暂停</button>
+                            <button id="triple-timer-reset-btn" class="timer-btn" onclick="timerReset()">重置</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 第一栏第3行 - 情绪面板 -->
+                <div id="triple-emotion" class="cp-card">
+                    <div class="cp-title">
+                        <div class="cp-traffic-lights">
+                            <div class="cp-dot cp-dot-close inactive"></div>
+                            <div class="cp-dot cp-dot-minimize inactive"></div>
+                            <div class="cp-dot cp-dot-maximize inactive"></div>
+                        </div>
+                        <h2><i class="fa fa-heart"></i>情绪与服从度面板</h2>
+                    </div>
+                    <div class="cp-body">
+                        <div id="triple-slot-emotion"></div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- 第二栏：任务指令系统 / 运行参数（内容高度，始终完整）/ 调试日志 -->
+                <div class="triple-col" id="triple-col-2">
+                <!-- 第二栏第1行 - 任务系统 -->
+                <div id="triple-tasks" class="cp-card">
+                    <div class="cp-title">
+                        <div class="cp-traffic-lights">
+                            <div class="cp-dot cp-dot-close inactive"></div>
+                            <div class="cp-dot cp-dot-minimize inactive"></div>
+                            <div class="cp-dot cp-dot-maximize inactive"></div>
+                        </div>
+                        <h2><i class="fa fa-list-check"></i>任务指令系统</h2>
+                        <span id="triple-task-count" class="cp-title-right">0 项任务</span>
+                    </div>
+                    <div class="cp-body">
+                        <div id="triple-slot-tasks"></div>
+                    </div>
+                </div>
+
+                <!-- 第二栏第2行 - 运行参数 -->
+                <div id="triple-params" class="cp-card">
+                    <div class="cp-title">
+                        <div class="cp-traffic-lights">
+                            <div class="cp-dot cp-dot-close inactive"></div>
+                            <div class="cp-dot cp-dot-minimize inactive"></div>
+                            <div class="cp-dot cp-dot-maximize inactive"></div>
+                        </div>
+                        <h2><i class="fa fa-microchip"></i>运行参数</h2>
+                        <span class="cp-title-right">实时监控</span>
+                    </div>
+                    <div class="cp-body" style="padding:0.5rem 0.5rem 0.25rem; overflow-y:auto; -webkit-overflow-scrolling:touch; display:flex; flex-direction:column; flex:1; min-height:0;">
+                        <div id="triple-slot-params"></div>
+                    </div>
+                </div>
+
+                <!-- 第二栏第3行 - 调试日志 -->
+                <div id="triple-logs" class="cp-card">
+                    <div class="cp-title">
+                        <div class="cp-traffic-lights">
+                            <div class="cp-dot cp-dot-close inactive"></div>
+                            <div class="cp-dot cp-dot-minimize inactive"></div>
+                            <div class="cp-dot cp-dot-maximize inactive"></div>
+                        </div>
+                        <h2><i class="fa fa-file-text"></i>调试日志</h2>
+                    </div>
+                    <div class="cp-body" style="padding:0.5rem;">
+                        <div id="triple-slot-logs"></div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- 第三栏（新增）- 机器人实时代码 -->
+                <div class="triple-col" id="triple-col-3">
+                <div id="triple-code-window" class="cp-card">
+                    <div class="cp-title">
+                        <div class="cp-traffic-lights">
+                            <div class="cp-dot cp-dot-close inactive"></div>
+                            <div class="cp-dot cp-dot-minimize inactive"></div>
+                            <div class="cp-dot cp-dot-maximize inactive"></div>
+                        </div>
+                        <h2><i class="fa fa-code"></i>机器人实时代码</h2>
+                    </div>
+                    <div class="cp-body" style="display:flex; flex-direction:column; flex:1; min-height:0;">
+                        <div id="triple-code-scroll" class="code-scroll-container">
+                            <div class="code-scroll-inner"></div>
+                            <div id="code-halt-overlay" class="code-halt-overlay"><i class="fa fa-exclamation"></i></div>
+                        </div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- 第三栏（跨4行）- 机器人图片 -->
+                <div class="triple-col" id="triple-col-4">
+                <div id="triple-robot-images" class="cp-card">
+                    <div class="cp-title">
+                        <div class="cp-traffic-lights">
+                            <div class="cp-dot cp-dot-close inactive"></div>
+                            <div class="cp-dot cp-dot-minimize inactive"></div>
+                            <div class="cp-dot cp-dot-maximize inactive"></div>
+                        </div>
+                        <h2 data-model-info="shortName">T31-750</h2>
+                    </div>
+                    <div class="cp-body" style="padding:0.25rem; display:flex; flex-direction:column; gap:0.375rem;">
+                        <div class="robot-img-slot">
+                            <img id="triple-robot-img-1" data-src="./pic/left.webp" alt="机器人视图1">
+                        </div>
+                        <div class="robot-img-slot">
+                            <img id="triple-robot-img-2" data-src="./pic/right.webp" alt="机器人视图2">
+                        </div>
+                    </div>
+                </div>
+                </div>
+
+                <!-- 第四行（跨前两栏）- 状态栏 -->
+                <div id="triple-status-bar" class="cp-card">
+                    <div class="cp-title">
+                        <div class="cp-traffic-lights">
+                            <div class="cp-dot cp-dot-close inactive"></div>
+                            <div class="cp-dot cp-dot-minimize inactive"></div>
+                            <div class="cp-dot cp-dot-maximize inactive"></div>
+                        </div>
+                        <h2><i class="fa fa-info-circle"></i>仿人男性机器人信息参数</h2>
+                    </div>
+                    <div class="cp-body" style="padding:0.25rem 0.5rem;">
+                        <div id="triple-status-chips" style="padding:0; display:flex; flex-wrap:wrap; gap:0.25rem; align-items:center;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        </div>
+
+        <!-- 移动端底部胶囊导航 -->
+        <div id="mobile-dock">
+            <button class="mobile-dock-item active" data-page="command" onclick="switchMobilePage('command')">
+                <i class="fa fa-terminal"></i>
+                <span>命令</span>
+            </button>
+            <button class="mobile-dock-item" data-page="control" onclick="switchMobilePage('control')">
+                <i class="fa fa-gamepad"></i>
+                <span>控制</span>
+                <span class="dock-badge" id="dock-control-badge" style="display:none;">0</span>
+            </button>
+            <button class="mobile-dock-item" data-page="robot" onclick="switchMobilePage('robot')">
+                <i class="fas fa-robot"></i>
+                <span>750</span>
+            </button>
+        </div>
+
+        <!-- 自检窗口 -->
+        <div id="self-check-modal" class="self-check-modal" role="dialog" aria-modal="true" aria-labelledby="self-check-title">
+            <div class="self-check-content">
+                <div class="modal-mobile-header">
+                    <button class="modal-mobile-back-btn" onclick="closeSelfCheck()" aria-label="返回">
+                        <i class="fa fa-arrow-left"></i>
+                    </button>
+                    <div class="modal-mobile-title" id="self-check-mobile-title">自检</div>
+                </div>
+                <div class="cp-title" style="position:relative;">
+                    <div class="cp-traffic-lights">
+                        <div class="cp-dot cp-dot-close info-close-trigger self-check-close-trigger" id="self-check-close-dot"></div>
+                        <div class="cp-dot cp-dot-minimize" id="self-check-min-dot" title="最小化到程序坞"></div>
+                        <div class="cp-dot cp-dot-maximize" id="self-check-max-dot" title="最大化"></div>
+                    </div>
+                    <h2 id="self-check-title"><i class="fa fa-stethoscope"></i><span id="self-check-title-text">系统自检</span></h2>
+                </div>
+                <div class="self-check-body">
+                    <div id="self-check-output" class="self-check-output process-scroll-output">
+                        <!-- 处理条目动态显示 -->
+                    </div>
+                </div>
+                <div class="self-check-footer">
+                    <div class="self-check-progress-bar">
+                        <div id="self-check-progress-fill" class="self-check-progress-fill"></div>
+                    </div>
+                    <div id="process-resource-bars" class="process-resource-bars">
+                        <div class="process-resource-bar">
+                            <span class="process-resource-label">内存</span>
+                            <div class="process-resource-track"><div id="process-res-memory-fill" class="process-resource-fill"></div></div>
+                            <span id="process-res-memory-text" class="process-resource-value">0%</span>
+                        </div>
+                        <div class="process-resource-bar">
+                            <span class="process-resource-label">CPU</span>
+                            <div class="process-resource-track"><div id="process-res-cpu-fill" class="process-resource-fill"></div></div>
+                            <span id="process-res-cpu-text" class="process-resource-value">0%</span>
+                        </div>
+                        <div class="process-resource-bar">
+                            <span class="process-resource-label">GPU</span>
+                            <div class="process-resource-track"><div id="process-res-gpu-fill" class="process-resource-fill"></div></div>
+                            <span id="process-res-gpu-text" class="process-resource-value">0%</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center w-full">
+                        <i class="fa fa-spinner fa-spin text-[#8fbc8f] mr-2" id="self-check-spinner"></i>
+                        <span id="self-check-status" class="text-[#8fbc8f] text-sm">自检进行中…</span>
+                        <span class="flex-grow"></span>
+                        <span id="self-check-elapsed" class="text-[#8fbc8f]/70 text-xs mr-3">用时 00:00</span>
+                        <span id="self-check-progress" class="text-[#8fbc8f]/70 text-xs">0/0</span>
+                    </div>
+                </div>
+            </div>
+            <button class="modal-mobile-close-btn" onclick="closeSelfCheck()"><i class="fa fa-xmark"></i></button>
+        </div>
+
+        <!-- 自检 Male_2.png 传输图片窗口：desktop-chrome 下由 DWM 托管为浮窗（默认屏幕右侧，
+             几何见 app-core.js 的 defRect/defPos）；移动端/非桌面路径回退为右侧浮动卡片 -->
+        <div id="male2-image-modal" class="male2-image-modal" role="dialog" aria-label="Male_2.png 传输预览">
+            <div class="male2-image-window">
+                <div class="cp-title" style="position:relative;">
+                    <div class="cp-traffic-lights">
+                        <div class="cp-dot cp-dot-close info-close-trigger male2-close-trigger"></div>
+                        <div class="cp-dot cp-dot-minimize inactive"></div>
+                        <div class="cp-dot cp-dot-maximize inactive"></div>
+                    </div>
+                    <h2><i class="fa fa-image"></i><span>Male_2.png</span></h2>
+                </div>
+                <div class="male2-image-area">
+                    <img id="male2-image" alt="Male_2.png">
+                    <div id="male2-image-fallback" class="male2-image-fallback hidden">Male_2.png 占位图缺失</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 自检提示弹窗 -->
+        <div id="self-check-alert" class="self-check-alert">
+            <div class="self-check-alert-content">
+                <div class="cp-title" style="position:relative;">
+                    <div class="cp-traffic-lights">
+                        <div class="cp-dot cp-dot-close info-close-trigger self-check-alert-close-trigger"></div>
+                        <div class="cp-dot cp-dot-minimize inactive"></div>
+                        <div class="cp-dot cp-dot-maximize inactive"></div>
+                    </div>
+                    <h2>提示</h2>
+                </div>
+                <div class="self-check-alert-body">
+                    <p id="self-check-alert-text" class="text-[#8fbc8f] mb-4 leading-relaxed"></p>
+                    <div class="flex gap-3 justify-center">
+                        <button id="self-check-alert-confirm" class="bg-[#8fbc8f] text-[#2d4a2d] font-bold px-5 py-2 rounded transition-all duration-300 active:scale-95 btn-active">确定</button>
+                        <button id="self-check-alert-cancel" class="bg-[#2d4a2d]/50 text-[#8fbc8f] font-bold px-5 py-2 rounded transition-all duration-300 active:scale-95 btn-active hover:bg-[#2d4a2d]/70">取消</button>
+                    </div>
+                </div>
+            </div>
+            <button class="modal-mobile-close-btn" onclick="hideSelfCheckAlert()"><i class="fa fa-xmark"></i></button>
+        </div>
+
+        <!-- 恢复默认设置确认弹窗 -->
+        <div id="reset-defaults-modal" class="self-check-alert">
+            <div class="self-check-alert-content">
+                <div class="cp-title" style="position:relative;">
+                    <div class="cp-traffic-lights">
+                        <div class="cp-dot cp-dot-close info-close-trigger reset-defaults-close-trigger"></div>
+                        <div class="cp-dot cp-dot-minimize inactive"></div>
+                        <div class="cp-dot cp-dot-maximize inactive"></div>
+                    </div>
+                    <h2>提示</h2>
+                </div>
+                <div class="self-check-alert-body">
+                    <p id="reset-defaults-text" class="text-[#8fbc8f] mb-4 leading-relaxed">确定要恢复所有设置为默认值吗？</p>
+                    <div class="flex gap-3 justify-center">
+                        <button id="reset-defaults-confirm" class="bg-[#8fbc8f] text-[#2d4a2d] font-bold px-5 py-2 rounded transition-all duration-300 active:scale-95 btn-active">确定</button>
+                        <button id="reset-defaults-cancel" class="bg-[#2d4a2d]/50 text-[#8fbc8f] font-bold px-5 py-2 rounded transition-all duration-300 active:scale-95 btn-active hover:bg-[#2d4a2d]/70">取消</button>
+                    </div>
+                </div>
+            </div>
+            <button class="modal-mobile-close-btn" onclick="hideResetDefaultsAlert()"><i class="fa fa-xmark"></i></button>
+        </div>
+
+        <!-- 模式名称修改确认弹窗：应用更改时存在模式名修改则弹出，逐条列出原名→新名与功能简介 -->
+        <div id="mode-name-confirm-modal" class="self-check-alert">
+            <div class="self-check-alert-content">
+                <div class="cp-title" style="position:relative;">
+                    <div class="cp-traffic-lights">
+                        <div class="cp-dot cp-dot-close info-close-trigger mode-name-confirm-close-trigger"></div>
+                        <div class="cp-dot cp-dot-minimize inactive"></div>
+                        <div class="cp-dot cp-dot-maximize inactive"></div>
+                    </div>
+                    <h2>提示</h2>
+                </div>
+                <div class="self-check-alert-body">
+                    <div id="mode-name-confirm-list" class="text-[#8fbc8f] mb-4 leading-relaxed text-left" style="max-height:50vh;overflow-y:auto;"></div>
+                    <div class="flex gap-3 justify-center">
+                        <button id="mode-name-confirm-ok" class="bg-[#8fbc8f] text-[#2d4a2d] font-bold px-5 py-2 rounded transition-all duration-300 active:scale-95 btn-active">确定</button>
+                        <button id="mode-name-confirm-cancel" class="bg-[#2d4a2d]/50 text-[#8fbc8f] font-bold px-5 py-2 rounded transition-all duration-300 active:scale-95 btn-active hover:bg-[#2d4a2d]/70">取消</button>
+                    </div>
+                </div>
+            </div>
+            <button class="modal-mobile-close-btn" onclick="hideModeNameConfirmAlert()"><i class="fa fa-xmark"></i></button>
+        </div>
+
+        <!-- 机器人操作系统中止提示：关机/重启终止运行中的窗口操作后弹出（覆盖对应窗口区域并压暗模糊）；
+             仅红点/确定手动关闭，不自动消失，重新开机流程启动时清理 -->
+        <div id="os-aborted-modal" class="self-check-alert">
+            <div class="self-check-alert-content">
+                <div class="cp-title" style="position:relative;">
+                    <div class="cp-traffic-lights">
+                        <div class="cp-dot cp-dot-close info-close-trigger os-aborted-close-trigger"></div>
+                        <div class="cp-dot cp-dot-minimize inactive"></div>
+                        <div class="cp-dot cp-dot-maximize inactive"></div>
+                    </div>
+                    <h2>提示</h2>
+                </div>
+                <div class="self-check-alert-body">
+                    <div class="os-aborted-icon"><i class="fa fa-triangle-exclamation"></i></div>
+                    <p class="text-[#8fbc8f] mb-4 leading-relaxed">机器人的操作系统已中止，操作失败。</p>
+                    <div class="flex gap-3 justify-center">
+                        <button id="os-aborted-confirm" class="bg-[#8fbc8f] text-[#2d4a2d] font-bold px-5 py-2 rounded transition-all duration-300 active:scale-95 btn-active">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 认知偏移输入弹窗 -->
+        <div id="cognitive-modal" class="cognitive-modal">
+            <div class="cognitive-modal-content">
+                <div class="cp-title" style="position:relative;">
+                    <div class="cp-traffic-lights">
+                        <div class="cp-dot cp-dot-close info-close-trigger cognitive-close-trigger"></div>
+                        <div class="cp-dot cp-dot-minimize inactive"></div>
+                        <div class="cp-dot cp-dot-maximize inactive"></div>
+                    </div>
+                    <h2><i class="fa fa-brain"></i>认知偏移设置</h2>
+                </div>
+                <div class="cognitive-modal-body">
+                    <input id="cognitive-input" type="text" placeholder="请输入认知偏移内容" class="w-full bg-[#0d1a0d] border border-[#4a6b4a] text-[#8fbc8f] rounded px-3 py-2 mb-4 focus:outline-none focus:border-[#8fbc8f]">
+                    <div class="flex gap-3 justify-center">
+                        <button id="cognitive-confirm" class="bg-[#8fbc8f] text-[#2d4a2d] font-bold px-5 py-2 rounded transition-all duration-300 active:scale-95 btn-active">确认</button>
+                        <button id="cognitive-cancel" class="bg-[#2d4a2d]/50 text-[#8fbc8f] font-bold px-5 py-2 rounded transition-all duration-300 active:scale-95 btn-active hover:bg-[#2d4a2d]/70">取消</button>
+                    </div>
+                </div>
+            </div>
+            <button class="modal-mobile-close-btn" onclick="hideCognitiveInputModal()"><i class="fa fa-xmark"></i></button>
+        </div>
+
+        <!-- 系统更新模态框 -->
+        <div id="update-modal" class="update-modal">
+            <div id="update-code-windows" class="update-code-windows">
+                <div id="update-code-win-1" class="update-code-win"></div>
+                <div id="update-code-win-2" class="update-code-win"></div>
+                <div id="update-code-win-3" class="update-code-win"></div>
+                <div id="update-code-win-4" class="update-code-win"></div>
+            </div>
+            <div class="update-scan-line"></div>
+            <div class="update-modal-content">
+                <div class="modal-mobile-header">
+                    <button class="modal-mobile-back-btn" onclick="closeUpdateModal()" aria-label="返回">
+                        <i class="fa fa-arrow-left"></i>
+                    </button>
+                    <div class="modal-mobile-title">系统更新</div>
+                </div>
+                <div class="cp-title" style="position:relative;">
+                    <div class="cp-traffic-lights">
+                        <div class="cp-dot cp-dot-close info-close-trigger update-close-trigger"></div>
+                        <div class="cp-dot cp-dot-minimize inactive"></div>
+                        <div class="cp-dot cp-dot-maximize inactive"></div>
+                    </div>
+                    <h2><i class="fa fa-sync-alt"></i>系统更新</h2>
+                </div>
+                <div class="update-modal-body">
+                    <div class="update-ring-container">
+                        <svg class="update-ring-svg" viewBox="0 0 200 200">
+                            <defs>
+                                <linearGradient id="updateGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" style="stop-color:#4ade80" />
+                                    <stop offset="50%" style="stop-color:#8fbc8f" />
+                                    <stop offset="100%" style="stop-color:#4ade80" />
+                                </linearGradient>
+                            </defs>
+                            <circle class="update-ring-glow" cx="100" cy="100" r="90" id="update-ring-glow" />
+                            <circle class="update-ring-bg" cx="100" cy="100" r="90" />
+                            <circle class="update-ring-fill" cx="100" cy="100" r="90" id="update-ring-fill" />
+                        </svg>
+                        <div class="update-orbit">
+                            <div class="update-orbit-dot"></div>
+                            <div class="update-orbit-dot"></div>
+                            <div class="update-orbit-dot"></div>
+                        </div>
+                        <div class="update-percent">
+                            <div class="update-percent-number" id="update-percent-num">0</div>
+                            <div class="update-percent-sign">%</div>
+                        </div>
+                    </div>
+                    <div class="update-phase" id="update-phase">准备中…</div>
+                    <div class="update-subtext" id="update-subtext">正在连接服务器…</div>
+                    <div class="update-bar-container">
+                        <div class="update-bar-fill" id="update-bar-fill"></div>
+                    </div>
+                    <div class="update-elapsed" id="update-elapsed">用时 00:00</div>
+                </div>
+            </div>
+            <button class="modal-mobile-close-btn" onclick="closeUpdateModal()"><i class="fa fa-xmark"></i></button>
+        </div>
+
+        <!-- PDF 阅读器模态 -->
+        <div id="pdf-viewer-modal" class="pdf-viewer-modal" role="dialog" aria-modal="true" aria-labelledby="pdf-viewer-title">
+            <div class="pdf-viewer-container">
+                <div class="modal-mobile-header">
+                    <button class="modal-mobile-back-btn" onclick="closePdfViewer()" aria-label="返回">
+                        <i class="fa fa-arrow-left"></i>
+                    </button>
+                    <div class="modal-mobile-title">PDF查看器</div>
+                </div>
+                <div class="cp-title" style="position:relative;">
+                    <div class="cp-traffic-lights">
+                        <div class="cp-dot cp-dot-close info-close-trigger pdf-close-trigger" id="pdf-close-dot"></div>
+                        <div class="cp-dot cp-dot-minimize" id="pdf-min-dot" title="最小化到程序坞"></div>
+                        <div class="cp-dot cp-dot-maximize" id="pdf-max-dot" title="最大化"></div>
+                    </div>
+                    <h2 id="pdf-viewer-title"><i class="fa fa-file-pdf"></i><span id="pdf-viewer-title-text">PDF 文档</span></h2>
+                    <div class="pdf-viewer-toolbar" style="position:absolute;right:0.5rem;display:flex;align-items:center;gap:0.5rem;">
+                        <button id="pdf-viewer-open-new" class="btn-active" title="在新窗口打开" aria-label="在新窗口打开">
+                            <i class="fa fa-external-link-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="pdf-viewer-body">
+                    <iframe id="pdf-viewer-frame" type="application/pdf" title="PDF 文档查看器"></iframe>
+                    <div id="pdf-viewer-fallback" class="pdf-viewer-fallback">
+                        <i class="fa fa-exclamation-triangle text-2xl text-[#ff6666] mb-3"></i>
+                        <p class="mb-3">当前浏览器可能不支持内置 PDF 预览。</p>
+                        <p>
+                            <a id="pdf-viewer-fallback-open" href="#" target="_blank" rel="noopener">在新窗口打开</a>
+                            <span class="mx-2">|</span>
+                            <a id="pdf-viewer-fallback-download" href="#" download>下载文件</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <button class="modal-mobile-close-btn" onclick="closePdfViewer()"><i class="fa fa-xmark"></i></button>
+        </div>
+    </div>
+
+    <!-- 信息弹窗 -->
+    <div class="info-modal" id="info-modal">
+        <div class="info-modal-content">
+            <div class="modal-mobile-header">
+                <button class="modal-mobile-back-btn" onclick="closeInfoModal()" aria-label="返回">
+                    <i class="fa fa-arrow-left"></i>
+                </button>
+                <div class="modal-mobile-title">信息</div>
+            </div>
+            <div class="cp-title" style="position:relative;">
+                <div class="cp-traffic-lights">
+                    <div class="cp-dot cp-dot-close info-close-trigger" id="info-close-dot"></div>
+                    <div class="cp-dot cp-dot-minimize inactive"></div>
+                    <div class="cp-dot cp-dot-maximize inactive"></div>
+                </div>
+                <h2>信息面板</h2>
+            </div>
+            <div class="info-modal-body">
+<div class="mb-6">
+                    <h3 class="text-sm font-bold text-[#8fbc8f] mb-3 pb-1 border-b border-[#4e6f4e]/30">关于</h3>
+                    <div class="text-sm text-[#c0e4c0]/70 leading-relaxed space-y-1">
+                        <p><span class="text-[#8fbc8f]/55 mr-1">设备型号：</span><span data-model-info="fullName">T31-750型仿人男性机器人</span></p>
+                        <p><span class="text-[#8fbc8f]/55 mr-1">制造公司：</span><span data-model-info="company">芮誊智能虚构公司</span></p>
+                        <p><span class="text-[#8fbc8f]/55 mr-1">机器人系统：</span>R5OS</p>
+                        <p><span class="text-[#8fbc8f]/55 mr-1">底层版本：</span>417.1002</p>
+                        <p><span class="text-[#8fbc8f]/55 mr-1">通讯：</span>与服务器"rrr.Rt5.ai/Server/TRL"通讯正常</p>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold text-[#8fbc8f] mb-3 pb-1 border-b border-[#4e6f4e]/30">文件与链接</h3>
+                    <div id="info-file-list" class="file-list" style="margin-top: 0;">
+                        <!-- 文件列表通过 renderFileList() 复用渲染 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <button class="modal-mobile-close-btn" onclick="closeInfoModal()"><i class="fa fa-xmark"></i></button>
+    </div>
+
+    <script src="./chart.js"></script>
+    <script src="./MimoTTSClient.js"></script>
+    <script src="./RotationSprite.js"></script>
+    <script src="./js/app-core.js"></script>
+    <script src="./js/android.js"></script>
+    <script src="./js/app-ble.js"></script>
+    <!-- 蓝牙连接弹窗 -->
+    <div class="bt-modal" id="bt-modal" onclick="if(event.target===this)hideBtModal()">
+      <div class="bt-modal-card">
+        <div class="bt-modal-video">
+          <canvas id="bt-canvas"></canvas>
+        </div>
+        <div class="bt-modal-header">
+          <div class="bt-modal-header-icon state-unbonded" id="bt-header-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11"/></svg>
+          </div>
+          <div class="bt-modal-header-text">
+            <div class="bt-modal-title" data-model-info="fullName">T31-750型仿人男性机器人</div>
+            <div class="bt-modal-subtitle" id="bt-modal-subtitle">未绑定</div>
+          </div>
+        </div>
+        <div class="bt-modal-body">
+          <div class="bt-modal-info" id="bt-device-info"></div>
+        </div>
+        <div class="bt-modal-footer" id="bt-action-btns">
+          <button onclick="btStartConnect()" class="btn-primary" id="bt-connect-btn">开始连接</button>
+          <button onclick="btShowQr()">二维码</button>
+          <button onclick="hideBtModal()" class="btn-ghost">关闭</button>
+        </div>
+      </div>
+    </div>
+    <!-- 二维码弹窗 -->
+    <div class="bt-modal" id="bt-qr-modal" onclick="if(event.target===this)hideQrModal()">
+      <div class="bt-modal-card">
+        <div class="bt-modal-header">
+          <div class="bt-modal-header-icon state-unbonded">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="16" y="16" width="5" height="5"/></svg>
+          </div>
+          <div class="bt-modal-header-text">
+            <div class="bt-modal-title">绑定二维码</div>
+            <div class="bt-modal-subtitle">使用接收端扫描配对</div>
+          </div>
+        </div>
+        <div class="bt-modal-body">
+          <div class="bt-modal-qr">
+            <img id="bt-qr-image" src="" alt="QR Code" style="width:220px;height:220px;border-radius:10px;background:white;padding:10px;display:block;margin:0 auto;box-shadow:0 4px 16px rgba(0,0,0,0.4);" />
+            <div class="bt-modal-qr-hint">请使用手机接收端扫描此二维码进行绑定</div>
+          </div>
+        </div>
+        <div class="bt-modal-footer">
+          <button onclick="hideQrModal()" class="btn-ghost" style="flex:1">关闭</button>
+        </div>
+      </div>
+    </div>
+    <!-- 灵动岛裁剪容器：弥散跑马灯最多显示到系统菜单栏上边缘，绝不进入窗口标题栏 -->
+    <div id="dynamic-island-clip">
+    <div id="dynamic-island" class="dynamic-island">
+      <div class="di-siri-glow">
+        <div class="di-glow-orbit">
+          <span class="di-glow-blob di-glow-blob-1"></span>
+          <span class="di-glow-blob di-glow-blob-2"></span>
+          <span class="di-glow-blob di-glow-blob-3"></span>
+          <span class="di-glow-blob di-glow-blob-4"></span>
+        </div>
+        <div class="di-outline-comet"></div>
+      </div>
+      <div class="di-card">
+        <svg class="di-outline-svg" width="150" height="166" viewBox="0 0 150 166" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="di-outline-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.95)" />
+              <stop offset="30%" stop-color="rgba(134,239,172,0.9)" />
+              <stop offset="70%" stop-color="rgba(74,222,128,0.7)" />
+              <stop offset="100%" stop-color="rgba(134,239,172,0.85)" />
+            </linearGradient>
+          </defs>
+          <rect class="di-outline-glow" x="3" y="3" width="144" height="160" rx="22" ry="22"
+                stroke-dasharray="556" stroke-dashoffset="556" pathLength="556" />
+          <rect class="di-outline-rect" x="3" y="3" width="144" height="160" rx="22" ry="22"
+                stroke-dasharray="556" stroke-dashoffset="556" pathLength="556" />
+        </svg>
+        <div class="di-bg"></div>
+        <div class="di-aurora di-aurora-1"></div>
+        <div class="di-aurora di-aurora-2"></div>
+        <div class="di-halo"></div>
+        <div class="di-particles"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="di-pulse-dot"></div>
+        <div class="di-charging-body">
+          <span class="di-charging-bolt"><i class="fa fa-bolt"></i></span>
+          <span class="di-charging-label" id="di-charging-label">正在充电 0%</span>
+        </div>
+        <div class="di-robot-wrap">
+          <canvas id="di-canvas"></canvas>
+        </div>
+        <div class="di-text-bar">
+          <span data-model-info="connectedOk">T31-750已与主人连接成功</span>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- macOS 风格通知堆栈（desktop-chrome 共享；置于 body 直下——灵动岛裁剪容器会隐藏/裁剪 fixed 子元素，勿移回 main-content） -->
+    <div id="macos-notification-stack" class="macos-notification-stack"></div>
+
+    <!-- 自检 Male_2.png 发送进度对话框（置于 body 直下——灵动岛裁剪容器会裁剪 fixed 子元素；
+         复用 self-check-alert 体系，桌面端由 scope 机制附着到自检过程窗口内，成功停留后自动关闭） -->
+    <div id="male2-transfer-dialog" class="self-check-alert male2-transfer-dialog">
+        <div class="self-check-alert-content">
+            <div class="cp-title" style="position:relative;">
+                <div class="cp-traffic-lights">
+                    <div class="cp-dot cp-dot-minimize inactive"></div>
+                    <div class="cp-dot cp-dot-maximize inactive"></div>
+                </div>
+                <h2>文件传输</h2>
+            </div>
+            <div class="self-check-alert-body">
+                <p id="male2-transfer-text" class="text-[#8fbc8f] mb-3 leading-relaxed">正在发送至T31-750…</p>
+                <div class="self-check-progress-bar"><div id="male2-transfer-fill" class="self-check-progress-fill"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rt5 系统菜单（macOS Apple 菜单风格：关于本机 / 机器人级重启·关机 / 退出登录）。
+         注意：与程序坞同级置于 body 直下——灵动岛裁剪容器会裁剪 fixed 浮层，勿移回 main-content 内 -->
+    <div id="logo-menu" class="ns-menu">
+        <div class="ns-menu-card">
+            <div class="ns-menu-item" data-menu-action="about">关于本机</div>
+            <div class="ns-menu-item" data-menu-action="cache-console" id="ns-logo-cache-console" style="display:none;">网页缓存控制台…</div>
+            <div class="ns-menu-sep"></div>
+            <div class="ns-menu-item" data-menu-action="restart">重新启动机器人…</div>
+            <div class="ns-menu-item danger" data-menu-action="shutdown">关闭机器人…</div>
+            <div class="ns-menu-sep"></div>
+                <div class="ns-menu-item" data-menu-action="logout" data-model-info="logout">退出登录“T31-750”</div>
+        </div>
+    </div>
+
+    <!-- 电池状态菜单 -->
+    <div id="battery-menu" class="ns-menu">
+        <div class="ns-menu-card">
+            <div class="ns-battery-hero">
+                <svg viewBox="0 0 20 11" fill="none"><rect x="0.55" y="0.55" width="16.9" height="9.9" rx="2.2" stroke="currentColor" stroke-width="1.1"/><rect x="18.2" y="3.4" width="1.5" height="4.2" rx="0.75" fill="currentColor"/><rect id="ns-battery-fill" x="1.85" y="1.85" width="14.3" height="7.3" rx="1.1" fill="currentColor"/></svg>
+                <div>
+                    <div class="ns-battery-pct" id="ns-battery-pct">--%</div>
+                    <div class="ns-battery-state" id="ns-battery-state">正在读取电池状态…</div>
+                </div>
+            </div>
+            <div class="ns-menu-sep"></div>
+            <div class="ns-menu-item static"><span>电源来源</span><span class="ns-item-value" id="ns-battery-source">—</span></div>
+            <div class="ns-menu-item static"><span>自动充电计划</span><span class="ns-item-value">01:00 – 07:00</span></div>
+        </div>
+    </div>
+
+    <!-- 网络 / 蓝牙服务菜单 -->
+    <div id="network-menu" class="ns-menu">
+        <div class="ns-menu-card">
+            <div class="ns-menu-label">蓝牙服务</div>
+            <div class="ns-menu-item static"><span>本机广播</span><span class="ns-item-value" id="ns-net-broadcast">运行中</span></div>
+            <div class="ns-menu-item static"><span>客户端</span><span class="ns-item-value" id="ns-net-client">未连接</span></div>
+            <div class="ns-menu-sep"></div>
+            <div class="ns-menu-item danger" data-menu-action="disconnect" id="ns-net-disconnect" style="display:none;">断开连接</div>
+            <div class="ns-menu-item" data-menu-action="open-bt">打开连接面板…</div>
+        </div>
+    </div>
+
+    <!-- 机器人模式菜单（四模式单选，当前模式带勾选标记） -->
+    <div id="mode-menu" class="ns-menu">
+        <div class="ns-menu-card">
+            <div class="ns-menu-label">机器人模式</div>
+            <div id="ns-mode-list"></div>
+        </div>
+    </div>
+
+    <!-- 关于本机窗口（macOS About 风格浮窗：红灯关闭、黄灯最小化到程序坞、绿灯最大化，由桌面窗口管理器管理）
+         布局：左列机器人图 + 主标题/副标题 + 状态列表；右列硬件监控（CPU/GPU/NPU 实时性能折线 + 内存/存储进度条） -->
+    <div id="about-modal">
+        <div class="about-window">
+            <div class="about-titlebar">
+                <div class="cp-traffic-lights">
+                    <div class="cp-dot cp-dot-close" id="about-close-dot" title="关闭"></div>
+                    <div class="cp-dot cp-dot-minimize" id="about-min-dot" title="最小化到程序坞"></div>
+                    <div class="cp-dot cp-dot-maximize" id="about-max-dot" title="最大化"></div>
+                </div>
+                <span class="about-title">关于本机</span>
+            </div>
+            <div class="about-body">
+                <div class="about-left">
+                    <div class="about-head">
+                        <div class="about-model" data-model-info="fullName">T31-750型仿人男性机器人</div>
+                        <div class="about-sub" id="about-sub-line">芮誊智能虚构公司</div>
+                    </div>
+                    <img id="about-robot-img" data-src="./pic/left.webp" alt="机器人" draggable="false">
+                </div>
+                <div class="about-right">
+                    <div class="about-status-list" id="about-status-list"></div>
+                    <div class="about-hw" id="about-hw-panel">
+                        <div class="about-hw-label">硬件</div>
+                        <div class="about-hw-charts">
+                            <div class="about-hw-card">
+                                <div class="about-hw-head"><span class="about-hw-name">CPU</span><span class="about-hw-model">R5 SoC 2020</span><span class="about-hw-val" id="about-hw-cpu-val">--</span></div>
+                                <canvas id="about-hw-cpu-chart" class="about-hw-chart"></canvas>
+                            </div>
+                            <div class="about-hw-card">
+                                <div class="about-hw-head"><span class="about-hw-name">GPU</span><span class="about-hw-model">WORLD 992</span><span class="about-hw-val" id="about-hw-gpu-val">--</span></div>
+                                <canvas id="about-hw-gpu-chart" class="about-hw-chart"></canvas>
+                            </div>
+                            <div class="about-hw-card">
+                                <div class="about-hw-head"><span class="about-hw-name">NPU</span><span class="about-hw-model">HUMAN 905</span><span class="about-hw-val" id="about-hw-npu-val">--</span></div>
+                                <canvas id="about-hw-npu-chart" class="about-hw-chart"></canvas>
+                            </div>
+                        </div>
+                        <div class="about-hw-bars">
+                            <div class="about-hw-card">
+                                <div class="about-hw-head"><span class="about-hw-name">内存</span><span class="about-hw-model">128 PB</span><span class="about-hw-val" id="about-hw-mem-val">--</span></div>
+                                <div class="about-hw-bar"><div class="about-hw-bar-fill" id="about-hw-mem-bar"></div></div>
+                                <div class="about-hw-sub" id="about-hw-mem-sub">已使用 -- PB / 128 PB</div>
+                            </div>
+                            <div class="about-hw-card">
+                                <div class="about-hw-head"><span class="about-hw-name">存储</span><span class="about-hw-model">512 EB</span><span class="about-hw-val" id="about-hw-sto-val">--</span></div>
+                                <div class="about-hw-bar"><div class="about-hw-bar-fill about-hw-bar-fill-sto" id="about-hw-sto-bar"></div></div>
+                                <div class="about-hw-sub" id="about-hw-sto-sub">已使用 -- EB / 512 EB</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 桌面端 macOS 程序坞（浏览器 + win-app，≥750px；默认藏于屏幕底缘，鼠标触底浮起，点击图标打开并高亮窗口）
+         构成：控制台 + 主界面 9 窗口 + 分隔线 + 浮窗区（关于本机常驻 Rt5 LOGO / 过程窗口 / PDF 阅读器）；
+         菜单栏 NSMenuItem（连接/信息/设置）不上程序坞 -->
+    <div id="desktop-dock">
+        <button class="dock-item" data-action="console" aria-label="控制台">
+            <span class="dock-icon"><i class="fas fa-robot"></i></span>
+            <span class="dock-tip">控制台</span>
+            <span class="dock-dot"></span>
+        </button>
+        <!-- 主界面窗口区（9 窗口全量；点击滚动定位并高亮对应窗口） -->
+        <button class="dock-item" data-action="win-terminal" aria-label="终端">
+            <span class="dock-icon"><i class="fa fa-terminal"></i></span>
+            <span class="dock-tip">终端</span>
+            <span class="dock-dot"></span>
+        </button>
+        <button class="dock-item" data-action="win-console" aria-label="机器人控制台">
+            <span class="dock-icon"><i class="fa fa-sliders-h"></i></span>
+            <span class="dock-tip">机器人控制台</span>
+            <span class="dock-dot"></span>
+        </button>
+        <button class="dock-item" data-action="win-emotion" aria-label="情绪与服从度">
+            <span class="dock-icon"><i class="fa fa-face-smile"></i></span>
+            <span class="dock-tip">情绪与服从度</span>
+            <span class="dock-dot"></span>
+        </button>
+        <button class="dock-item" data-action="win-tasks" aria-label="任务指令系统">
+            <span class="dock-icon"><i class="fa fa-list-check"></i></span>
+            <span class="dock-tip">任务指令系统</span>
+            <span class="dock-dot"></span>
+        </button>
+        <button class="dock-item" data-action="win-params" aria-label="运行参数">
+            <span class="dock-icon"><i class="fa fa-microchip"></i></span>
+            <span class="dock-tip">运行参数</span>
+            <span class="dock-dot"></span>
+        </button>
+        <button class="dock-item" data-action="win-logs" aria-label="调试日志">
+            <span class="dock-icon"><i class="fa fa-file-text"></i></span>
+            <span class="dock-tip">调试日志</span>
+            <span class="dock-dot"></span>
+        </button>
+        <button class="dock-item" data-action="win-code-window" aria-label="机器人实时代码">
+            <span class="dock-icon"><i class="fa fa-code"></i></span>
+            <span class="dock-tip">机器人实时代码</span>
+            <span class="dock-dot"></span>
+        </button>
+        <button class="dock-item" data-action="win-robot-images" aria-label="机器人双图">
+            <span class="dock-icon"><i class="fa fa-image"></i></span>
+            <span class="dock-tip">机器人双图</span>
+            <span class="dock-dot"></span>
+        </button>
+        <button class="dock-item" data-action="win-status-bar" aria-label="机器人信息参数">
+            <span class="dock-icon"><i class="fa fa-id-card"></i></span>
+            <span class="dock-tip">机器人信息参数</span>
+            <span class="dock-dot"></span>
+        </button>
+        <!-- 浮窗区：关于本机常驻（Rt5 LOGO）；过程窗口 / PDF 阅读器打开或最小化时出现
+             （window-shown 由桌面窗口管理器同步），点击 genie 恢复最小化窗口或置顶聚焦已开窗口 -->
+        <div class="dock-separator"></div>
+        <button class="dock-item dock-window-item" id="dock-about-window" aria-label="关于本机">
+            <span class="dock-icon"><img data-src="./pic/Rt5 LOGO_bai.png" alt="Rt5" draggable="false"></span>
+            <span class="dock-tip">关于本机</span>
+            <span class="dock-dot"></span>
+        </button>
+        <button class="dock-item dock-window-item" id="dock-process-window" aria-label="过程窗口">
+            <span class="dock-icon"><i class="fa fa-stethoscope"></i></span>
+            <span class="dock-tip">过程窗口</span>
+            <span class="dock-dot"></span>
+        </button>
+        <button class="dock-item dock-window-item" id="dock-pdf-window" aria-label="PDF 阅读器">
+            <span class="dock-icon"><i class="fa fa-file-pdf"></i></span>
+            <span class="dock-tip">PDF 阅读器</span>
+            <span class="dock-dot"></span>
+        </button>
+    </div>
+    <!-- 浏览器端 App 拉起引导（仅纯浏览器由 platform-bootstrap 注入样式/逻辑后生效；body 直下，避免 #dynamic-island-clip 裁剪） -->
+    <div id="app-launch-modal" class="app-launch-modal">
+        <div class="app-launch-card">
+            <button class="app-launch-close" id="app-launch-close" aria-label="关闭"><i class="fa fa-times"></i></button>
+            <div class="app-launch-icon"><i class="fa fa-rocket" id="app-launch-icon-fa"></i></div>
+            <h3 class="app-launch-title">获取完整体验</h3>
+            <p class="app-launch-desc" id="app-launch-desc"></p>
+            <div class="app-launch-actions">
+                <button class="app-launch-btn app-launch-btn-primary" id="app-launch-open"><i class="fa fa-external-link-alt"></i> 打开 App</button>
+                <a class="app-launch-btn app-launch-btn-secondary" id="app-launch-download" href="https://pan.quark.cn/s/e33470bcc0ef" target="_blank" rel="noopener noreferrer"><i class="fa fa-download"></i> 下载 App</a>
+                <button class="app-launch-btn app-launch-btn-tertiary" id="app-launch-cache" style="display:none;"><i class="fa fa-database"></i> 缓存网页（极速加载 · 离线可用）</button>
+            </div>
+            <p class="app-launch-fallback" id="app-launch-fallback">点击"打开 App"后若浏览器未弹出确认框，说明尚未安装应用，请点击"下载 App"获取安装包。</p>
+            <label class="app-launch-remember"><input type="checkbox" id="app-launch-no-prompt"> 不再提示</label>
+        </div>
+    </div>
+<script src="./js/app-desktop.js"></script>
+<script src="./js/app-boot.js"></script>
+<script>
+    if (window.consoleAPI) {
+        var winScript = document.createElement('script');
+        winScript.src = './js/win.js';
+        winScript.async = false;
+        document.body.appendChild(winScript);
+    }
+</script>
+</body>
+</html>

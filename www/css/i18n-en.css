@@ -1,0 +1,106 @@
+/* ============================================================
+ * i18n-en.css — English UI polish layer
+ * ------------------------------------------------------------
+ * Scope rule (hard): every selector is under html[lang='en'].
+ * Default Chinese (html[lang='zh-CN'] / no lang switch) never
+ * matches these rules — zh rendering stays pixel-identical.
+ *
+ * Where to add EN-only tweaks:
+ *   1. Login card
+ *   2. Latin typography (letter-spacing / line-height)
+ *   3. Forms & buttons
+ *   4. Panels / settings / chrome
+ * Do not scatter EN rules into app.css / fonts.css.
+ * Mode-button line-fit lives in js/i18n.js (fitGroup), not here.
+ * ============================================================ */
+
+/* ---------- 1. Login card ----------------------------------
+ * EN title "Male Android Control Console" is much longer than
+ * 「仿人男性机器人控制台」— widen the card so the title stays
+ * one line and the form keeps the same visual rhythm. */
+html[lang='en'] .login-container {
+    max-width: 30rem;
+    padding: 2.15rem 2.35rem;
+}
+html[lang='en'] .login-title {
+    font-size: 1.45rem;
+    line-height: 1.28;
+    letter-spacing: 0.005em;
+}
+html[lang='en'] #login-subtitle {
+    line-height: 1.45;
+}
+/* Narrow phones: keep a touch more width than zh (400px) */
+@media (max-width: 749px) {
+    html[lang='en'] .login-container {
+        max-width: 430px;
+        padding: 2.25rem 1.85rem;
+    }
+}
+
+/* ---------- 2. Latin typography ----------------------------
+ * Mono Latin reads better with a hair of tracking on body-size
+ * labels; titles stay tight. */
+html[lang='en'] .remember-label,
+html[lang='en'] .login-form label,
+html[lang='en'] .modal-mobile-title,
+html[lang='en'] .cp-title {
+    letter-spacing: 0.015em;
+}
+html[lang='en'] .login-title,
+html[lang='en'] .about-model,
+html[lang='en'] .about-title {
+    letter-spacing: 0.01em;
+}
+
+/* ---------- 3. Forms & buttons ----------------------------- */
+html[lang='en'] .login-input {
+    letter-spacing: 0.02em;
+}
+html[lang='en'] .login-btn {
+    letter-spacing: 0.03em;
+}
+
+/* ---------- 4. Panels / settings / chrome ------------------
+ * Long EN section titles: allow two calm lines instead of
+ * squeezing into a tiny font. */
+html[lang='en'] .settings-content .cp-title,
+html[lang='en'] .modal-mobile-title {
+    line-height: 1.35;
+}
+html[lang='en'] .win-titlebar-title {
+    letter-spacing: 0.01em;
+}
+/* Status-bar / info chips: EN labels a touch tighter than CJK */
+html[lang='en'] .status-item,
+html[lang='en'] .asi-label {
+    letter-spacing: 0.01em;
+}
+
+/* ---------- 5. Dialogs / popups ---------------------------
+ * User rule: windows whose frame may grow (DWM / dialogs) get
+ * normal type + more width — NEVER narrow/shrink type here.
+ * Fixed main-UI chrome is the only place fit() may condense. */
+html[lang='en'] .self-check-alert-content {
+    max-width: 32rem;
+}
+html[lang='en'] .bt-modal-card {
+    max-width: 420px;
+}
+/* DWM 浮窗（过程/自检/PDF/更新/关于）：英文长句给更多横向空间 */
+html[lang='en'] .self-check-content,
+html[lang='en'] .update-modal-content {
+    min-width: min(520px, 92vw);
+}
+html[lang='en'] .pdf-viewer-container {
+    min-width: min(640px, 94vw);
+}
+html[lang='en'] .settings-content {
+    max-width: min(46rem, 96vw);
+}
+/* 过程/自检状态条与按钮：正常字宽，不跟主界面一起缩 */
+html[lang='en'] .self-check-alert,
+html[lang='en'] .process-resource-value,
+html[lang='en'] .update-modal-body {
+    letter-spacing: 0.015em;
+}

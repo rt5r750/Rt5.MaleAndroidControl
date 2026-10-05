@@ -1,0 +1,128 @@
+        body:not(.win-desktop) .win-titlebar { display: none !important; }
+        /* 灵动岛仅在 win-app 与 Android 端显示，浏览器端连同裁剪容器一起隐藏 */
+        html:not(.win-desktop):not(.android-webview) #dynamic-island-clip,
+        html:not(.win-desktop):not(.android-webview) #dynamic-island { display: none !important; }
+        @media (min-width: 750px) {
+            body.win-desktop .win-titlebar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 40px;
+                padding: 0;
+                background: linear-gradient(170deg, rgba(6,15,6,0.45) 0%, rgba(4,12,4,0.5) 50%, rgba(6,16,6,0.45) 100%);
+                backdrop-filter: blur(22px) saturate(1.25);
+                -webkit-backdrop-filter: blur(22px) saturate(1.25);
+                border-bottom: 1px solid rgba(78, 111, 78, 0.35);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 0 rgba(0,0,0,0.3);
+                z-index: 60;
+                -webkit-app-region: drag;
+                app-region: drag;
+            }
+            .win-titlebar-drag {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                height: 100%;
+                min-width: 0;
+                -webkit-app-region: drag;
+                app-region: drag;
+            }
+            .win-titlebar-title {
+            /* 标题栏整行（含 T31-750 与中文）完全使用 MiSans */
+            font-family: 'MiSans Full', 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', system-ui, sans-serif;
+                font-size: 12px;
+                font-weight: 400;
+                color: #f2f2f2;
+                letter-spacing: normal;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                -webkit-app-region: no-drag;
+                app-region: no-drag;
+                user-select: none;
+            }
+            .win-titlebar-controls {
+                display: flex;
+                align-items: center;
+                height: 100%;
+                -webkit-app-region: no-drag;
+                app-region: no-drag;
+            }
+            /* 独立标题栏按钮与 header 内交互元素均不可拖拽 */
+            .win-titlebar button,
+            .triple-header-content,
+            .triple-header-content button,
+            .triple-header-content a,
+            .triple-header-content input,
+            .triple-header-content .triple-header-right { -webkit-app-region: no-drag; app-region: no-drag; }
+            html.win-desktop .triple-header-right { right: 12px !important; }
+            /* 仿 Win11 自绘窗口控制按钮（悬停/按压动画与系统指示器一致） */
+            .win-ctrl-bar {
+                display: flex;
+                align-items: stretch;
+                height: 40px;
+                -webkit-app-region: no-drag;
+                app-region: no-drag;
+            }
+            .win-ctrl-btn {
+                width: 46px;
+                height: 40px;
+                background: transparent;
+                border: none;
+                color: rgba(224,245,224,0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: default;
+                padding: 0;
+                transition: background-color 0.1s ease, color 0.1s ease;
+                -webkit-app-region: no-drag;
+                app-region: no-drag;
+            }
+            .win-ctrl-btn svg { width: 12px; height: 12px; display: block; }
+            .win-ctrl-btn:hover { background: rgba(255,255,255,0.10); color: #ffffff; }
+            .win-ctrl-btn:active { background: rgba(255,255,255,0.16); }
+            .win-ctrl-btn.win-ctrl-close:hover { background: #c42b1c; color: #ffffff; }
+            .win-ctrl-btn.win-ctrl-close:active { background: rgba(196,43,28,0.85); }
+
+            /* ===== 窗口外框分层：标题栏毛玻璃（对网页背景模糊），网页内容自成一体 ===== */
+            /* 保留桌面端 body 原始背景图（Background.webp cover）；标题栏条带对其 backdrop-filter 模糊 */
+            /* 全屏浮层下移让出标题栏区域，保证标题栏始终有可模糊的网页背景 */
+            html.win-desktop .login-modal,
+            html.win-desktop .settings-modal,
+            html.win-desktop .self-check-modal,
+            html.win-desktop .self-check-alert,
+            html.win-desktop .cognitive-modal,
+            html.win-desktop .update-modal,
+            html.win-desktop .pdf-viewer-modal,
+            html.win-desktop .info-modal,
+            html.win-desktop .bt-modal {
+                top: 40px !important;
+                bottom: 0 !important;
+            }
+            /* ===== 系统级 Acrylic：仅 Win 端标题栏区域透出桌面毛玻璃，网页背景下沉到 40px 以下 ===== */
+            html.win-desktop, body.win-desktop { background: transparent !important; }
+            html.win-desktop #win-page-bg {
+                position: fixed;
+                top: 40px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: #0d1a0d;
+                background-image: url('../pic/login/Background.webp');
+                background-size: cover;
+                background-position: center;
+                background-attachment: fixed;
+                z-index: -1;
+                pointer-events: none;
+            }
+        }
+        #login-modal { -webkit-app-region: drag; app-region: drag; }
+        #login-modal input,
+        #login-modal button,
+        #login-modal a,
+        #login-modal .login-container { -webkit-app-region: no-drag; app-region: no-drag; }
