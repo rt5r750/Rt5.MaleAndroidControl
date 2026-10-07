@@ -504,6 +504,6 @@ FrameLayout (root, 全屏黑底)
 - **compileSdk / targetSdk**: 34
 - **minSdk**: 24（语音识别的 `createOnDeviceSpeechRecognizer` 为 API 31，运行时按版本与设备可用性兜底）
 - **主要依赖**: AndroidX Core、Activity-KTX、ZXing（二维码扫描）
-- **单元测试（1.8.0 建，1.9.0 扩容）**: `testImplementation 'junit:junit:4.13.2'` + `app/src/test/java/com/robotcontrol/phone/speech/VoiceCommandMatcherTest.kt`（纯 JVM，无 Android 依赖）覆盖本地语音规则的四大模式读音、同音字命中、否定词与否定局部性、中英语言门控、空文本与「是否含模式读音」判定，以及 1.9.0 补的真实 ASR 输出（带标点/句号）与英文否定词词边界两项；命令 `./gradlew :app:testReleaseUnitTest`（12 项）
+- **单元测试（1.8.0 建，1.9.1 扩容）**: `testImplementation 'junit:junit:4.13.2'` + `app/src/test/java/com/robotcontrol/phone/speech/VoiceCommandMatcherTest.kt`（纯 JVM，无 Android 依赖）覆盖本地语音规则的四大模式读音、同音字命中、否定词与否定局部性、中英语言门控、空文本与「是否含模式读音」判定，以及 1.9.1 补的真实 ASR 输出（带标点/句号）与英文否定词词边界两项；命令 `./gradlew :app:testReleaseUnitTest`（12 项）
 - **Application 类**: RobotPhoneApplication（创建通知渠道 `RobotControl`）
-- **权限与可见性**: BLUETOOTH_CONNECT/ADVERTISE/SCAN、CAMERA（扫码）、POST_NOTIFICATIONS（Android 13+）、RECORD_AUDIO（语音识别，1.7.0）；另需 `<queries>` 声明 `android.speech.RecognitionService`（系统识别服务可见性，1.9.0）
+- **权限与可见性**: BLUETOOTH_CONNECT/ADVERTISE/SCAN、CAMERA（扫码）、POST_NOTIFICATIONS（Android 13+）、RECORD_AUDIO（语音识别，1.7.0）；另需 `<queries>` 声明 `android.speech.RecognitionService`（系统识别服务可见性，1.9.1）

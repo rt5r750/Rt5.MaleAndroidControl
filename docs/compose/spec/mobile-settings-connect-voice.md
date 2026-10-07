@@ -57,7 +57,7 @@ commits: 21d02ce..（工作区未提交，本轮交付态即工作区）
 ### [S2.4] 语音识别收口（仅 phone-app）
 
 - 复核 1.7.1 链路（圆钮常态保持、前台/后台功耗口径、本地规则四大模式读音 + 否定词 + 中英门控、云端兜底门槛、与 TTS 共用 Key、命中即同一条反向推送链路）。
-- 补**低功耗退化与可用性回退**（1.9.0 定型）：同一本地引擎连续 3 次识别错误（`ERROR_NO_MATCH`/`ERROR_SPEECH_TIMEOUT` 除外）即换下一级引擎（设备端离线 → 系统识别器离线优先 → 系统识别器允许联网），三级全失败才「有云端条件切仅云端，否则关闭并提示」；`ERROR_INSUFFICIENT_PERMISSIONS` 直接停，其余含偶发 `ERROR_CLIENT` 计入计数；只有 `onResults` 才清零计数。
+- 补**低功耗退化与可用性回退**（1.9.1 定型）：同一本地引擎连续 3 次识别错误（`ERROR_NO_MATCH`/`ERROR_SPEECH_TIMEOUT` 除外）即换下一级引擎（设备端离线 → 系统识别器离线优先 → 系统识别器允许联网），三级全失败才「有云端条件切仅云端，否则关闭并提示」；`ERROR_INSUFFICIENT_PERMISSIONS` 直接停，其余含偶发 `ERROR_CLIENT` 计入计数；只有 `onResults` 才清零计数。
 - 补**系统识别服务可见性**声明（`<queries>` → `android.speech.RecognitionService`）：Android 11+ 包可见性过滤下缺失会令本地识别恒判不可用。
 - 补 JVM 单测覆盖本地规则；功能必须进 release APK（dex 抽验）。
 

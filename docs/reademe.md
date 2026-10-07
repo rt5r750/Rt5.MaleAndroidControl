@@ -14,7 +14,8 @@ RobotControl 是一个多端协同的机器人控制系统：android-app（控�
 - [watch-app（手表端）](file:///d:/AIProject/RobotControl/docs/watch-app/reademe.md)
 - [win-app（Windows 桌面版）](file:///d:/AIProject/RobotControl/docs/win-app/reademe.md)
 - [开发计划：v1.6.0（型号信息统一/设置重构/激活引导/配置导入导出，已实施）](file:///d:/AIProject/RobotControl/docs/plans/plan-v1.6.0.md)
-- [功能文档：移动端设置 UI、连接稳定性、外链打开与语音识别（v1.8.0 交付，语音识别退化口径 v1.9.0 更新）](file:///d:/AIProject/RobotControl/docs/compose/spec/mobile-settings-connect-voice.md)
+- [功能文档：移动端设置 UI、连接稳定性、外链打开与语音识别（v1.8.0 交付，语音识别退化口径 v1.9.1 更新）](file:///d:/AIProject/RobotControl/docs/compose/spec/mobile-settings-connect-voice.md)
+- [交付台账（每轮出包产物与抽验口径）](file:///d:/AIProject/RobotControl/docs/release-ledger.md)
 
 ## BLE UUID 速查表
 
@@ -53,6 +54,7 @@ RobotControl 是一个多端协同的机器人控制系统：android-app（控�
 - 前端任何新增/修改的文字样式必须遵循项目字体规范（中文 `MiSans`、数字/英文 `JetBrains Mono`、win-app 标题栏 `MiSans Full`，沿用全局字体栈，禁止引入新字体），规范详见项目根 [AGENTS.md](file:///d:/AIProject/RobotControl/AGENTS.md)；桌面菜单模式（`html.desktop-chrome`）新增浮层须置于 body 直下，勿放入 `#dynamic-island-clip`（灵动岛裁剪容器会裁剪/隐藏 fixed 子元素）。
 - Phone 连接方案仅支持 BLE 扫描与 QR 码；Watch 直接扫描 RobotControl- 前缀 Console 设备（ScanFilter 按服务 UUID 7500 过滤，phone/watch 通用，见 BLE 协议文档「设备命名规则」）。
 - 模块级 UI、构建、存储、性能和实现细节写入各端模块文档；协议变更必须先落到 BLE 协议文档再修改代码。
+- **判断「某个 release 包有没有某项功能」先查[交付台账](file:///d:/AIProject/RobotControl/docs/release-ledger.md)**：产物路径固定、后一版本覆盖前一版本，台账按版本记录产物时间、抽验特征串与「未改动端沿用上一版」，避免拿旧包验证或重复出包。
 - 文档准确反映当前代码状态，不要假设未实现的功能。
 
 ## 源码目录链接
@@ -66,7 +68,8 @@ RobotControl 是一个多端协同的机器人控制系统：android-app（控�
 
 版本号三位 `x.y.z`：新会话开发第二位 +1（第三位归零），同一会话内每轮更新只递增第三位；条目按 移除 → 新增 → 优化 → 修复 排序，同一会话内多次第三位递增原地合并写最终结果。
 
-- **1.9.0**（2026-10-07）：
+- **1.9.1**（2026-10-07）：
+  - 新增：**开发文档群新增《交付台账》**（[docs/release-ledger.md](file:///d:/AIProject/RobotControl/docs/release-ledger.md)）——记录每轮出包的产物路径/时间/抽验特征串与「未改动端沿用上一版」口径，附 APK dex/清单（UTF-16-LE）与 win-app www 的 grep、md5 核对命令；用于快速判断某个 release 包是否已含某项功能，避免重复出包与拿旧包验证。
   - 优化：**phone-app 本地语音规则单测扩容**——`VoiceCommandMatcherTest` 由 10 项增至 12 项，补「真实 ASR 输出带标点/句号仍正常命中或否定」与「英文否定词按词边界（know / nothing 等含 no、not 子串的普通词不得误否定）」两项；`./gradlew :app:testReleaseUnitTest` 12 项全绿。
   - 修复：**phone-app 语音识别在真机/部分设备上整体不可用**（用户实测 release 包「没实现」的根因）——三层根因一并收口：① Manifest 缺 `<queries>`（`android.speech.RecognitionService`），Android 11+ 包可见性过滤下 `isRecognitionAvailable()` / `isOnDeviceRecognitionAvailable()` 查不到系统识别服务，本地识别恒判不可用；② 设备端离线识别连续失败后直接退化（有云端条件切「仅云端」，否则关闭并提示「本地语音识别不可用」），从不回退系统识别器；③ 系统识别器强制 `EXTRA_PREFER_OFFLINE=true`，设备未下载离线语言包时同样必然失败（AVD Android 16 实测两端都落到 SODA 离线引擎报 `Failed to get language pack of required locale: error 12/13`）。现改为**三级引擎逐级回退**：设备端离线 → 系统识别器（离线优先）→ 系统识别器（允许联网），同一引擎连续 3 次错误即换下一级，三级全失败才按云端条件退化；`ERROR_INSUFFICIENT_PERMISSIONS`（录音权限被撤销）保持直接停并提示，偶发 `ERROR_CLIENT` 由「直接判死」改为计入退化计数。**实测口径**：AVD Android 16 装 release APK，点圆钮后日志完整走 `ON_DEVICE → SYSTEM_OFFLINE → SYSTEM_ONLINE → degraded to cloud-only mode`（已配 API Key 时不再关闭、圆钮保持绿色），全程无 FATAL；MiMo ASR 契约以 MiMo TTS 合成「进入调试模式」音频经 `mimo-v2.5-asr` 实测返回「进入调试模式。」，与 `MimoAsrClient` 的请求体/响应路径一致。
   - 修复：**英文否定词子串误否定**——`no` / `not` 等按子串匹配会把 know、nothing 等普通词判为否定（「I know the test mode is fine」不切换），改按词边界匹配（`\b`）；中文否定词维持子串口径不变。

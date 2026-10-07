@@ -56,7 +56,7 @@
 - **自定义 UI 组件**：[EmotionPanelView.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/ui/EmotionPanelView.kt)
 - **通知推送**：收到语音消息时发送系统通知（标题「主人指令」；反向推送回声为「推送成功」，1.7.0）
 - **模式反向推送（1.7.0）**：长按顶部胶囊弹模式菜单（4 项+关闭）或语音识别命中 → `ConsoleBleClient.writeMode(ordinal)` 写入 Mode(7501)；未连接时提示「未连接控制面板」
-- **语音识别（1.7.0，1.9.0 加固，`speech/` 包）**：右上角圆形麦克风按钮单击常态开/关（RECORD_AUDIO 权限、前台恢复/后台停止）；本地识别按**三级引擎逐级回退**（设备端离线 → 系统识别器离线优先 → 系统识别器允许联网；同一引擎连续 3 次错误换下一级，Manifest 需 `<queries>` 声明 `android.speech.RecognitionService`，否则 Android 11+ 包可见性过滤下查不到识别服务），识别文本过 `VoiceCommandMatcher` 本地规则（按读音拼音匹配、否定词排除——英文按词边界、语言门控跟随 7507），命中即切换模式；仅当本地得到大段文本未命中且满足门槛（≥4 字、音频 ≥1.2s、间隔 ≥4s、无并发）才把 PCM 音频发 MiMo `mimo-v2.5-asr` 云端兜底；设置页（BLE 对话框）「识别引擎调用云端（MiMo ASR）」开关关闭后仅本地识别，三级引擎全失败且有云端条件时退化为「仅云端」
+- **语音识别（1.7.0，1.9.1 加固，`speech/` 包）**：右上角圆形麦克风按钮单击常态开/关（RECORD_AUDIO 权限、前台恢复/后台停止）；本地识别按**三级引擎逐级回退**（设备端离线 → 系统识别器离线优先 → 系统识别器允许联网；同一引擎连续 3 次错误换下一级，Manifest 需 `<queries>` 声明 `android.speech.RecognitionService`，否则 Android 11+ 包可见性过滤下查不到识别服务），识别文本过 `VoiceCommandMatcher` 本地规则（按读音拼音匹配、否定词排除——英文按词边界、语言门控跟随 7507），命中即切换模式；仅当本地得到大段文本未命中且满足门槛（≥4 字、音频 ≥1.2s、间隔 ≥4s、无并发）才把 PCM 音频发 MiMo `mimo-v2.5-asr` 云端兜底；设置页（BLE 对话框）「识别引擎调用云端（MiMo ASR）」开关关闭后仅本地识别，三级引擎全失败且有云端条件时退化为「仅云端」
 
 ### watch-app（手表端）
 - **Activity**：[MainActivity.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/MainActivity.kt) 单 Activity
