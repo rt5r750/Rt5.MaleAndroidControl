@@ -53,6 +53,27 @@ object PhoneDataStore {
     private var notificationContext: Context? = null
     private var prefs: SharedPreferences? = null
 
+    /* ===== 反向推送（手机端 → 控制端）通知口径 =====
+       控制端收到手机端写入的模式后会回推模式/语音（原代码行为）；此期间到达的语音通知
+       标题用「推送成功」替代「主人指令」，且只弹一条（先弹的会被抑制）。 */
+    @Volatile private var reverseEchoUntil: Long = 0L
+    @Volatile private var suppressVoiceNotificationUntil: Long = 0L
+
+    /** 手机端发起反向模式推送后调用：开启回声窗口，窗口内到达的语音通知标题改为「推送成功」 */
+    fun armReversePushEcho(windowMs: Long = 4000L) {
+        reverseEchoUntil = System.currentTimeMillis() + windowMs
+    }
+
+    /** 是否仍在等待反向推送回声（未被语音通知消费） */
+    fun isAwaitingReverseEcho(): Boolean = System.currentTimeMillis() <= reverseEchoUntil
+
+    /** 兜底：控制端回声未到时由手机端弹一条「推送成功」，并短暂抑制语音通知避免双弹 */
+    fun notifyReversePushSuccess(body: String) {
+        reverseEchoUntil = 0L
+        suppressVoiceNotificationUntil = System.currentTimeMillis() + 4000L
+        postNotification(PhoneI18n.t("推送成功"), body, System.currentTimeMillis().toInt())
+    }
+
     fun initialize(context: Context) {
         prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
         val sp = prefs ?: return
@@ -211,17 +232,30 @@ object PhoneDataStore {
     }
 
     private fun sendVoiceNotification(message: VoiceMessage) {
+        val now = System.currentTimeMillis()
+        /* 反向推送回声窗口内：标题改「推送成功」且只弹一条；兜底条已弹时抑制回声，避免双通知 */
+        if (now <= suppressVoiceNotificationUntil) return
+        val title = if (now <= reverseEchoUntil) {
+            reverseEchoUntil = 0L
+            PhoneI18n.t("推送成功")
+        } else {
+            PhoneI18n.t("主人指令")
+        }
+        postNotification(title, message.content, message.timestamp.toInt())
+    }
+
+    private fun postNotification(title: String, content: String, id: Int) {
         val context = notificationContext ?: return
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager ?: return
 
         val builder = NotificationCompat.Builder(context, RobotPhoneApplication.CHANNEL_ID)
-            .setContentTitle(PhoneI18n.t("主人指令"))
-            .setContentText(message.content)
+            .setContentTitle(title)
+            .setContentText(content)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setAutoCancel(true)
 
         try {
-            notificationManager.notify(message.timestamp.toInt(), builder.build())
+            notificationManager.notify(id, builder.build())
         } catch (_: Exception) {
         }
     }

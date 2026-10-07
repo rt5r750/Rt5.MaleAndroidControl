@@ -7,7 +7,7 @@ win-app 是 android-app 控制台的 Windows 桌面版（Electron + HTML/JS + C#
 - 由前置启动器与控制台两部分组成：
   - 启动器（`design/launcher.html`）：标题“男性机器人控制终端”，Acrylic 毛玻璃 USB 前置页，检测/匹配 USB 存储设备后点击进入控制台；
   - 控制台：1440×900 宽屏三栏布局，前端资源为仓库根 `www/` 的构建期同步镜像（`scripts/sync-www.ps1`，npm prestart/predist 自动执行，gitignore；`css/win.css`/`js/win.js` 仅本端按需加载；同步排除 `.mimosa` 等工具状态目录，拷贝后递归清扫目标内同名目录兜底）。
-- 蓝牙外设：`ble-host/`（C#，Windows GATT Service Provider）广播 `RobotControl-Win`，phone-app 可扫描或扫码连接，复用 7500 服务协议（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey/UiLang、分片 0x7E、心跳 5s、0xFF 手动断开、API Key 同步）；`UiLang(7507)`（1.5.0 新增）`READ|NOTIFY` 1 字节（0x00=zh/0x01=en），主进程在宿主就绪与每次广播启动时补推当前语言、`i18n-set-lang` 即时推送——phone 连接后显示语言跟随控制台。
+- 蓝牙外设：`ble-host/`（C#，Windows GATT Service Provider）广播 `RobotControl-Win`，phone-app 可扫描或扫码连接，复用 7500 服务协议（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey/UiLang、分片 0x7E、心跳 5s、0xFF 手动断开、API Key 同步）；`UiLang(7507)`（1.5.0 新增）`READ|NOTIFY` 1 字节（0x00=zh/0x01=en），主进程在宿主就绪与每次广播启动时补推当前语言、`i18n-set-lang` 即时推送——phone 连接后显示语言跟随控制台。**Mode(7501) 1.7.0 起 `Read|Write|Notify` 可写**：phone 反向推送模式经 C# 宿主 `ModeReceived` 事件 → IPC `{"type":"mode","ordinal":n}` → 主进程 `bleBridge.on('mode')` → `window.__rcOnRemoteMode(ordinal)` 切换并高亮对应模式按钮，桌面端同时弹 macOS 风格通知「推送成功」（详见 BLE 协议文档「反向模式推送」）。
 - 启动流程：双击 `RobotControl-Console.exe`（无窗口 C# 启动器，拉起 Electron 后立即退出）→ 启动器直接出现（冷启动实测约 0.5s、常规 1.0~1.3s 窗口可见，已移除前序可见加载界面）→（点击设备按钮，立即弹出“正在进入控制台”遮罩）→ 主窗口首帧渲染完成后显示轻量闪屏页（Rt5Open_169.mp4 横屏视频、带声音、无文字，点击/任意按键立即跳过）→ 登录页（进入登录页**无**加载动画）→ 登录成功后登录卡片下半部收缩、原位换入系统加载动画（属于登录界面，约 1.2s，进度起步即挂载主界面）→ 三栏控制台。
 - 默认账号 `admin` / `T31750`；登录页标题为「仿人男性机器人控制台」。
 
@@ -60,12 +60,12 @@ win-app 是 android-app 控制台的 Windows 桌面版（Electron + HTML/JS + C#
 
 ### 主进程与桥接
 
-- `app/main.js`：启动器/主控制台窗口创建、USB watcher、IPC 桥接、MiMo 代理（`net.fetch`）、音频播放回调、外链/PDF 打开、BLE 宿主桥接（`ble-bridge.js` 拉起 C# 宿主并转发状态/数据）、QR 生成。
-- `app/ble-bridge.js` / `app/ble-protocol.js`：C# 宿主进程管理（spawn、命名管道、崩溃 5s 重启）与 JSON 行协议（下行 `start/stop/data/status`，上行 `ready/device-connected/device-disconnected/manual-disconnect/apikey/error/log`）。
+- `app/main.js`：启动器/主控制台窗口创建、USB watcher、IPC 桥接、MiMo 代理（`net.fetch`）、音频播放回调、外链/PDF 打开、BLE 宿主桥接（`ble-bridge.js` 拉起 C# 宿主并转发状态/数据）、反向模式推送桥接（`bleBridge.on('mode')` → ordinal 校验 0-3 后 `execInMain('__rcOnRemoteMode(n)')`）、QR 生成。
+- `app/ble-bridge.js` / `app/ble-protocol.js`：C# 宿主进程管理（spawn、命名管道、崩溃 5s 重启）与 JSON 行协议（下行 `start/stop/data/status`，上行 `ready/device-connected/device-disconnected/manual-disconnect/apikey/mode/error/log`；`handleMessage()` 按 `msg.type` 直接 emit，`mode` 事件 1.7.0 起自动可用、无需额外桥接代码）。
 - `app/preload-launcher.js`：启动器 `contextBridge` 暴露 `window.electronAPI`（minimize / close / enterConsole / getUsbDevices / getUsbDevicesConfig / setUsbDevicesConfig / markRendered / onExitFade / onUsbAttached / onUsbDetached / getUiLang / setUiLang）。
 - `app/i18n.js`：主进程界面语言覆盖层（1.3.0 新增，中文默认）：启动器/主窗口标题与 BLE 宿主错误文案按表替换，`huancun/i18n-lang.json` 持久；IPC `i18n-get-lang`/`i18n-set-lang` 与 www 设置页语言切换双向同步，另注册 `i18n-get-lang-sync`（sendSync，1.4.0）供 preload 顶层一次性取回初始语言。启动器界面经 `design/launcher-i18n.js` 覆盖层（`electronAPI.getUiLang` 读取，设置面板「界面语言」组可切换），闪屏页标题经 `consoleAPI.getUiLang` 随动；**主控制台初始语言跟随**：`preload.js` 顶层 `sendSync` 经 `consoleAPI.bootLang` 在页面脚本前带回，`www/js/i18n.js` 头脚本以该值为初始语言事实源并对齐 localStorage——启动器切英文后进入控制台即英文，无中文闪帧（1.4.0）。
 - `app/preload.js`：主控制台 `contextBridge` 暴露 `window.Android`（与 Android JS Bridge 同名等价）+ `window.consoleAPI`（窗口控制）。
-- 外部链接一律交给系统浏览器；PDF 相对路径按 www 根目录解析后交给系统默认程序。
+- 外部链接一律交给系统浏览器；PDF 相对路径按 www 根目录解析后交给系统默认程序。**1.8.0 双层接管**：启动器窗口与主控制台窗口的 `setWindowOpenHandler`（`target="_blank"` / `window.open` → `shell.openExternal`，一律 `deny` 壳内窗口）之外，补 `will-navigate` 兜底——无 `target` 的 http(s) 导航同样 `preventDefault()` 后交给系统默认浏览器，避免在 Electron 壳内导航顶掉界面；`app://` 站内导航与 `file://` 不受影响。
 
 ### 窗口控制（系统级 Acrylic 深色毛玻璃标题栏）
 

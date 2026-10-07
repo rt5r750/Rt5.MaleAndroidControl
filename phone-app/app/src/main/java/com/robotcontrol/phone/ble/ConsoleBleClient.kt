@@ -116,28 +116,35 @@ object ConsoleBleClient {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             super.onScanResult(callbackType, result)
             result ?: return
-            val device = result.device
-            val scanRecord = result.scanRecord
-            val name = scanRecord?.deviceName ?: device.name
-            // 兼容 win-app（Windows GATT 外设，名称 RobotControl-Win）：扫描 Filter 已按服务 UUID 7500 过滤，
-            // 这里同时接受“名称前缀匹配”或“广告含 7500 服务 UUID”的设备，避免 Windows 端设备被名称检查丢弃。
-            val serviceMatch = scanRecord?.serviceUuids?.any { it.uuid == BleConstants.SERVICE_UUID } == true
-            val nameMatch = name != null &&
-                (name.startsWith(BleConstants.DEVICE_NAME_PREFIX) || name == BleConstants.CONSOLE_DEVICE_NAME)
-            if (nameMatch || serviceMatch) {
-                if (autoScanRunning) {
-                    stopAutoScan()
-                } else {
-                    stopScanInternal()
-                }
-                mainHandler.post {
-                    onDeviceFoundCallback?.invoke(name ?: "", device.address)
-                }
-                if (scanAutoConnect) {
-                    bleHandler?.post {
-                        connectInternal(device, autoConnect = false)
+            /* API 31+ 下 BluetoothDevice.name / address 需要 BLUETOOTH_CONNECT；
+               扫描回调运行在 BLE 扫描线程上，权限缺失时抛 SecurityException 会直接崩进程 —— 整体收口 */
+            runCatching {
+                val device = result.device
+                val scanRecord = result.scanRecord
+                val name = scanRecord?.deviceName ?: device.name
+                // 兼容 win-app（Windows GATT 外设，名称 RobotControl-Win）：扫描 Filter 已按服务 UUID 7500 过滤，
+                // 这里同时接受“名称前缀匹配”或“广告含 7500 服务 UUID”的设备，避免 Windows 端设备被名称检查丢弃。
+                val serviceMatch = scanRecord?.serviceUuids?.any { it.uuid == BleConstants.SERVICE_UUID } == true
+                val nameMatch = name != null &&
+                    (name.startsWith(BleConstants.DEVICE_NAME_PREFIX) || name == BleConstants.CONSOLE_DEVICE_NAME)
+                if (nameMatch || serviceMatch) {
+                    val address = device.address
+                    if (autoScanRunning) {
+                        stopAutoScan()
+                    } else {
+                        stopScanInternal()
+                    }
+                    mainHandler.post {
+                        onDeviceFoundCallback?.invoke(name ?: "", address)
+                    }
+                    if (scanAutoConnect) {
+                        bleHandler?.post {
+                            connectInternal(device, autoConnect = false)
+                        }
                     }
                 }
+            }.onFailure {
+                android.util.Log.w("BleClient", "onScanResult ignored: ${it.message}")
             }
         }
 
@@ -800,7 +807,17 @@ object ConsoleBleClient {
     }
 
     private fun connectInternal(device: BluetoothDevice, autoConnect: Boolean = false) {
-        targetAddress = device.address
+        /* device.address 在 API 31+ 需要 BLUETOOTH_CONNECT，权限缺失时抛 SecurityException；
+           本函数运行在 BLE 线程上，抛出即崩进程（连接弹窗点击设备闪退的候选根因）—— 先安全取址 */
+        val address = runCatching { device.address }.getOrElse {
+            android.util.Log.w("BleClient", "device.address unavailable, abort connect: ${it.message}")
+            connectionState = BleConstants.BLE_STATUS_DISCONNECTED
+            mainHandler.post {
+                onConnectionStateChanged?.invoke(BleConstants.BLE_STATUS_DISCONNECTED)
+            }
+            return
+        }
+        targetAddress = address
         val context = appContext ?: return
         cleanupConnection()
         connectionState = BleConstants.BLE_STATUS_CONNECTING
@@ -815,11 +832,11 @@ object ConsoleBleClient {
                 } else {
                     device.connectGatt(context, autoConnect, gattCallback)
                 }
-                android.util.Log.d("BleClient", "connectGatt called autoConnect=$autoConnect to ${device.address}")
+                android.util.Log.d("BleClient", "connectGatt called autoConnect=$autoConnect to $address")
                 connectTimeoutRunnable?.let { bleHandler?.removeCallbacks(it) }
                 val timeoutRunnable = Runnable {
                     if (connectionState == BleConstants.BLE_STATUS_CONNECTING && !isConnected()) {
-                        android.util.Log.w("BleClient", "Connection timeout to ${device.address}")
+                        android.util.Log.w("BleClient", "Connection timeout to $address")
                         connectionState = BleConstants.BLE_STATUS_DISCONNECTED
                         mainHandler.post {
                             onConnectionStateChanged?.invoke(BleConstants.BLE_STATUS_DISCONNECTED)
@@ -854,9 +871,21 @@ object ConsoleBleClient {
 
         bleHandler?.post {
             if (bluetoothManager == null) {
-                bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-                bluetoothAdapter = bluetoothManager?.adapter
-                bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner
+                val manager = runCatching {
+                    context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                }.getOrNull() ?: return@post
+                bluetoothManager = manager
+                runCatching { bluetoothAdapter = manager.adapter }
+            }
+            /* 扫描器单独缓存与重试：其 getter 受 BLUETOOTH_SCAN 约束（API 31+），权限缺失会抛异常；
+               失败时不写字段，补授权限后下一次 initialize() 即可拿到（若与 manager 同批提交，
+               中途失败会留下残态让 null 守卫永久跳过初始化） */
+            if (bluetoothLeScanner == null) {
+                if (bluetoothAdapter == null) {
+                    bluetoothAdapter = runCatching { bluetoothManager?.adapter }.getOrNull()
+                }
+                runCatching { bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner }
+                    .onFailure { android.util.Log.w("BleClient", "bluetoothLeScanner unavailable: ${it.message}") }
             }
         }
     }
@@ -1004,6 +1033,27 @@ object ConsoleBleClient {
                 processNextGattAction()
             }
         }
+    }
+
+    /**
+     * 反向模式推送：向控制端写入 Mode(7501) 的 1 字节 ordinal（仅 0..3）。
+     * 控制端收到后切换到对应模式，并回推模式/语音（手机端据此提示「推送成功」）。
+     * @return 是否已受理（未连接或参数非法返回 false）
+     */
+    fun writeMode(ordinal: Int): Boolean {
+        if (ordinal !in 0..3) return false
+        val handler = bleHandler ?: return false
+        if (!isConnected()) return false
+        handler.post {
+            val char = modeCharacteristic
+            val g = gatt
+            if (char != null && g != null && isConnected()) {
+                val data = byteArrayOf(ordinal.toByte())
+                enqueueGattAction(GattAction(GattAction.WRITE_CHAR, char, value = data))
+                processNextGattAction()
+            }
+        }
+        return true
     }
 
     /** Returns true if the last disconnect was actively initiated (0xFF signal or manual button). */

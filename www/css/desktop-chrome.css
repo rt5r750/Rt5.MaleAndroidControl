@@ -67,7 +67,7 @@
             html.desktop-chrome #settings-modal .settings-columns { display: flex; min-height: 0; flex: 1; align-items: stretch; }
             html.desktop-chrome #settings-modal #settings-nav {
                 display: block;
-                width: 152px;
+                width: 170px;
                 flex-shrink: 0;
                 border-right: 1px solid rgba(255, 255, 255, 0.08);
                 padding: 0.75rem 0.5rem;
@@ -97,8 +97,12 @@
                 border-color: rgba(143, 188, 143, 0.3);
             }
             html.desktop-chrome #settings-modal .settings-body { flex: 1; min-width: 0; overflow-x: hidden; padding-top: 0.9rem; }
-            /* 非 desktop-chrome（移动端/Android）：侧边导航隐藏，布局还原 */
-            #settings-nav { display: none; }
+            /* 桌面左侧栏模式：恢复全部组显示（移动端一级列表默认隐藏各组，见 app.css）；
+               平台门控隐藏的组（如「网页缓存与 App」）内联 display:none 优先级更高，仍保持隐藏 */
+            html.desktop-chrome #settings-modal .settings-body > .setting-group { display: block; }
+            /* 桌面左侧栏图标收紧（移动端一级列表的图标尺寸见 app.css 基础样式） */
+            html.desktop-chrome #settings-modal #settings-nav .settings-nav-item .nav-icon { width: 1.05rem; margin-right: 0.4rem; font-size: 0.78rem; }
+            /* 非 desktop-chrome（移动端/Android）：导航即设置一级列表，沿用 app.css 基础样式，不再隐藏 */
             /* ---- 菜单语义：隐藏窗口红绿灯/移动端头尾，标题行紧凑化 ---- */
             html.desktop-chrome #info-modal .modal-mobile-header,
             html.desktop-chrome #settings-modal .modal-mobile-header,

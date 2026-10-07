@@ -45,7 +45,14 @@ object BlePermissionHelper {
 
     @SuppressLint("MissingPermission")
     fun isBluetoothEnabled(context: Context): Boolean {
-        return getBluetoothAdapter(context)?.isEnabled == true
+        /* API 31+ 下 adapter.isEnabled 需要 BLUETOOTH_CONNECT：权限未授予时会抛 SecurityException，
+           这里按"未开启"返回，避免连接流程被异常打断 */
+        return runCatching {
+            getBluetoothAdapter(context)?.isEnabled == true
+        }.getOrElse {
+            android.util.Log.w("BlePermissionHelper", "isBluetoothEnabled failed: ${it.message}")
+            false
+        }
     }
 
     fun getEnableBluetoothIntent(): Intent {

@@ -55,4 +55,6 @@ dependencies {
     implementation 'androidx.core:core:1.12.0'
     implementation 'androidx.activity:activity-ktx:1.8.2'
     implementation 'com.google.zxing:core:3.5.2'
+    // 本地语音规则（VoiceCommandMatcher）为纯 Kotlin，用 JVM 单测覆盖读音/否定词/语言门控
+    testImplementation 'junit:junit:4.13.2'
 }

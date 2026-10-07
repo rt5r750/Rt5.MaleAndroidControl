@@ -69,6 +69,8 @@ object RobotGattServer {
 
     var onConnectionStateChanged: ((connected: Boolean, deviceAddress: String?) -> Unit)? = null
     var onApiKeyReceived: ((apiKey: String) -> Unit)? = null
+    /** 反向模式推送：客户端写入 Mode(7501) 且 ordinal ∈ 0..3 时回调 */
+    var onModeReceived: ((modeOrdinal: Int) -> Unit)? = null
 
     private val advertiseCallback = object : AdvertiseCallback() {
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
@@ -91,7 +93,12 @@ object RobotGattServer {
         override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
             super.onConnectionStateChange(device, status, newState)
             device ?: return
-            val address = device.address
+            /* device.address 在 API 31+ 需 BLUETOOTH_CONNECT；本回调运行在 BLE 线程上，
+               异常逃出即崩进程 —— 整体收口（连接态变化正是用户"点连接"后最先命中的回调） */
+            val address = runCatching { device.address }.getOrElse {
+                android.util.Log.w("GattServer", "onConnectionStateChange: address unavailable: ${it.message}")
+                return
+            }
 
             bleHandler?.post {
                 when (newState) {
@@ -143,8 +150,13 @@ object RobotGattServer {
         override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
             super.onMtuChanged(device, mtu)
             device ?: return
-            deviceMtu[device.address] = mtu
-            android.util.Log.d("GattServer", "MTU changed for ${device.address}: $mtu")
+            /* 同 onConnectionStateChange：address 取用受权限约束，且运行在 BLE 线程上 */
+            runCatching {
+                deviceMtu[device.address] = mtu
+                android.util.Log.d("GattServer", "MTU changed for ${device.address}: $mtu")
+            }.onFailure {
+                android.util.Log.w("GattServer", "onMtuChanged failed: ${it.message}")
+            }
         }
 
         override fun onCharacteristicReadRequest(
@@ -158,23 +170,23 @@ object RobotGattServer {
             device ?: return
 
             bleHandler?.post {
-                val value = characteristicValues[characteristic.uuid] ?: ByteArray(0)
-                val mtu = deviceMtu[device.address] ?: DEFAULT_MTU
-                val maxReadSize = mtu - 1
+                runCatching {
+                    val value = characteristicValues[characteristic.uuid] ?: ByteArray(0)
+                    /* API 31+ 下 device.address 需要 BLUETOOTH_CONNECT，缺失时这里会抛 SecurityException，
+                       而回调运行在 BLE 线程上，抛出即崩进程（客户端连上后立刻读特征就会命中） */
+                    val mtu = deviceMtu[device.address] ?: DEFAULT_MTU
+                    val maxReadSize = mtu - 1
 
-                val responseValue = if (offset < value.size) {
-                    val end = minOf(offset + maxReadSize, value.size)
-                    value.copyOfRange(offset, end)
-                } else {
-                    ByteArray(0)
+                    val responseValue = if (offset < value.size) {
+                        val end = minOf(offset + maxReadSize, value.size)
+                        value.copyOfRange(offset, end)
+                    } else {
+                        ByteArray(0)
+                    }
+                    sendGattResponse(device, requestId, offset, responseValue)
+                }.onFailure {
+                    android.util.Log.w("RobotGattServer", "read request failed", it)
                 }
-                gattServer?.sendResponse(
-                    device,
-                    requestId,
-                    BluetoothGatt.GATT_SUCCESS,
-                    offset,
-                    responseValue
-                )
             }
         }
 
@@ -192,23 +204,21 @@ object RobotGattServer {
             device ?: return
 
             bleHandler?.post {
-                if (descriptor.uuid == CCC_DESCRIPTOR_UUID) {
-                    if (value != null && value.size >= 2) {
-                        if (value[0] == 0x01.toByte() && value[1] == 0x00.toByte()) {
-                            bleHandler?.postDelayed({
-                                sendCurrentValueFor(descriptor.characteristic, device)
-                            }, 100)
+                runCatching {
+                    if (descriptor.uuid == CCC_DESCRIPTOR_UUID) {
+                        if (value != null && value.size >= 2) {
+                            if (value[0] == 0x01.toByte() && value[1] == 0x00.toByte()) {
+                                bleHandler?.postDelayed({
+                                    sendCurrentValueFor(descriptor.characteristic, device)
+                                }, 100)
+                            }
                         }
                     }
-                }
-                if (responseNeeded) {
-                    gattServer?.sendResponse(
-                        device,
-                        requestId,
-                        BluetoothGatt.GATT_SUCCESS,
-                        offset,
-                        value
-                    )
+                    if (responseNeeded) {
+                        sendGattResponse(device, requestId, offset, value)
+                    }
+                }.onFailure {
+                    android.util.Log.w("RobotGattServer", "descriptor write failed", it)
                 }
             }
         }
@@ -227,29 +237,29 @@ object RobotGattServer {
             device ?: return
 
             bleHandler?.post {
-                if (characteristic.uuid == BleConstants.CHAR_HEARTBEAT_UUID) {
+                if (characteristic.uuid == BleConstants.CHAR_MODE_UUID) {
+                    /* 反向模式推送：客户端写入 1 字节 ordinal（仅 0..3 生效，255=NA 忽略） */
+                    sendGattResponse(device, requestId, offset, value)
+                    if (value != null && value.isNotEmpty()) {
+                        characteristicValues[BleConstants.CHAR_MODE_UUID] = value
+                        val ordinal = value[0].toInt() and 0xFF
+                        if (ordinal in 0..3) {
+                            mainHandler.post {
+                                onModeReceived?.invoke(ordinal)
+                            }
+                        }
+                    }
+                } else if (characteristic.uuid == BleConstants.CHAR_HEARTBEAT_UUID) {
                     if (value != null && value.isNotEmpty() && value[0] == 0xFF.toByte()) {
                         manualDisconnectReceived = true
                     }
-                    gattServer?.sendResponse(
-                        device,
-                        requestId,
-                        BluetoothGatt.GATT_SUCCESS,
-                        offset,
-                        value
-                    )
+                    sendGattResponse(device, requestId, offset, value)
                     if (value != null) {
                         characteristicValues[BleConstants.CHAR_HEARTBEAT_UUID] = value
                         notifyCharacteristicChangedToDevice(heartbeatCharacteristic, value, device)
                     }
                 } else if (characteristic.uuid == BleConstants.CHAR_APIKEY_UUID) {
-                    gattServer?.sendResponse(
-                        device,
-                        requestId,
-                        BluetoothGatt.GATT_SUCCESS,
-                        offset,
-                        value
-                    )
+                    sendGattResponse(device, requestId, offset, value)
                     if (value != null && value.isNotEmpty()) {
                         characteristicValues[BleConstants.CHAR_APIKEY_UUID] = value
                         val apiKey = String(value, Charsets.UTF_8)
@@ -259,14 +269,24 @@ object RobotGattServer {
                         }
                     }
                 } else {
-                    gattServer?.sendResponse(
-                        device,
-                        requestId,
-                        BluetoothGatt.GATT_SUCCESS,
-                        offset,
-                        value
-                    )
+                    sendGattResponse(device, requestId, offset, value)
                 }
+            }
+        }
+
+        /* 写请求统一回包：value 可能为 null，且回包同样受 API 31+ 权限约束；
+           任何异常都只记日志，不允许从 BLE 线程抛出导致进程崩溃 */
+        private fun sendGattResponse(device: BluetoothDevice, requestId: Int, offset: Int, value: ByteArray?) {
+            runCatching {
+                gattServer?.sendResponse(
+                    device,
+                    requestId,
+                    BluetoothGatt.GATT_SUCCESS,
+                    offset,
+                    value ?: ByteArray(0)
+                )
+            }.onFailure {
+                android.util.Log.w("RobotGattServer", "sendResponse failed", it)
             }
         }
     }
@@ -300,18 +320,37 @@ object RobotGattServer {
                     android.util.Log.w("RobotGattServer", "BLUETOOTH_CONNECT permission not granted, cannot start GATT server")
                     return@post
                 }
+                /* API 31+ 取 bluetoothLeAdvertiser 需要 BLUETOOTH_ADVERTISE（不是 CONNECT）：
+                   权限缺失时该 getter 直接抛 SecurityException，而这里运行在 BLE 线程上，
+                   逃出去就是进程崩溃（Android 12 真机点击连接闪退的根因之一） */
+                if (context.checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
+                    android.util.Log.w("RobotGattServer", "BLUETOOTH_ADVERTISE permission not granted, cannot start GATT server")
+                    return@post
+                }
             }
 
-            val bluetoothAdapter = bluetoothManager?.adapter ?: return@post
-            advertiser = bluetoothAdapter.bluetoothLeAdvertiser
+            /* 整段收在 runCatching 内：BLE 层的 SecurityException / IllegalStateException
+               一律只记日志，不允许从 BLE 线程抛出导致进程崩溃 */
+            runCatching {
+                val bluetoothAdapter = bluetoothManager?.adapter ?: return@post
+                advertiser = bluetoothAdapter.bluetoothLeAdvertiser
+                /* 没有 BLE 广播器（少数设备/模拟器不支持）时给出明确日志：
+                   此前该情况只会表现为"手机端扫不到控制台"，无任何线索 */
+                if (advertiser == null) {
+                    android.util.Log.w("RobotGattServer", "bluetoothLeAdvertiser unavailable on this device; console cannot be discovered")
+                }
 
-            setupGattService()
+                setupGattService()
 
-            serviceAdded = false
-            gattServer = bluetoothManager?.openGattServer(context, gattServerCallback)
-            gattServer?.addService(gattService)
-            isServerRunning = true
-            scheduleServiceAddTimeout()
+                serviceAdded = false
+                gattServer = bluetoothManager?.openGattServer(context, gattServerCallback)
+                gattServer?.addService(gattService)
+                isServerRunning = true
+                scheduleServiceAddTimeout()
+            }.onFailure {
+                android.util.Log.e("RobotGattServer", "startServer failed", it)
+                advertiser = null
+            }
         }
     }
 
@@ -321,10 +360,14 @@ object RobotGattServer {
             if (isServerRunning && !serviceAdded && serviceAddScheduled) {
                 android.util.Log.w("GattServer", "Service add timeout, retrying...")
                 serviceAddScheduled = false
-                gattServer?.clearServices()
-                setupGattService()
-                gattServer?.addService(gattService)
-                scheduleServiceAddTimeout()
+                runCatching {
+                    gattServer?.clearServices()
+                    setupGattService()
+                    gattServer?.addService(gattService)
+                    scheduleServiceAddTimeout()
+                }.onFailure {
+                    android.util.Log.e("GattServer", "re-add service failed", it)
+                }
             }
         }, SERVICE_ADD_TIMEOUT_MS)
     }
@@ -350,10 +393,11 @@ object RobotGattServer {
             BluetoothGattService.SERVICE_TYPE_PRIMARY
         )
 
+        /* Mode(7501)：READ|WRITE|NOTIFY —— 客户端（phone-app）可写入 ordinal 反向切换控制台模式 */
         modeCharacteristic = BluetoothGattCharacteristic(
             BleConstants.CHAR_MODE_UUID,
-            BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-            BluetoothGattCharacteristic.PERMISSION_READ
+            BluetoothGattCharacteristic.PROPERTY_READ or BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+            BluetoothGattCharacteristic.PERMISSION_READ or BluetoothGattCharacteristic.PERMISSION_WRITE
         ).apply {
             addDescriptor(createCccDescriptor())
         }
@@ -431,6 +475,13 @@ object RobotGattServer {
     }
 
     private fun startAdvertising() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val ctx = appContext ?: return
+            if (ctx.checkSelfPermission(Manifest.permission.BLUETOOTH_ADVERTISE) != PackageManager.PERMISSION_GRANTED) {
+                android.util.Log.w("RobotGattServer", "BLUETOOTH_ADVERTISE permission not granted, skip advertising")
+                return
+            }
+        }
         val advSettings = AdvertiseSettings.Builder()
             .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
             .setConnectable(true)
@@ -447,9 +498,27 @@ object RobotGattServer {
             .setIncludeDeviceName(true)
             .build()
 
+        /* 设备名与广播分成两段独立 runCatching：setName 需要 BLUETOOTH_CONNECT，
+           失败绝不能连带取消广播（历史实现把两者放在同一 runCatching 里，setName 抛异常会静默中止整段逻辑，
+           广播从未启动、isAdvertising 恒 false → 手机端永远扫不到控制台「连不上」）；
+           顺序上仍先改名再广播，保证首个广告包就带上 RobotControl-Console 名称 */
         runCatching {
-            val bluetoothAdapter = bluetoothManager?.adapter ?: return
-            bluetoothAdapter.setName(BleConstants.CONSOLE_DEVICE_NAME)
+            val ctx = appContext
+            val granted = Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                (ctx != null && ctx.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED)
+            if (granted) {
+                bluetoothManager?.adapter?.setName(BleConstants.CONSOLE_DEVICE_NAME)
+            }
+        }.onFailure {
+            android.util.Log.w("GattServer", "setName failed (advertising unaffected)", it)
+        }
+
+        runCatching {
+            if (bluetoothManager?.adapter == null) return
+            if (advertiser == null) {
+                android.util.Log.w("GattServer", "startAdvertising skipped: no BLE advertiser")
+                return
+            }
             if (isAdvertising) {
                 advertiser?.stopAdvertising(advertiseCallback)
                 isAdvertising = false
@@ -637,45 +706,54 @@ object RobotGattServer {
 
     private fun notifyCharacteristicChangedToDevice(characteristic: BluetoothGattCharacteristic?, value: ByteArray, device: BluetoothDevice) {
         characteristic ?: return
-        val mtu = deviceMtu[device.address] ?: DEFAULT_MTU
-        val maxPayload = mtu - NOTIFICATION_OVERHEAD
+        /* 通知发送链路同属 BLE 线程，device.address 取用受权限约束：异常只记日志，不让进程崩 */
+        runCatching {
+            val mtu = deviceMtu[device.address] ?: DEFAULT_MTU
+            val maxPayload = mtu - NOTIFICATION_OVERHEAD
 
-        if (value.size <= maxPayload) {
-            queueNotification(device, characteristic, value)
-            return
-        }
+            if (value.size <= maxPayload) {
+                queueNotification(device, characteristic, value)
+                return
+            }
 
-        val chunkPayloadSize = maxPayload - CHUNK_HEADER_SIZE
-        val totalChunks = (value.size + chunkPayloadSize - 1) / chunkPayloadSize
+            val chunkPayloadSize = maxPayload - CHUNK_HEADER_SIZE
+            val totalChunks = (value.size + chunkPayloadSize - 1) / chunkPayloadSize
 
-        android.util.Log.d("GattServer", "Sending chunked data: uuid=${characteristic.uuid}, totalSize=${value.size}, mtu=$mtu, chunkPayloadSize=$chunkPayloadSize, totalChunks=$totalChunks")
+            android.util.Log.d("GattServer", "Sending chunked data: uuid=${characteristic.uuid}, totalSize=${value.size}, mtu=$mtu, chunkPayloadSize=$chunkPayloadSize, totalChunks=$totalChunks")
 
-        if (totalChunks > 255) {
-            android.util.Log.e("GattServer", "ERROR: totalChunks=$totalChunks exceeds 255 byte limit! Data will be corrupted.")
-        }
+            if (totalChunks > 255) {
+                android.util.Log.e("GattServer", "ERROR: totalChunks=$totalChunks exceeds 255 byte limit! Data will be corrupted.")
+            }
 
-        for (i in 0 until totalChunks) {
-            val start = i * chunkPayloadSize
-            val end = minOf(start + chunkPayloadSize, value.size)
-            val payload = value.copyOfRange(start, end)
-            val chunk = ByteArray(CHUNK_HEADER_SIZE + payload.size)
-            chunk[0] = CHUNK_MAGIC
-            chunk[1] = (i and 0xFF).toByte()
-            chunk[2] = (totalChunks and 0xFF).toByte()
-            System.arraycopy(payload, 0, chunk, CHUNK_HEADER_SIZE, payload.size)
+            for (i in 0 until totalChunks) {
+                val start = i * chunkPayloadSize
+                val end = minOf(start + chunkPayloadSize, value.size)
+                val payload = value.copyOfRange(start, end)
+                val chunk = ByteArray(CHUNK_HEADER_SIZE + payload.size)
+                chunk[0] = CHUNK_MAGIC
+                chunk[1] = (i and 0xFF).toByte()
+                chunk[2] = (totalChunks and 0xFF).toByte()
+                System.arraycopy(payload, 0, chunk, CHUNK_HEADER_SIZE, payload.size)
 
-            queueNotification(device, characteristic, chunk)
+                queueNotification(device, characteristic, chunk)
+            }
+        }.onFailure {
+            android.util.Log.w("GattServer", "notify failed: ${it.message}")
         }
     }
 
     private fun queueNotification(device: BluetoothDevice, characteristic: BluetoothGattCharacteristic, value: ByteArray) {
-        val queue = pendingNotifications.getOrPut(device.address) { ConcurrentLinkedQueue() }
-        queue.add(Pair(characteristic, value))
-        if (queue.size == 1) sendNextNotification(device)
+        runCatching {
+            val queue = pendingNotifications.getOrPut(device.address) { ConcurrentLinkedQueue() }
+            queue.add(Pair(characteristic, value))
+            if (queue.size == 1) sendNextNotification(device)
+        }.onFailure {
+            android.util.Log.w("GattServer", "queueNotification failed: ${it.message}")
+        }
     }
 
     private fun sendNextNotification(device: BluetoothDevice) {
-        val address = device.address
+        val address = runCatching { device.address }.getOrNull() ?: return
         val queue = pendingNotifications[address] ?: return
         val item = queue.peek() ?: run {
             pendingNotifications.remove(address)

@@ -2172,6 +2172,15 @@
             
             closeBtn.addEventListener('click', closeModal);
             cancelBtn.addEventListener('click', closeModal);
+
+            // 移动端设置顶部栏三枚圆形操作按钮：点击转发到底部操作条同 id 按钮，行为保持单源
+            // （桌面菜单模式隐藏移动端顶部栏，仍直接用底部操作条）
+            modal.querySelectorAll('.modal-mobile-action-btn').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const target = document.getElementById(btn.dataset.settingsAction);
+                    if (target) target.click();
+                });
+            });
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) closeModal();
             });
@@ -5926,7 +5935,24 @@
             appendToLogs('[激活] 初始设置已完成');
         }
 
-        /* ===== 设置侧边导航（v1.6.0）：组标题列表 + 点击跳转 + 滚动高亮（仅桌面菜单模式显示） ===== */
+        /* ===== 设置导航（v1.6.0 起，v1.7.0 加图标与移动端一级/二级）=====
+           桌面菜单模式：左侧组标题栏，点击滚动跳转 + 滚动高亮；
+           移动端（非 desktop-chrome）：一级列表（图标+组名整行），点击进二级仅显示该组，头部返回键回一级。 */
+        var SETTINGS_NAV_ICONS = {
+            '语言': 'fa-language',
+            '型号信息': 'fa-id-card',
+            '网页缓存与 App': 'fa-box-archive',
+            '账号管理': 'fa-user-shield',
+            'TTS 语音引擎': 'fa-microphone',
+            '灵动岛模拟效果': 'fa-wand-magic-sparkles',
+            '运行参数设置': 'fa-chart-simple',
+            '控制按钮文本设置': 'fa-pen-to-square',
+            '机器人图片设置': 'fa-images',
+            '模式名称设置': 'fa-tags',
+            '信息面板链接': 'fa-link',
+            '机器人状态设置': 'fa-robot',
+            '配置导入导出': 'fa-right-left'
+        };
         function buildSettingsNav() {
             var nav = document.getElementById('settings-nav');
             var body = document.querySelector('#settings-modal .settings-body');
@@ -5936,13 +5962,23 @@
             groups.forEach(function (group, idx) {
                 var label = group.querySelector('.setting-label');
                 if (!label) return;
+                /* 平台门控隐藏的组（如不支持缓存时的「网页缓存与 App」，内联 display:none）不进导航；
+                   注意不能用 computed display——移动端一级列表下各组被 CSS 统一隐藏 */
+                if (group.style.display === 'none') return;
+                var text = label.textContent;
                 var btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'settings-nav-item';
-                btn.textContent = label.textContent;   // 含中文文本节点，EN 模式经 Observer 词典翻译
+                var icon = document.createElement('i');
+                icon.className = 'fa-solid ' + (SETTINGS_NAV_ICONS[text] || 'fa-gear') + ' nav-icon';
+                icon.setAttribute('aria-hidden', 'true');
+                btn.appendChild(icon);
+                btn.appendChild(document.createTextNode(text));   // 中文文本节点，EN 模式经 Observer 词典翻译
                 btn.setAttribute('data-group-index', String(idx));
                 btn.addEventListener('click', function () {
-                    /* 精确滚动 settings-body 自身（scrollIntoView 会连带滚动页面级祖先，
+                    /* 移动端：进二级界面（仅显示该组） */
+                    if (!isDesktopChrome()) { enterSettingsDetail(group, btn); return; }
+                    /* 桌面：精确滚动 settings-body 自身（scrollIntoView 会连带滚动页面级祖先，
                        导致点击第一组/最后一组时看不到面板内跳转） */
                     var target = body.scrollTop + group.getBoundingClientRect().top - body.getBoundingClientRect().top - 8;
                     body.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
@@ -5974,6 +6010,47 @@
             }
             try { body.dispatchEvent(new Event('scroll')); } catch (e) { /* ignore */ }
         }
+
+        /* ===== 移动端设置一级/二级（v1.7.0）===== */
+        function enterSettingsDetail(group, btn) {
+            var modal = document.getElementById('settings-modal');
+            var body = document.querySelector('#settings-modal .settings-body');
+            if (!modal || !body) return;
+            body.querySelectorAll('.setting-group.settings-group-selected').forEach(function (g) { g.classList.remove('settings-group-selected'); });
+            group.classList.add('settings-group-selected');
+            modal.classList.add('settings-mobile-detail');
+            var nav = document.getElementById('settings-nav');
+            if (nav) {
+                nav.querySelectorAll('.settings-nav-item').forEach(function (item) { item.classList.toggle('active', item === btn); });
+            }
+            var label = group.querySelector('.setting-label');
+            setSettingsMobileTitle(label ? label.textContent : '设置');
+            body.scrollTop = 0;
+        }
+        function exitSettingsDetail() {
+            var modal = document.getElementById('settings-modal');
+            if (!modal) return;
+            modal.classList.remove('settings-mobile-detail');
+            modal.querySelectorAll('.setting-group.settings-group-selected').forEach(function (g) { g.classList.remove('settings-group-selected'); });
+            setSettingsMobileTitle('设置');
+            var body = modal.querySelector('.settings-body');
+            if (body) body.scrollTop = 0;
+        }
+        function setSettingsMobileTitle(text) {
+            var title = document.querySelector('#settings-modal .modal-mobile-title');
+            if (title && title.textContent !== text) title.textContent = text;   // EN 模式经写入钩子直译
+        }
+        /* 移动端头部返回键：二级回一级列表，一级关闭设置 */
+        function settingsMobileBack() {
+            var modal = document.getElementById('settings-modal');
+            if (modal && modal.classList.contains('settings-mobile-detail')) exitSettingsDetail();
+            else closeSettings();
+        }
+        /* 跨 750px 边界进入桌面菜单模式时退出二级，避免桌面端只剩单个组 */
+        window.addEventListener('resize', function () {
+            var modal = document.getElementById('settings-modal');
+            if (modal && modal.classList.contains('settings-mobile-detail') && isDesktopChrome()) exitSettingsDetail();
+        });
 
         function updateStatusSettings() {
             const container = document.getElementById('status-settings');
@@ -6858,6 +6935,7 @@
             const modal = document.getElementById('settings-modal');
             if (modal) {
                 modal.classList.add('settings-modal-visible');
+                exitSettingsDetail();   // 每次打开回一级列表（移动端）
                 document.body.style.overflow = 'hidden';
                 if (typeof state !== 'undefined') {
                     state.tempRobotImage1 = null;

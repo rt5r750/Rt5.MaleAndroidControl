@@ -37,16 +37,22 @@ object BleScanner {
         override fun onScanResult(callbackType: Int, result: ScanResult?) {
             super.onScanResult(callbackType, result)
             result ?: return
-            val device = result.device
-            val name = result.scanRecord?.deviceName ?: device.name ?: return
-            if (name.startsWith(BleConstants.DEVICE_NAME_PREFIX)) {
-                val addr = device.address
-                if (scanResults.none { it.address == addr }) {
-                    scanResults.add(ScanResultInfo(name, addr))
-                    mainHandler.post {
-                        onDeviceFoundListener?.invoke(name, addr)
+            /* API 31+ 下 BluetoothDevice.name / address 需要 BLUETOOTH_CONNECT，
+               扫描回调运行在 BLE 扫描线程上，权限缺失时抛 SecurityException 会直接崩进程 —— 整体收口 */
+            runCatching {
+                val device = result.device
+                val name = result.scanRecord?.deviceName ?: device.name ?: return
+                if (name.startsWith(BleConstants.DEVICE_NAME_PREFIX)) {
+                    val addr = device.address
+                    if (scanResults.none { it.address == addr }) {
+                        scanResults.add(ScanResultInfo(name, addr))
+                        mainHandler.post {
+                            onDeviceFoundListener?.invoke(name, addr)
+                        }
                     }
                 }
+            }.onFailure {
+                android.util.Log.w("BleScanner", "onScanResult ignored: ${it.message}")
             }
         }
 
@@ -66,9 +72,20 @@ object BleScanner {
         }
         bleHandler?.post {
             if (bluetoothManager == null) {
-                bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-                bluetoothAdapter = bluetoothManager?.adapter
-                bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner
+                val manager = runCatching {
+                    context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+                }.getOrNull() ?: return@post
+                bluetoothManager = manager
+                runCatching { bluetoothAdapter = manager.adapter }
+            }
+            /* 扫描器单独缓存与重试：bluetoothLeScanner 取用受 BLUETOOTH_SCAN 约束（API 31+），
+               权限缺失时会抛异常；失败不写字段，补授权限后下次 initialize() 可恢复 */
+            if (bluetoothLeScanner == null) {
+                if (bluetoothAdapter == null) {
+                    bluetoothAdapter = runCatching { bluetoothManager?.adapter }.getOrNull()
+                }
+                runCatching { bluetoothLeScanner = bluetoothAdapter?.bluetoothLeScanner }
+                    .onFailure { android.util.Log.w("BleScanner", "bluetoothLeScanner unavailable: ${it.message}") }
             }
         }
     }

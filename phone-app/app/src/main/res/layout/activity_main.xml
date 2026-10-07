@@ -85,6 +85,21 @@
             android:visibility="gone"
             android:elevation="8dp" />
 
+        <!-- 语音识别开关（与模式胶囊同行，屏幕右上角）：单击开启/关闭，开启后常态保持 -->
+        <ImageView
+            android:id="@+id/asrBtn"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="top|end"
+            android:layout_marginEnd="24dp"
+            android:layout_marginRight="24dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/asr_btn_bg"
+            android:padding="9dp"
+            android:src="@drawable/ic_asr_mic"
+            android:contentDescription="@null"
+            android:elevation="8dp" />
+
         <FrameLayout
             android:id="@+id/emotionPanelContainer"
             android:layout_width="match_parent"

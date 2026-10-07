@@ -100,8 +100,15 @@ object BlePermissionHelper {
 
     @SuppressLint("MissingPermission")
     fun isBluetoothEnabled(context: Context): Boolean {
-        val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        return bluetoothManager.adapter?.isEnabled == true
+        /* API 31+ 下 adapter.isEnabled 需要 BLUETOOTH_CONNECT：权限未授予时会抛 SecurityException，
+           这里按"未开启"返回，避免调用方被异常打断（连接流程不允许因权限探测而崩溃） */
+        return runCatching {
+            val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+            bluetoothManager.adapter?.isEnabled == true
+        }.getOrElse {
+            Log.w(TAG, "isBluetoothEnabled failed: ${it.message}")
+            false
+        }
     }
 
     fun getEnableBluetoothIntent(): Intent {

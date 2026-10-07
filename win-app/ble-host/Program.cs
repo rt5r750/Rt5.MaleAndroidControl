@@ -19,6 +19,7 @@ internal static class Program
         host.AllDevicesDisconnected += () => _ = transport.SendAsync(new { type = "device-disconnected" });
         host.ManualDisconnectReceived += () => _ = transport.SendAsync(new { type = "manual-disconnect" });
         host.ApiKeyReceived += key => _ = transport.SendAsync(new { type = "apikey", key });
+        host.ModeReceived += ordinal => _ = transport.SendAsync(new { type = "mode", ordinal });
         host.Error += message => _ = transport.SendAsync(new { type = "error", message });
         host.Log += (level, message) => _ = transport.SendAsync(new { type = "log", level, message });
 

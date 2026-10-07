@@ -62,6 +62,8 @@ android-app/
 5. 处理系统返回键、文件选择、PDF 打开
 6. 处理 SafeArea（状态栏/导航栏/输入法）适配并通知前端
 7. 管理闪屏视频覆盖层（TextureView + MediaPlayer），遮住 HTML 加载初期
+8. **外链路由（1.8.0）**：`handleUrlLoading()` 拦截 WebView 主框架的 http(s) 导航，交 `openExternalBrowser()` 用系统默认浏览器打开（`Intent.ACTION_VIEW`），站内 `file:///android_asset/`、blob/about 与页内锚点不拦截；同时覆盖 `target="_blank"` —— WebView 未开多窗口，默认会在控制台 WebView 内原地导航顶掉界面（设置页 MiMo 官网链接、夸克网盘、Telegram 等均走此路径），JS 桥 `Android.openExternalUrl(url)` 复用同一实现
+9. **连接链路加固（1.8.0）**：`startBleServices()` 先校验 `hasAllPermissions()`（缺失 Toast「缺少蓝牙权限，请重新打开控制台授权」并返回）、整段 try/catch（失败 Toast「连接失败」）；JS 桥 `btStartConnect()` / `btShowQr()` 同样前置校验权限，避免 BLE 层异常从主线程抛出导致 App 闪退
 
 Manifest 要点（2026-09 架构优化）：`MainActivity` 设 `launchMode=singleTask`（浏览器经 `robotcontrol://console` 深链拉起时 intent 经 onNewIntent 送达现有实例，不堆叠多实例），并在 LAUNCHER 之外新增 VIEW+DEFAULT+BROWSABLE intent-filter（`scheme=robotcontrol, host=console`）——与 www 浏览器端拉起引导（`js/app-launch.js`）及 win-app 的同名协议注册配套；应用已在前台/后台时拉起仅聚焦现有实例，不改变任何运行逻辑。**1.6.0 起 `MainActivity` 补 `android:screenOrientation="portrait"` 竖屏锁定**（历史清单从未锁定，此前"无横屏"仅是窄屏宽度巧合）。
 
@@ -85,7 +87,7 @@ Manifest 要点（2026-09 架构优化）：`MainActivity` 设 `launchMode=singl
 [RobotGattServer.kt](file:///d:/AIProject/RobotControl/android-app/app/src/main/java/com/robotcontrol/console/ble/RobotGattServer.kt)
 
 BLE GATT Server 单例（`object`），职责：
-1. 创建并启动 GATT Server，添加 Service 和 5 个 Characteristic（含心跳）
+1. 创建并启动 GATT Server，添加 Service 和 7 个 Characteristic（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey/UiLang）
 2. 启动 BLE 广播（Advertising），设备名设为 `RobotControl-Console`
 3. 维护连接设备列表，支持多设备连接
 4. 处理 MTU 变更、CCC Descriptor 写入（订阅通知）
@@ -93,11 +95,12 @@ BLE GATT Server 单例（`object`），职责：
 6. 按“设备地址 → Notification 队列”顺序异步发包，替代阻塞式 `Thread.sleep`，避免大任务/语音分片阻塞心跳与握手
 7. 维护心跳检测：每 5s 向所有已连接设备 Notify `0x01`，断开时发送 `0xFF`
 8. 独立 BLE 线程（`BleServerThread`）处理所有 BLE 操作
+9. 处理客户端上行写入：Heartbeat（心跳/手动断开 `0xFF`）、ApiKey（TTS Key 同步）、**Mode（反向模式推送，1.7.0）**——Mode(7501) 属性为 `READ|WRITE|NOTIFY`、权限 `READ|WRITE`，收到写入立即 `sendResponse(GATT_SUCCESS)`、同步 `characteristicValues` 保持读值一致，ordinal ∈ 0..3 时在主线程回调 `onModeReceived`（255=NA 与其他值忽略）
 
 关键 API：
 ```kotlin
 fun initialize(context: Context)
-fun startServer(context: Context)  // 内部检查 BLUETOOTH_CONNECT 权限，无权限则安全返回
+fun startServer(context: Context)  // 内部检查 BLUETOOTH_CONNECT 与 BLUETOOTH_ADVERTISE 权限，无权限则安全返回（1.8.0 补 ADVERTISE）
 fun stopServer()
 fun ensureAdvertising()            // 内部检查 BLUETOOTH_ADVERTISE 权限，仅在 !isAdvertising 时启动广播
 fun sendMode(modeOrdinal: Int)
@@ -115,10 +118,11 @@ fun isRunning(): Boolean
 fun isConnected(): Boolean
 var onConnectionStateChanged: ((connected: Boolean, deviceAddress: String?) -> Unit)?
 var onApiKeyReceived: ((apiKey: String) -> Unit)?
+var onModeReceived: ((modeOrdinal: Int) -> Unit)?  // 1.7.0 新增：客户端写入 Mode(7501) 反向推送，ordinal 0-3
 ```
 
 初始特征值（冷启动）：
-- Mode: `[0xFF]`（NA 模式，255）
+- Mode: `[0xFF]`（NA 模式，255）——1.7.0 起该特征可写，客户端反向推送写入后 `characteristicValues` 同步更新（随后控制台会以自身真实模式回写并 Notify）
 - Emotion: `[100, 0, 100, 50]`（默认情绪）
 - Tasks: 空
 - Voice: 空
@@ -137,6 +141,16 @@ var onApiKeyReceived: ((apiKey: String) -> Unit)?
 
 - `validateConnectedDevices()` 以 `BluetoothGattServer.getConnectedDevices()` 为准清理陈旧映射，并回补实际已连接但未记录的设备；GATT Server 未创建时清空全部缓存。
 - 权限可用的冷启动服务和 `btStartConnect()` 都会先执行该校验，避免 Activity 重建后的残留映射造成假连接。
+
+#### 闪退加固（1.8.0，覆盖 Android 12+ 全版本范围）
+
+BLE 回调与广播都运行在 `BleServerThread`/扫描线程上，**任何 `SecurityException` 逃出线程即进程崩溃**，因此按"权限前置 + 全段异常兜底"成对收口：
+
+- **`bluetoothLeAdvertiser` 取用前校验 `BLUETOOTH_ADVERTISE`**：该 getter 在 API 31+ 需要 ADVERTISE（不是 CONNECT），此前 `startServer()` 只校验 CONNECT，权限缺失时取用即抛异常。
+- **`startServer()` / 服务重加定时器 / 广播 / 连接态变化（`onConnectionStateChange`）/ MTU 变化（`onMtuChanged`）/ 读请求 / 写请求 / 描述符回调 / 通知发送链路（`notifyCharacteristicChangedToDevice`→`queueNotification`→`sendNextNotification`）整段 `runCatching`**：`device.address`（API 31+ 需 CONNECT）、`sendResponse`（同样受权限约束）等取用不再让异常外泄。
+- **`setName()` 与广播拆成两段独立 `runCatching`（顺序仍先改名再广播）**：历史实现把两者放在同一 `runCatching` 里，`setName` 抛异常会静默中止整段逻辑、广播从未启动（`isAdvertising` 恒 false）——手机端因此永远扫不到控制台（"连不上"）；拆开后改名失败不再影响广播，且首个广告包仍带正确设备名。
+- **回包统一走 `sendGattResponse()`**：`value` 空安全 + 异常只记日志；`startAdvertising()` 入口另加 ADVERTISE 校验。
+- **`BleScanner` 扫描回调与 `BlePermissionHelper.isBluetoothEnabled()`** 同样 runCatching（`device.name`/`device.address` 取值均受权限约束）；`BleScanner.initialize()` 的扫描器缓存**独立于 `bluetoothManager` 单独判断与重试**——若把三者写在同一 `runCatching` 且先赋值 `bluetoothManager`，中途抛异常会留下残态让 `bluetoothManager == null` 守卫永久跳过初始化，权限补授后扫描也起不来。
 
 ### BlePermissionHelper
 
@@ -164,7 +178,7 @@ SharedPreferences 存储已配对的 Phone 端 MAC 地址，启动时自动重�
 | `getSafeAreaBottom()` | - | `Int` | 获取底部安全区域高度（dp） |
 | `getImeHeight()` | - | `Int` | 获取输入法键盘高度（像素） |
 | `setModalState(open: Boolean)` | open: Boolean | - | 通知原生当前是否有模态框打开（影响返回键行为） |
-| `openExternalUrl(url: String)` | url: String | - | 用外部浏览器打开 URL |
+| `openExternalUrl(url: String)` | url: String | - | 用系统默认浏览器打开 URL（1.8.0 起与 WebView 外链拦截共用 `openExternalBrowser()`） |
 | `openPdfFile(filePath: String)` | filePath: String | - | 打开 PDF 文件（支持 http(s)、asset、相对路径），复制到 cache 后通过 FileProvider 打开 |
 | `btGetStatus()` | - | `Int` | 获取当前 BLE 连接状态（0=未绑定, 1=已连接, 2=断开, 3=连接中, 4=手动断开） |
 | `btUnbond()` | - | - | 断开蓝牙连接，先调用 `setManualDisconnectReceived()` 标记手动断开，再发送 `sendDisconnectNotification()` 通知对端，然后 `disconnectAllClients()` 并清除配对绑定，UI 状态设为 4（手动断开） |
@@ -191,7 +205,7 @@ SharedPreferences 存储已配对的 Phone 端 MAC 地址，启动时自动重�
 - `"voice"`: json 为语音内容（纯文本或 VoiceMessage JSON），自动补 timestamp，调用 `sendVoice()`
 - `"voice-history"`: json 为 VoiceMessage JSON 数组字符串，调用 `sendVoice()`
 
-### Kotlin → JS（8 个 evaluateJavascript 调用）
+### Kotlin → JS（10 个 evaluateJavascript 调用）
 
 Kotlin 端通过 `webView.evaluateJavascript("jsCode(...)", null)` 调用前端 JS 函数：
 
@@ -205,6 +219,10 @@ Kotlin 端通过 `webView.evaluateJavascript("jsCode(...)", null)` 调用前端 
 | `updateSafeAreaInsets(imeHeightPx)` | WindowInsets 变化时 | imeHeightPx 为输入法像素高度 |
 | `__ttsOnComplete(callbackId, resultJson)` | Native MediaPlayer 播放完成/出错时 | callbackId 为回调ID，resultJson 为 `{"ok":true}` 或 `{"ok":false,"error":"..."}` |
 | `__mimoFetchCallback(callbackId)` | `mimoFetchAsync` HTTP 请求完成时 | 仅传 callbackId（通知+拉取模式），JS 通过 `Android.getMimoFetchResult(cbId)` 同步拉取完整结果 |
+| `_onMimoApiKeySynced(key)` | `RobotGattServer.onApiKeyReceived` 触发（phone 经 7506 写入 API Key）时 | key 为规范化并转义后的 API Key；同时保存 SharedPreferences 并弹 Toast「API Key 已同步」 |
+| `__rcOnRemoteMode(ordinal)` | `RobotGattServer.onModeReceived` 触发（phone 经 7501 反向推送模式）时 | ordinal 为 0-3；前端切换到对应模式并高亮按钮，同时弹 Toast「推送成功」（1.7.0） |
+
+> 两个反向通道回调均带 `typeof === 'function'` 守卫，页面尚未加载完成时静默跳过。
 
 ---
 

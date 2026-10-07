@@ -28,6 +28,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.ScrollView
+import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -47,6 +48,7 @@ import com.robotcontrol.phone.data.Mode
 import com.robotcontrol.phone.data.PhoneDataStore
 import com.robotcontrol.phone.data.Task
 import com.robotcontrol.phone.data.VoiceMessage
+import com.robotcontrol.phone.speech.PhoneSpeechController
 import com.robotcontrol.phone.ui.EmotionPanelView
 import org.json.JSONArray
 import org.json.JSONObject
@@ -62,6 +64,7 @@ class MainActivity : ComponentActivity(), DataStoreListener {
     private lateinit var capsule: TextView
     private lateinit var btConsoleBtn: TextView
     private lateinit var btWatchBtn: TextView
+    private lateinit var asrBtn: ImageView
     private lateinit var topFixedContainer: FrameLayout
     private lateinit var topGradientBg: View
     private lateinit var emotionPanelContainer: FrameLayout
@@ -91,6 +94,20 @@ class MainActivity : ComponentActivity(), DataStoreListener {
     private var dialogInfoTv: TextView? = null
     private var isBleDialogShowing = false
     private var isQrConnection = false
+
+    /** 语音识别控制器（ASR，唯一在 phone-app 端运行） */
+    private var speechController: PhoneSpeechController? = null
+
+    /** 反向推送后的「推送成功」兜底定时任务（控制端回声未到时弹一条） */
+    private var reversePushWatchdog: Runnable? = null
+
+    /** 模式菜单项：显示名 / 控制台 BLE ordinal / 胶囊同款颜色 */
+    private val modeMenuItems: List<Triple<String, Int, Int>> = listOf(
+        Triple("调试模式", 0, GfxColor.parseColor("#8FBC8F")),
+        Triple("恢复模式", 1, GfxColor.parseColor("#FB923C")),
+        Triple("忠诚模式", 2, GfxColor.parseColor("#66CCFF")),
+        Triple("拟人模式", 3, GfxColor.parseColor("#F472B6"))
+    )
 
     private val qrScanLauncher: ActivityResultLauncher<Intent> =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -135,6 +152,18 @@ class MainActivity : ComponentActivity(), DataStoreListener {
     private val notificationPermissionLauncher: ActivityResultLauncher<String> =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { _ -> }
 
+    /** 语音识别（录音）权限：授权后立即开启识别 */
+    private val recordPermissionLauncher: ActivityResultLauncher<String> =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) {
+                startSpeech(showToast = true)
+            } else {
+                ApiKeyStore.setAsrActive(false)
+                updateAsrButtonState(false)
+                Toast.makeText(this, PhoneI18n.t("缺少录音权限"), Toast.LENGTH_SHORT).show()
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         density = resources.displayMetrics.density
@@ -157,6 +186,7 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         capsule = findViewById(R.id.capsule)
         btConsoleBtn = findViewById(R.id.btConsoleBtn)
         btWatchBtn = findViewById(R.id.btWatchBtn)
+        asrBtn = findViewById(R.id.asrBtn)
         topFixedContainer = findViewById(R.id.topFixedContainer)
         topGradientBg = findViewById(R.id.topGradientBg)
         emotionPanelContainer = findViewById(R.id.emotionPanelContainer)
@@ -172,11 +202,20 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         setupBleButton(btConsoleBtn)
         updateBtButtonState(btConsoleBtn, BleConstants.BLE_STATUS_UNBONDED)
 
+        /* 长按胶囊弹出模式菜单（手动调整四大模式）→ 反向推送到控制端 */
+        capsule.setOnLongClickListener {
+            showModeMenuDialog()
+            true
+        }
+        setupAsrButton()
+        updateAsrButtonState(false)
+
         BondStore.init(this)
         ApiKeyStore.initialize(this)
         PhoneI18n.init(this)
         // 显示语言跟随发送端（BLE 7507 UiLang），phone 端不再提供手动切换：
         // 连接后初读/订阅推送即按发送端语言重建界面；未收到(255)保持当前语言
+        asrBtn.contentDescription = PhoneI18n.t("语音识别")
 
         PhoneDataStore.initialize(applicationContext)
         PhoneDataStore.setNotificationContext(this)
@@ -194,6 +233,12 @@ class MainActivity : ComponentActivity(), DataStoreListener {
             }
         }
 
+        /* 语音识别常态保持：上次为开启且已授权时自动恢复（低功耗：仅前台运行） */
+        if (ApiKeyStore.isAsrActive() &&
+            checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        ) {
+            startSpeech(showToast = false)
+        }
     }
 
     private fun setupEdgeToEdgeInsets() {
@@ -213,6 +258,10 @@ class MainActivity : ComponentActivity(), DataStoreListener {
             val watchLp = btWatchBtn.layoutParams as FrameLayout.LayoutParams
             watchLp.topMargin = statusBarH + (8 * density).toInt()
             btWatchBtn.layoutParams = watchLp
+
+            val asrLp = asrBtn.layoutParams as FrameLayout.LayoutParams
+            asrLp.topMargin = statusBarH + (8 * density).toInt()
+            asrBtn.layoutParams = asrLp
 
             val emotionLp = emotionPanelContainer.layoutParams as FrameLayout.LayoutParams
             emotionLp.topMargin = statusBarH + (8 * density).toInt()
@@ -463,13 +512,26 @@ class MainActivity : ComponentActivity(), DataStoreListener {
             if (addr != null) {
                 consoleStatus = BleConstants.BLE_STATUS_CONNECTING
                 updateBtButtonState(btConsoleBtn, BleConstants.BLE_STATUS_CONNECTING)
-                ConsoleBleClient.connect(this, addr, autoConnect = true)
-                ConsoleBleClient.startAutoScan()
+                /* BLE 入口统一兜底：权限/适配器异常只回退连接状态，不允许异常穿透导致 App 闪退 */
+                try {
+                    ConsoleBleClient.connect(this, addr, autoConnect = true)
+                    ConsoleBleClient.startAutoScan()
+                } catch (e: Exception) {
+                    android.util.Log.e("BleClient", "auto connect failed", e)
+                    consoleStatus = BleConstants.BLE_STATUS_DISCONNECTED
+                    updateBtButtonState(btConsoleBtn, BleConstants.BLE_STATUS_DISCONNECTED)
+                }
             }
         } else {
             consoleStatus = BleConstants.BLE_STATUS_CONNECTING
             updateBtButtonState(btConsoleBtn, BleConstants.BLE_STATUS_CONNECTING)
-            ConsoleBleClient.startAutoScan()
+            try {
+                ConsoleBleClient.startAutoScan()
+            } catch (e: Exception) {
+                android.util.Log.e("BleClient", "startAutoScan failed", e)
+                consoleStatus = BleConstants.BLE_STATUS_DISCONNECTED
+                updateBtButtonState(btConsoleBtn, BleConstants.BLE_STATUS_DISCONNECTED)
+            }
         }
     }
 
@@ -516,6 +578,158 @@ class MainActivity : ComponentActivity(), DataStoreListener {
             }
         })
         btn.setOnTouchListener { _, event -> gestureDetector.onTouchEvent(event) }
+    }
+
+    // ===== 模式反向推送：长按胶囊弹模式菜单 → 写入控制端 Mode(7501) =====
+
+    /** 模式菜单（手动调整四大模式）。选中后反向推送到控制端，控制端切换并高亮对应模式按钮。 */
+    private fun showModeMenuDialog() {
+        val dialog = Dialog(this, R.style.BleDialogTheme)
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, (8 * density).toInt(), 0, (8 * density).toInt())
+        }
+
+        val title = TextView(this).apply {
+            text = PhoneI18n.t("选择模式")
+            setTextColor(GfxColor.WHITE)
+            textSize = 16f
+            setPadding((20 * density).toInt(), (16 * density).toInt(), (20 * density).toInt(), (2 * density).toInt())
+            includeFontPadding = false
+        }
+        container.addView(title)
+
+        val hint = TextView(this).apply {
+            text = PhoneI18n.t("长按胶囊切换模式")
+            setTextColor(GfxColor.parseColor("#888888"))
+            textSize = 11f
+            setPadding((20 * density).toInt(), 0, (20 * density).toInt(), (8 * density).toInt())
+            includeFontPadding = false
+        }
+        container.addView(hint)
+
+        modeMenuItems.forEach { (label, ordinal, color) ->
+            val item = TextView(this).apply {
+                text = PhoneI18n.t(label)
+                setTextColor(color)
+                textSize = 15f
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding((20 * density).toInt(), (14 * density).toInt(), (20 * density).toInt(), (14 * density).toInt())
+                background = createDialogItemBg()
+                includeFontPadding = false
+                setOnClickListener {
+                    dialog.dismiss()
+                    pushModeToConsole(ordinal, PhoneI18n.t(label))
+                }
+            }
+            container.addView(item)
+        }
+
+        val closeItem = createDialogItem("关闭").apply {
+            setOnClickListener { dialog.dismiss() }
+        }
+        container.addView(closeItem)
+
+        dialog.setContentView(container)
+        dialog.setCancelable(true)
+        dialog.setCanceledOnTouchOutside(true)
+        styleDialog(dialog)
+        dialog.show()
+    }
+
+    /** 反向推送模式到控制端；成功后开启「推送成功」回声窗口（控制端回推语音时弹通知）。 */
+    private fun pushModeToConsole(ordinal: Int, modeName: String) {
+        if (!ConsoleBleClient.isConnected()) {
+            Toast.makeText(this, PhoneI18n.t("未连接控制面板"), Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (ConsoleBleClient.writeMode(ordinal)) {
+            armReversePushFeedback(modeName)
+        } else {
+            Toast.makeText(this, PhoneI18n.t("未连接控制面板"), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    /** 控制端回声未到达时由手机端兜底弹「推送成功」，避免一次推送出现两条通知。 */
+    private fun armReversePushFeedback(modeName: String) {
+        PhoneDataStore.armReversePushEcho(4000L)
+        reversePushWatchdog?.let { mainHandler.removeCallbacks(it) }
+        val task = Runnable {
+            reversePushWatchdog = null
+            if (PhoneDataStore.isAwaitingReverseEcho()) {
+                PhoneDataStore.notifyReversePushSuccess(modeName)
+            }
+        }
+        reversePushWatchdog = task
+        mainHandler.postDelayed(task, 4000L)
+    }
+
+    // ===== 语音识别（ASR，仅 phone-app 端；本地优先、云端兜底） =====
+
+    private fun setupAsrButton() {
+        asrBtn.setOnClickListener {
+            if (speechController?.isActive == true) {
+                stopSpeech()
+            } else if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                startSpeech(showToast = true)
+            } else {
+                recordPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO)
+            }
+        }
+    }
+
+    /** 开启识别（常态保持）。本地识别命中四大模式读音即反向推送，本地识别不清楚才走 MiMo ASR。 */
+    private fun startSpeech(showToast: Boolean) {
+        val controller = speechController ?: PhoneSpeechController(
+            applicationContext,
+            onModeCommand = { ordinal -> runOnUiThread { onVoiceModeCommand(ordinal) } },
+            onStatusMessage = { message ->
+                runOnUiThread {
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+                    if (speechController?.isActive != true) {
+                        ApiKeyStore.setAsrActive(false)
+                        updateAsrButtonState(false)
+                    }
+                }
+            }
+        ).also { speechController = it }
+        controller.start()
+        val active = controller.isActive
+        ApiKeyStore.setAsrActive(active)
+        updateAsrButtonState(active)
+        if (showToast && active) {
+            Toast.makeText(this, PhoneI18n.t("语音识别已开启"), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun stopSpeech(silent: Boolean = false) {
+        speechController?.stop()
+        ApiKeyStore.setAsrActive(false)
+        updateAsrButtonState(false)
+        if (!silent) {
+            Toast.makeText(this, PhoneI18n.t("语音识别已关闭"), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun updateAsrButtonState(active: Boolean) {
+        if (!::asrBtn.isInitialized) return
+        val bg = asrBtn.background as? GradientDrawable
+        if (active) {
+            bg?.setColor(GfxColor.parseColor("#FF1a3a1a"))
+            bg?.setStroke((1.5f * density).toInt(), GfxColor.parseColor("#4ade80"))
+            asrBtn.setColorFilter(GfxColor.parseColor("#4ade80"))
+        } else {
+            bg?.setColor(GfxColor.parseColor("#FF000000"))
+            bg?.setStroke((1.5f * density).toInt(), GfxColor.parseColor("#33FFFFFF"))
+            asrBtn.setColorFilter(GfxColor.parseColor("#888888"))
+        }
+        asrBtn.invalidate()
+    }
+
+    /** 语音识别命中模式读音 → 与手动模式菜单同一条反向推送链路。 */
+    private fun onVoiceModeCommand(ordinal: Int) {
+        val label = modeMenuItems.firstOrNull { it.second == ordinal }?.first ?: return
+        pushModeToConsole(ordinal, PhoneI18n.t(label))
     }
 
     private fun createDialogItemBg(): StateListDrawable {
@@ -717,7 +931,7 @@ class MainActivity : ComponentActivity(), DataStoreListener {
                         }
                         updateDialogDeviceStatus(addr, 1)
                         BondStore.saveConsoleAddress(addr)
-                        ConsoleBleClient.connect(this, addr)
+                        connectToConsole(addr)
                         dialogConnectTimeoutRunnable?.let { mainHandler.removeCallbacks(it) }
                         val timeoutRunnable = Runnable {
                             if (bleControlDialog?.isShowing == true && dialogConnectTargetAddr == addr) {
@@ -872,6 +1086,49 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         }
         container.addView(apiKeyHint)
 
+        /* 语音识别：是否允许调用云端 MiMo ASR（关闭后仅本地离线识别） */
+        val asrCloudRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding((20 * density).toInt(), (4 * density).toInt(), (20 * density).toInt(), 0)
+        }
+        val asrCloudLabel = TextView(this).apply {
+            text = PhoneI18n.t("识别引擎调用云端（MiMo ASR）")
+            setTextColor(GfxColor.parseColor("#888888"))
+            textSize = 12f
+            includeFontPadding = false
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val asrCloudSwitch = Switch(this).apply {
+            isChecked = ApiKeyStore.isAsrCloudEnabled()
+            /* Theme.Black 下框架 Switch 的 Holo 轨道/滑块尺寸塌缩不可见，显式指定 drawable */
+            showText = false
+            setTrackDrawable(getDrawable(R.drawable.asr_switch_track))
+            setThumbDrawable(getDrawable(R.drawable.asr_switch_thumb))
+            setOnCheckedChangeListener { _, checked -> ApiKeyStore.setAsrCloudEnabled(checked) }
+        }
+        asrCloudRow.addView(asrCloudLabel)
+        asrCloudRow.addView(asrCloudSwitch)
+        container.addView(asrCloudRow)
+
+        val asrCloudHint = TextView(this).apply {
+            text = PhoneI18n.t("关闭后仅使用本地离线识别")
+            setTextColor(GfxColor.parseColor("#555555"))
+            textSize = 11f
+            setPadding((20 * density).toInt(), 0, (20 * density).toInt(), (4 * density).toInt())
+            includeFontPadding = false
+        }
+        container.addView(asrCloudHint)
+
+        val mimoCostHint = TextView(this).apply {
+            text = PhoneI18n.t("Xiaomi MiMo TTS和ASR可能需要收费，请阅读官网相关文档。")
+            setTextColor(GfxColor.parseColor("#555555"))
+            textSize = 11f
+            setPadding((20 * density).toInt(), 0, (20 * density).toInt(), (4 * density).toInt())
+            includeFontPadding = false
+        }
+        container.addView(mimoCostHint)
+
         val buttonsLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
@@ -982,6 +1239,18 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         showBleDialog()
     }
 
+    /* 连接点击统一兜底：BLE 层任何异常都不得从 UI 线程抛出（Android 12 点击连接闪退防线） */
+    private fun connectToConsole(address: String, autoConnect: Boolean = false) {
+        try {
+            ConsoleBleClient.connect(this, address, autoConnect = autoConnect)
+        } catch (e: Exception) {
+            android.util.Log.e("BleClient", "connect failed", e)
+            consoleStatus = BleConstants.BLE_STATUS_DISCONNECTED
+            updateBtButtonState(btConsoleBtn, BleConstants.BLE_STATUS_DISCONNECTED)
+            Toast.makeText(this, PhoneI18n.t("连接失败"), Toast.LENGTH_SHORT).show()
+        }
+    }
+
     private fun handleQrResult(qrData: String) {
         try {
             val obj = JSONObject(qrData)
@@ -1001,7 +1270,7 @@ class MainActivity : ComponentActivity(), DataStoreListener {
                         consoleStatus = BleConstants.BLE_STATUS_CONNECTING
                         updateBtButtonState(btConsoleBtn, BleConstants.BLE_STATUS_CONNECTING)
                         dialogConnectTargetAddr = foundAddr
-                        ConsoleBleClient.connect(this, foundAddr, autoConnect = true)
+                        connectToConsole(foundAddr, autoConnect = true)
                         dialogConnectTimeoutRunnable = Runnable {
                             if (!ConsoleBleClient.isConnected()) {
                                 isQrConnection = false
@@ -1026,7 +1295,7 @@ class MainActivity : ComponentActivity(), DataStoreListener {
                         BondStore.saveConsoleAddress(mac)
                         consoleStatus = BleConstants.BLE_STATUS_CONNECTING
                         updateBtButtonState(btConsoleBtn, BleConstants.BLE_STATUS_CONNECTING)
-                        ConsoleBleClient.connect(this, mac, autoConnect = true)
+                        connectToConsole(mac, autoConnect = true)
                         mainHandler.postDelayed({
                             if (!ConsoleBleClient.isConnected()) {
                                 isQrConnection = false
@@ -1127,8 +1396,28 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        /* 常态保持：回到前台时若开关仍为开且已授权则继续识别（后台不识别，压低功耗） */
+        if (ApiKeyStore.isAsrActive() && speechController?.isActive != true &&
+            checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        ) {
+            startSpeech(showToast = false)
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        speechController?.stop()
+        updateAsrButtonState(false)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
+        reversePushWatchdog?.let { mainHandler.removeCallbacks(it) }
+        reversePushWatchdog = null
+        speechController?.release()
+        speechController = null
         ConsoleBleClient.disconnect()
         ConsoleBleClient.onConnectionStateChanged = null
         ConsoleBleClient.onModeReceived = null

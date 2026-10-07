@@ -113,6 +113,8 @@
         '输入 MiMo API Key（如 sk-xxx）': 'Enter MiMo API Key (e.g. sk-xxx)',
         '保存': 'Save',
         'API Key 也可通过手机端连接时自动同步，手机端Key优先。': 'The API Key can also be synced automatically when connecting via the phone app; the phone key takes priority.',
+        'Xiaomi MiMo TTS和ASR可能需要收费，请阅读官网相关文档。': 'Xiaomi MiMo TTS and ASR may incur charges; please read the relevant documentation on the official website.',
+        '推送成功': 'Push successful',
         '测试播报': 'Test Broadcast',
         '机器人状态设置': 'Android Status Settings',
         '设置机器人状态项': 'Configure android status items',

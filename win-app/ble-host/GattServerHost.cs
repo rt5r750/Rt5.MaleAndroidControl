@@ -61,6 +61,8 @@ public sealed class GattServerHost : IAsyncDisposable
     public event Action? AllDevicesDisconnected;
     public event Action? ManualDisconnectReceived;
     public event Action<string>? ApiKeyReceived;
+    /// <summary>反向模式推送：客户端写入 Mode(7501) 且 ordinal ∈ 0..3 时触发</summary>
+    public event Action<int>? ModeReceived;
     public event Action<string>? Error;
     public event Action<string, string>? Log;
 
@@ -98,7 +100,8 @@ public sealed class GattServerHost : IAsyncDisposable
                 Log?.Invoke("info", $"广告状态：{_provider?.AdvertisementStatus}");
             };
 
-            await AddCharacteristicAsync(ModeUuid, "Mode", GattCharacteristicProperties.Read | GattCharacteristicProperties.Notify);
+            // Mode(7501)：Read|Write|Notify —— 客户端（phone-app）可写入 ordinal 反向切换控制台模式
+            await AddCharacteristicAsync(ModeUuid, "Mode", GattCharacteristicProperties.Read | GattCharacteristicProperties.Write | GattCharacteristicProperties.Notify);
             await AddCharacteristicAsync(EmotionUuid, "Emotion", GattCharacteristicProperties.Read | GattCharacteristicProperties.Notify);
             await AddCharacteristicAsync(TasksUuid, "Tasks", GattCharacteristicProperties.Read | GattCharacteristicProperties.Notify);
             await AddCharacteristicAsync(VoiceUuid, "Voice", GattCharacteristicProperties.Read | GattCharacteristicProperties.Notify);
@@ -270,6 +273,14 @@ public sealed class GattServerHost : IAsyncDisposable
             else if (sender.Uuid == ApiKeyUuid && data.Length > 0)
             {
                 ApiKeyReceived?.Invoke(Encoding.UTF8.GetString(data));
+            }
+            else if (sender.Uuid == ModeUuid && data.Length > 0)
+            {
+                var ordinal = data[0] & 0xFF;
+                if (ordinal >= 0 && ordinal <= 3)
+                {
+                    ModeReceived?.Invoke(ordinal);
+                }
             }
         }
         catch (Exception ex)

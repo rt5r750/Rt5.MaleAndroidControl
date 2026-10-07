@@ -8,9 +8,18 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADVERTISE"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" android:maxSdkVersion="30"/>
     <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-feature android:name="android.hardware.bluetooth_le" android:required="false"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
+
+    <!-- 语音识别服务可见性（Android 11+ 包可见性过滤）：缺少此声明时 SpeechRecognizer
+         查不到系统识别服务，本地识别恒判为不可用（targetSdk 30+ 必配） -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <application
         android:name=".RobotPhoneApplication"

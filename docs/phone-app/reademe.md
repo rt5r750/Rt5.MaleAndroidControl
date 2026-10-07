@@ -28,10 +28,15 @@ phone-app/
 │   │   │   │   └── WatchGattServer.kt       # （未启用）供 Watch 连接的 GATT Server
 │   │   │   ├── data/
 │   │   │   │   ├── PhoneDataStore.kt        # 数据中心单例 + 观察者模式
+│   │   │   │   ├── ApiKeyStore.kt           # MiMo API Key / ASR 云端开关 / ASR 开关状态持久化
 │   │   │   │   ├── Mode.kt                  # Mode 枚举
 │   │   │   │   ├── Emotion.kt               # Emotion 数据类
 │   │   │   │   ├── Task.kt                  # Task 数据类
 │   │   │   │   └── VoiceMessage.kt          # VoiceMessage 数据类
+│   │   │   ├── speech/
+│   │   │   │   ├── VoiceCommandMatcher.kt   # 本地模式读音规则（拼音同音匹配 + 否定词 + 语言门控）
+│   │   │   │   ├── MimoAsrClient.kt         # MiMo ASR（mimo-v2.5-asr）云端识别客户端
+│   │   │   │   └── PhoneSpeechController.kt # 语音识别控制器（本地优先 + 云端兜底 + 录音缓冲）
 │   │   │   └── ui/
 │   │   │       └── EmotionPanelView.kt      # 情绪面板自定义 View（4 个进度条）
 │   │   ├── res/
@@ -39,7 +44,11 @@ phone-app/
 │   │   │   │   ├── dialog_enter.xml         # 连接弹窗进入动画（淡入，180ms）
 │   │   │   │   └── dialog_exit.xml          # 连接弹窗退出动画（淡出，180ms）
 │   │   │   ├── drawable/                    # 背景 drawable（胶囊、按钮、卡片、渐变等）
-│   │   │   │   └── qr_btn_circle_bg.xml     # 扫码界面关闭按钮正圆形背景
+│   │   │   │   ├── qr_btn_circle_bg.xml     # 扫码界面关闭按钮正圆形背景
+│   │   │   │   ├── ic_asr_mic.xml           # 语音识别圆钮麦克风矢量图
+│   │   │   │   ├── asr_btn_bg.xml           # 语音识别圆钮正圆形背景（开/关两态）
+│   │   │   │   ├── asr_switch_track.xml     # 设置页云端开关轨道（开=模式绿/关=深灰）
+│   │   │   │   └── asr_switch_thumb.xml     # 设置页云端开关滑块（开=白/关=灰）
 │   │   │   ├── layout/
 │   │   │   │   ├── activity_main.xml        # 主布局（容器，UI 内容代码动态添加）
 │   │   │   │   └── activity_qr_scan.xml     # 扫码界面布局
@@ -66,14 +75,18 @@ phone-app/
 1. 全屏 EdgeToEdge 沉浸式显示，状态栏/导航栏透明，不设置 FLAG_KEEP_SCREEN_ON（按系统默认息屏时间）
 2. 代码动态构建全部 UI（顶栏胶囊、情绪面板、双列任务/语音列表）
 3. 管理 Console BLE 连接生命周期
-4. 提供 BLE 对话框（Dialog + BleDialogTheme 淡入/淡出动画，180ms）：扫描设备、扫码、断开（同时清除绑定）
+4. 提供 BLE 对话框（Dialog + BleDialogTheme 淡入/淡出动画，180ms）：扫描设备、扫码、断开（同时清除绑定）、MiMo API Key 与 ASR 云端开关（即手机端设置页）
 5. 通过 `styleDialog()` 统一设置对话框背景（圆角+半透明边框）和窗口属性
 6. 监听 PhoneDataStore 变化并更新 UI
 7. 长按蓝牙按钮注入模拟测试数据
+8. **长按模式胶囊弹出模式菜单**（1.7.0）：4 项模式（各用模式色）+ 关闭，选中后经 `ConsoleBleClient.writeMode()` 反向推送到控制台；未连接时提示「未连接控制面板」
+9. **语音识别圆钮**（1.7.0）：右上角 `asrBtn` 单击开/关语音识别（常态保持、SharedPreferences 持久、前台恢复/后台停止），识别命中模式读音走与手动推送相同的链路
+10. **连接链路加固（1.8.0）**：新增 `connectToConsole(address, autoConnect)` 统一包装**所有**连接入口（对话框点设备、扫码两条路径），BLE 层异常只回退连接状态并 Toast「连接失败」；`startBleServices()` 的自动连接/自动扫描段同样 try/catch
 
 关键 UI 成员：
-- `capsule: TextView` - 顶部模式显示胶囊
+- `capsule: TextView` - 顶部模式显示胶囊（**长按弹模式菜单**）
 - `btConsoleBtn: TextView` - 左上角蓝牙连接按钮
+- `asrBtn: ImageView` - 右上角语音识别圆钮（40dp 正圆，与胶囊同行；开=绿/关=灰，`ic_asr_mic` + `asr_btn_bg`）
 - `emotionPanel: EmotionPanelView` - 情绪面板（固定在顶部）
 - `topGradientBg: View` - 顶部黑色渐变遮罩
 - `scrollView: ScrollView` - 下部滚动容器
@@ -125,6 +138,7 @@ Voice 数据分发规则：
 - 恢复流程只允许 `userDisconnected=true` 阻止自动重连；否则同时执行限次重连和周期扫描。
 - 清理 GATT 时重置 `currentGattAction`，防止上一轮操作残留导致新连接的 GATT 队列不推进。
 - Activity 销毁先断开并清空 `ConsoleBleClient` 全部回调引用，避免旧 Activity 监听器在重建后重复触发。
+- **权限相关取值全部收口（1.8.0，Android 12+ 全版本范围）**：BLE 回调运行在 `BleClientThread`/扫描线程上，`SecurityException` 逃出线程即进程崩溃——扫描回调的 `device.name`/`device.address`、`connectInternal()` 取址（失败即回退断开态并放弃本次连接）、`BlePermissionHelper.isBluetoothEnabled()` 全部 runCatching；`initialize()` 的扫描器缓存**独立于 `bluetoothManager` 单独判断与重试**（同一 `runCatching` 内先赋值 manager 会在中途抛异常时留下残态，让 null 守卫永久跳过初始化，补授权限后扫描也起不来）；反射长读（隐藏 API `readCharacteristic(BluetoothGattCharacteristic,int)`）仍按原样 try/catch 并回退到分片读取日志。
 
 关键 API：
 ```kotlin
@@ -132,6 +146,7 @@ fun initialize(context: Context)
 fun startScanAndConnect(onDeviceFound: ((name, address) -> Unit)?)
 fun connect(context: Context, address: String)
 fun disconnect()              // 发送 0xFF 通知对端后断开，设置 userDisconnected=true
+fun writeMode(ordinal: Int): Boolean  // 1.7.0 反向模式推送：写入 Mode(7501) 1 字节 ordinal（仅 0-3，未连接/非法返回 false）
 fun stopScan()
 fun isConnected(): Boolean
 fun isActiveDisconnect(): Boolean  // 返回是否为主动断开（0xFF 或用户点击断开）
@@ -157,7 +172,14 @@ fun resumeAutoScanAfterDialog()
 - 新增 `hasReceivedRealData` 标志：收到过真实 BLE 数据时为 `true`，用于 UI 层判断是否显示 NA
 - 订阅者通过 `DataStoreListener` 接收变更通知
 - 语音消息自动去重（按 timestamp），保留最新 100 条，按时间倒序
-- 收到新语音消息时发送系统通知（标题"主人指令"）
+- 收到新语音消息时发送系统通知，标题按场景取值：**普通语音消息为「主人指令」；反向模式推送的回声为「推送成功」**（1.7.0，见下）
+
+**反向推送通知口径（1.7.0，防同一次推送双弹）**：
+
+- `armReversePushEcho(windowMs=4000)`：手机端发起反向推送后开启回声窗口；窗口内到达的语音通知标题改用「推送成功」并消费窗口（**只弹这一条**）
+- `isAwaitingReverseEcho()`：是否仍在等待回声（未被语音通知消费）
+- `notifyReversePushSuccess(body)`：4s 兜底——回声未到时本地弹一条「推送成功」（正文=模式名），并置 4s 抑制窗口挡住晚到的回声
+- `sendVoiceNotification()` 开头：处于抑制窗口直接 return；处于回声窗口则标题「推送成功」并清零窗口；否则标题「主人指令」（原行为）
 
 ```kotlin
 interface DataStoreListener {
@@ -182,6 +204,9 @@ fun setEmotion(newEmotion: Emotion)  // 传入非空 Emotion
 fun addVoiceMessage(message: VoiceMessage)
 fun addVoiceMessageIfNew(message: VoiceMessage)
 fun setVoiceHistory(messages: List<VoiceMessage>)
+fun armReversePushEcho(windowMs: Long = 4000L)  // 1.7.0 反向推送回声窗口
+fun isAwaitingReverseEcho(): Boolean
+fun notifyReversePushSuccess(body: String)      // 1.7.0 兜底弹「推送成功」并抑制晚到回声
 fun clear()  // 重置所有状态为 NA + 清除持久化数据
 val hasReceivedRealData: Boolean  // 是否收到过真实 BLE 数据
 ```
@@ -335,7 +360,8 @@ FrameLayout (root, 全屏黑底)
 ├── View (topGradientBg)             # 顶部渐变遮罩（黑→透明）
 ├── FrameLayout (topFixedContainer)   # 固定顶部区域
 │   ├── TextView (btConsoleBtn)      # 左上角蓝牙按钮 "B"
-│   ├── TextView (capsule)           # 顶部中间模式胶囊
+│   ├── TextView (capsule)           # 顶部中间模式胶囊（长按弹模式菜单）
+│   ├── ImageView (asrBtn)           # 右上角语音识别圆钮（40dp，与胶囊同行，1.7.0）
 │   └── FrameLayout (emotionPanelContainer)
 │       └── EmotionPanelView         # 4维情绪面板
 └── ScrollView (scrollView)          # 下部可滚动区域
@@ -413,7 +439,7 @@ FrameLayout (root, 全屏黑底)
    - 解析 JSON 中的 mac 字段直接连接
 
 4. **数据接收**：
- - 连接成功后自动启用 6 个 Characteristic（含 Heartbeat/ApiKey）的 Notification
+ - 连接成功后自动启用 7 个 Characteristic（含 Heartbeat/ApiKey/UiLang）的 Notification
    - 立即读取 Mode/Emotion 当前值（READ_CHAR），Voice 使用 READ_LONG_CHAR
    - **Tasks 不主动读取**，完全依赖 android-app 的 BLE Notification 推送（1500ms + 3000ms 两次发送）
    - 3000ms 后执行 READ_CHAR 作为 Tasks 兜底
@@ -422,10 +448,62 @@ FrameLayout (root, 全屏黑底)
 
 ---
 
+## 模式反向推送（1.7.0）
+
+手机端作为机器人端可主动切换四大模式并推给控制台，与「控制台下发模式」方向相反。协议细节见 [BLE 通信协议 · 反向模式推送](file:///d:/AIProject/RobotControl/docs/ble-protocol.md)。
+
+- **入口一（手动）**：长按顶部胶囊 `capsule` → `showModeMenuDialog()`：`Dialog` + `R.style.BleDialogTheme` + `styleDialog()`，垂直列表 4 项（调试/恢复/忠诚/拟人，各用模式色 #8FBC8F/#FB923C/#66CCFF/#F472B6，名称走 `PhoneI18n.t(Mode.displayName)`）+「关闭」。选中项：未连接 → Toast「未连接控制面板」；已连接 → `pushModeToConsole()` = `ConsoleBleClient.writeMode(ordinal)` + `armReversePushFeedback()`。
+- **入口二（语音）**：语音识别命中模式读音 → `onVoiceModeCommand(ordinal)` → 同一 `pushModeToConsole()`。
+- **回声反馈**：`armReversePushFeedback(modeName)` 调 `PhoneDataStore.armReversePushEcho()` 并起 4s  watchdog（`reversePushWatchdog`）；期间控制端回推的语音通知标题变「推送成功」（只一条），watchdog 到期仍未消费则 `notifyReversePushSuccess(modeName)` 兜底弹一条。
+- 蓝牙按钮 `btConsoleBtn` 的长按（注入模拟数据）保持不变。
+
+## 语音识别（MiMo ASR，1.7.0）
+
+新包 `com.robotcontrol.phone.speech`，仅 phone-app 具备；识别语言跟随 `PhoneI18n.getLang()`（BLE 7507 下发）——中文设置只识别中文、英文设置只识别英文。
+
+### 圆钮与生命周期（MainActivity）
+
+- `asrBtn`（布局 `activity_main.xml`，`top|end` + marginEnd 24dp，`setupEdgeToEdgeInsets()` 同步 topMargin）：单击切换开/关，**常态保持**（非按住）；开启前检查 `RECORD_AUDIO`（缺失经 `recordPermissionLauncher` 申请，授权后自动开启）。
+- 开/关态经 `ApiKeyStore.isAsrActive()/setAsrActive()`（SharedPreferences `phone_asr_active`）持久；`onCreate` 末尾与 `onResume()` 在「开关为开且已授权」时静默恢复，`onPause()` 停止识别并把按钮回灰（**不改** `isAsrActive` 意图）——即仅前台且开关开启时才识别，控制功耗。`onDestroy()` 释放控制器。
+- 按钮视觉：开=绿底绿描边 + 绿色麦克风，关=灰底灰描边 + 灰色麦克风（`asr_btn_bg.xml` / `ic_asr_mic.xml`  tint）。
+
+### PhoneSpeechController
+
+- **本地识别（优先，三级引擎逐级回退）**：① API ≥31 且 `SpeechRecognizer.isOnDeviceRecognitionAvailable()` 时 `createOnDeviceSpeechRecognizer`（设备端离线）；② 不可用/创建失败回退 `createSpeechRecognizer` 且带 `EXTRA_PREFER_OFFLINE=true`（系统识别器离线优先）；③ 该系统识别器离线优先仍连续失败（典型：设备没下载离线语言包）→ 同一系统识别器放开 `EXTRA_PREFER_OFFLINE`（允许联网识别）。`EXTRA_LANGUAGE` 始终随界面语言。**可恢复错误后延迟 300ms 重启监听，同一引擎连续错误达 `MAX_LOCAL_ERRORS`(3) 次即换下一级引擎，三级全失败才退化**（`degradeLocalRecognizer()`）——有云端条件（开关开启 + 有 API Key）则切「仅云端」，否则关闭识别并提示「本地语音识别不可用」。计数口径：`ERROR_NO_MATCH`/`ERROR_SPEECH_TIMEOUT`（用户没说话/超时）属正常态不计入；`ERROR_INSUFFICIENT_PERMISSIONS`（录音权限被撤销）直接停并提示；其余（含偶发 `ERROR_CLIENT` 调用竞态）计入计数走逐级回退，**只有真正拿到识别结果（`onResults`）才清零计数**（`onReadyForSpeech` 不清零：能 ready 却持续报错的服务同样应被退化）。目的：既不让「一次离线包缺失」等同于功能不可用，也不无限重启耗电（Android 16 模拟器实测：`ON_DEVICE → SYSTEM_OFFLINE → SYSTEM_ONLINE → 仅云端` 逐级日志完整，无闪退）。
+- **系统识别服务可见性**：targetSdk 30+ 的包可见性过滤会让 `isRecognitionAvailable()` / `isOnDeviceRecognitionAvailable()` 查不到系统识别服务（真机上表现为「本地语音识别不可用」），Manifest 必须声明 `<queries><intent><action android:name="android.speech.RecognitionService"/></intent></queries>`（Android 11+ 通用要求）。
+- **录音**：`AudioRecord` 16kHz 单声道 PCM16 + 环形缓冲，上限 12s（≈384KB，远低于 ASR 10MB base64 限制）；每轮识别开始清空。
+- **本地规则**：识别文本交 `VoiceCommandMatcher.match(text, lang)`，命中（0-3）即回调 `onModeCommand`，与手动推送同链路；命中后清空本轮缓冲防重复触发。
+- **云端兜底门槛**（全部满足才发）：本地文本 ≥ `CLOUD_MIN_CHARS`(4) 字、本地未命中、`ApiKeyStore.isAsrCloudEnabled()`、API Key 非空、缓冲音频 ≥1.2s、距上次云端调用 ≥4s、无进行中调用。阈值集中在 `PhoneSpeechController.Companion` 常量。
+- **三个本地引擎都不可用**：开关开启且已配置 API Key 则退化「仅云端」（能量端点切句，≥1.2s 语音段才发）；否则 `onStatusMessage("本地语音识别不可用")` 并关闭识别。
+
+### VoiceCommandMatcher
+
+- 返回 BLE ordinal（0-3）或 null；`containsModeKeyword(text, lang)` 供「是否含模式读音」判断。
+- **按读音匹配**：内置紧凑「汉字→拼音（无声调）」表（仅覆盖关键词用字与常见同音字），识别文本转拼音序列后滑窗比对关键词拼音串——同音字（调式/中诚/回复/你人…）同样命中，满足「读音对就切换」。
+- **否定词**：中文（不/不要/别/不可以/不能/不用/无需/禁止/请勿/勿）在关键词前 6 字内、英文（not/don't/do not/does not/never/without/no/cancel，**按词边界匹配**——避免 know/nothing 等含 `no`/`not` 子串的词被误判为否定）在关键词前 20 字符内出现 → 判定不切换（如「不可以进入调试模式」）。
+- **语言门控**：`zh` 只匹配中文关键词、`en` 只匹配英文关键词。
+- 已知取舍：同音误命中（如「回复」判为「恢复」）是「读音对就切换」的既定口径；如需收紧可在本类提高门槛。
+
+### MimoAsrClient
+
+- `recognize(pcm16, sampleRate, lang, apiKey): Result<String>`，单线程 executor 后台执行；PCM16 加 44 字节 WAV 头 → base64 → `POST https://api.xiaomimimo.com/v1/chat/completions`，头 `api-key`，体 `{"model":"mimo-v2.5-asr","messages":[{"role":"user","content":[{"type":"input_audio","input_audio":{"data":"data:audio/wav;base64,..."}}]}],"asr_options":{"language":"zh"|"en"}}`；取 `choices[0].message.content`；连接 15s / 读取 60s 超时。
+- 与 TTS 共用同一 API Key（`ApiKeyStore.getApiKey()`）。
+
+## 设置页云端开关（1.7.0）
+
+手机端设置页即 `showBleDialog()` 对话框。API Key 输入区下方新增：
+
+1. 开关行：标签「识别引擎调用云端（MiMo ASR）」+ `Switch`（即时落库 `ApiKeyStore.setAsrCloudEnabled()`）；**框架 `Switch` 在 `Theme.Black` 下轨道/滑块尺寸塌缩不可见，故显式指定 `asr_switch_track.xml` / `asr_switch_thumb.xml`**（开=模式绿轨+白钮，关=深灰轨+灰钮，`showText=false`）。
+2. 副提示「关闭后仅使用本地离线识别」。
+3. 收费提示「Xiaomi MiMo TTS和ASR可能需要收费，请阅读官网相关文档。」（与控制端 www 同句，词条在 `PhoneI18n`）。
+
+---
+
 ## 构建配置
 
 - **compileSdk / targetSdk**: 34
-- **minSdk**: 31 (Android 12)
-- **主要依赖**: AndroidX AppCompat/CoreKTX、ZXing（二维码扫描）
+- **minSdk**: 24（语音识别的 `createOnDeviceSpeechRecognizer` 为 API 31，运行时按版本与设备可用性兜底）
+- **主要依赖**: AndroidX Core、Activity-KTX、ZXing（二维码扫描）
+- **单元测试（1.8.0 建，1.9.0 扩容）**: `testImplementation 'junit:junit:4.13.2'` + `app/src/test/java/com/robotcontrol/phone/speech/VoiceCommandMatcherTest.kt`（纯 JVM，无 Android 依赖）覆盖本地语音规则的四大模式读音、同音字命中、否定词与否定局部性、中英语言门控、空文本与「是否含模式读音」判定，以及 1.9.0 补的真实 ASR 输出（带标点/句号）与英文否定词词边界两项；命令 `./gradlew :app:testReleaseUnitTest`（12 项）
 - **Application 类**: RobotPhoneApplication（创建通知渠道 `RobotControl`）
-- **权限**: BLUETOOTH_CONNECT/ADVERTISE/SCAN、CAMERA（扫码）、POST_NOTIFICATIONS（Android 13+）
+- **权限与可见性**: BLUETOOTH_CONNECT/ADVERTISE/SCAN、CAMERA（扫码）、POST_NOTIFICATIONS（Android 13+）、RECORD_AUDIO（语音识别，1.7.0）；另需 `<queries>` 声明 `android.speech.RecognitionService`（系统识别服务可见性，1.9.0）

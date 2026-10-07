@@ -198,6 +198,13 @@ function createLauncherWindow() {
     if (/^https?:/i.test(url)) shell.openExternal(url);
     return { action: 'deny' };
   });
+  // 无 target="_blank" 的外链（http/https）同样交给系统默认浏览器，避免在壳内导航顶掉界面
+  launcherWindow.webContents.on('will-navigate', (event, url) => {
+    if (/^https?:/i.test(String(url || ''))) {
+      event.preventDefault();
+      shell.openExternal(String(url));
+    }
+  });
 
   // 启动器界面加载完成后写入标记，供 splash-loader 等待后再淡出
   launcherWindow.webContents.on('did-finish-load', () => {
@@ -293,6 +300,13 @@ function createMainWindow() {
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https?:/i.test(url)) shell.openExternal(url);
     return { action: 'deny' };
+  });
+  // 无 target="_blank" 的外链（http/https）同样交给系统默认浏览器，避免在壳内导航顶掉控制台
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (/^https?:/i.test(String(url || ''))) {
+      event.preventDefault();
+      shell.openExternal(String(url));
+    }
   });
 
   // 全屏退出/进入快捷键：F11 切换，Esc 退出全屏（原生按钮在全屏时隐藏）
@@ -502,6 +516,13 @@ function initBleBridge() {
   bleBridge.on('apikey', (msg) => {
     if (!msg || !msg.key) return;
     execInMain(`if(window._onMimoApiKeySynced)_onMimoApiKeySynced(${JSON.stringify(String(msg.key))})`);
+  });
+
+  // 反向模式推送：客户端写入 Mode(7501) → 控制台切换到对应模式并提示「推送成功」
+  bleBridge.on('mode', (msg) => {
+    const ordinal = Number(msg && msg.ordinal);
+    if (!Number.isInteger(ordinal) || ordinal < 0 || ordinal > 3) return;
+    execInMain(`if(window.__rcOnRemoteMode)window.__rcOnRemoteMode(${ordinal})`);
   });
 
   bleBridge.on('error', (message) => {

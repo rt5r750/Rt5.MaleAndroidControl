@@ -16,14 +16,17 @@
 | Characteristic - UiLang | `00007507-0000-1000-8000-00805f9b34fb` |
 | CCC Descriptor | `00002902-0000-1000-8000-00805f9b34fb` |
 
-Mode/Emotion/Tasks/Voice/UiLang Characteristic 属性：`PROPERTY_READ | PROPERTY_NOTIFY`，权限 `PERMISSION_READ`。
-Heartbeat/ApiKey Characteristic 属性：`PROPERTY_READ | PROPERTY_WRITE | PROPERTY_NOTIFY`，权限 `PERMISSION_READ | PERMISSION_WRITE`。
+Emotion/Tasks/Voice/UiLang Characteristic 属性：`PROPERTY_READ | PROPERTY_NOTIFY`，权限 `PERMISSION_READ`。
+Mode/Heartbeat/ApiKey Characteristic 属性：`PROPERTY_READ | PROPERTY_WRITE | PROPERTY_NOTIFY`，权限 `PERMISSION_READ | PERMISSION_WRITE`。
 
 ## Characteristic 数据格式
 
 ### CHAR_MODE (7501) - 当前模式
 
 - **长度**：1 字节
+- **属性**：`PROPERTY_READ | PROPERTY_WRITE | PROPERTY_NOTIFY`
+- **权限**：`PERMISSION_READ | PERMISSION_WRITE`
+- **方向**：双向。Server→Client 由控制台 Notify 当前模式；Client→Server 由 phone-app 写入 ordinal 反向切换控制台模式（见「反向模式推送」）
 - **字节布局**：
 
 | 偏移 | 字段 | 类型 | 说明 |
@@ -110,6 +113,29 @@ Heartbeat/ApiKey Characteristic 属性：`PROPERTY_READ | PROPERTY_WRITE | PROPE
   - phone-app：订阅 + 初读该特征，收到后 `PhoneI18n.setLang` 并重建界面——**phone-app 无语言设置，显示语言完全跟随发送端**；`0xFF` 保持当前语言。上一次收到的语言经 SharedPreferences 持久化，作为未连接时的初始语言
   - watch-app：不订阅（手表端保持中文界面）
 - **初值**：服务端启动时取控制台当前语言（android-app `ConsoleI18n.getLang()`；win-app 由 Electron 主进程在宿主就绪/广播启动时推送）
+
+## 反向模式推送（Client → Server）
+
+Mode(7501) 除 Server→Client 的模式下发外，还支持 Client→Server 的**反向写入**：手机端（phone-app）手动或经语音切换模式后把目标模式推给控制台，控制台随之切换并高亮对应模式按钮。
+
+| 项 | 说明 |
+|---|---|
+| 方向 | Client (phone-app) → Server (android-app / win-app) |
+| 操作 | Write Request，服务端立即 `sendResponse(GATT_SUCCESS)` |
+| 数据 | 1 字节 modeOrdinal |
+| 生效范围 | 仅 `0-3` 生效；`255`(NA) 与其他值忽略 |
+
+**服务端处理**：
+
+1. 立即 `sendResponse(GATT_SUCCESS)`；
+2. 写入值同步进 `characteristicValues`（保持 READ 一致，随后控制台会以自身真实模式回写并 Notify）；
+3. `ordinal ∈ 0..3` → 触发回调：android-app `RobotGattServer.onModeReceived`；win-app C# 宿主 `ModeReceived` 事件 → IPC `{"type":"mode","ordinal":n}` → 主进程 `bleBridge.on('mode')`；
+4. 前端统一入口 `window.__rcOnRemoteMode(ordinal)`（[app-ble.js](file:///d:/AIProject/RobotControl/www/js/app-ble.js)）→ `activateMode(modeId)`：高亮模式按钮、TTS 播报、写日志，并按既有链路把模式回推给所有已连接客户端（含发起方）；
+5. 控制端提示「推送成功」：android-app 用原生 Toast（`ConsoleI18n`）；win-app 与桌面宽度浏览器（`isDesktopChrome()`）用页面内 macOS 风格通知（`showMacosNotification`）；Android WebView 不弹页面通知，避免与原生 Toast 重复。
+
+**客户端（phone-app）通知口径**：反向推送不本地立即弹通知，而是 `PhoneDataStore.armReversePushEcho()` 开启 4s 回声窗口——窗口内到达的语音通知标题由「主人指令」改为「推送成功」并消费窗口（**只弹这一条**）；4s 内未收到回声则由 `notifyReversePushSuccess()` 兜底弹一条，同时置 4s 抑制窗口挡住晚到的回声，防止同一次推送出现两条通知。非反向场景（普通语音消息）标题仍为「主人指令」。
+
+**触发入口（phone-app）**：长按顶部模式胶囊弹出模式菜单（4 项 + 关闭），或语音识别命中模式读音（见 phone-app 文档「语音识别」）。两者均经 `ConsoleBleClient.writeMode(ordinal)` 走同一链路；未连接控制台时提示「未连接控制面板」。
 
 ## 分片传输协议
 

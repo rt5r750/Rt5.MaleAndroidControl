@@ -238,6 +238,17 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        /* 反向模式推送：手机端写入 Mode(7501) → 控制台切换到对应模式并提示「推送成功」 */
+        RobotGattServer.onModeReceived = { ordinal ->
+            mainHandler.post {
+                webView.evaluateJavascript(
+                    "if (typeof window.__rcOnRemoteMode === 'function') { window.__rcOnRemoteMode($ordinal); }",
+                    null
+                )
+                showToastSafely(ConsoleI18n.t("推送成功"))
+            }
+        }
+
         RobotGattServer.onApiKeyReceived = { apiKey ->
             mainHandler.post {
                 if (apiKey.isNotEmpty()) {
@@ -310,20 +321,7 @@ class MainActivity : AppCompatActivity() {
 
             @JavascriptInterface
             fun openExternalUrl(url: String) {
-                mainHandler.post {
-                    try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        if (intent.resolveActivity(packageManager) != null) {
-                            startActivity(intent)
-                        } else {
-                            Toast.makeText(this@MainActivity, ConsoleI18n.t("未找到可打开链接的浏览器应用"), Toast.LENGTH_SHORT).show()
-                        }
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        Toast.makeText(this@MainActivity, ConsoleI18n.t("无法打开链接: ") + e.message, Toast.LENGTH_SHORT).show()
-                    }
-                }
+                openExternalBrowser(url)
             }
 
             @JavascriptInterface
@@ -392,6 +390,10 @@ class MainActivity : AppCompatActivity() {
 
             @JavascriptInterface
             fun btShowQr(): String {
+                if (!BlePermissionHelper.hasAllPermissions(this@MainActivity)) {
+                    showToastSafely(ConsoleI18n.t("缺少蓝牙权限，请重新打开控制台授权"))
+                    return ""
+                }
                 val mac = BlePermissionHelper.getLocalMacAddress(this@MainActivity)
                 val json = "{\"mac\":\"$mac\",\"name\":\"${BleConstants.CONSOLE_DEVICE_NAME}\",\"service\":\"${BleConstants.SERVICE_UUID}\",\"role\":\"console\"}"
                 return generateQrCodeBase64(json)
@@ -427,6 +429,11 @@ class MainActivity : AppCompatActivity() {
             @JavascriptInterface
             fun btStartConnect() {
                 mainHandler.post {
+                    if (!BlePermissionHelper.hasAllPermissions(this@MainActivity)) {
+                        showToastSafely(ConsoleI18n.t("缺少蓝牙权限，请重新打开控制台授权"))
+                        webView.evaluateJavascript("updateBtStatus(${BleConstants.BLE_STATUS_UNBONDED})", null)
+                        return@post
+                    }
                     connecting = true
                     RobotGattServer.validateConnectedDevices()
                     startBleServices()
@@ -781,8 +788,34 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /* 外部链接（http/https）一律交给系统默认浏览器打开，控制台 WebView 不原地加载：
+       设置里的 MiMo 官网链接、夸克网盘下载、Telegram 等用户主动点击的外链，
+       以及 target="_blank" 的锚点（WebView 未开多窗口，默认会在本 WebView 内导航、顶掉控制台界面）。
+       站内资源（file:///android_asset/、blob:、about:）与页面内锚点不受影响。 */
     private fun handleUrlLoading(view: WebView?, url: String): Boolean {
+        val lower = url.lowercase(java.util.Locale.ROOT)
+        if (lower.startsWith("http://") || lower.startsWith("https://")) {
+            openExternalBrowser(url)
+            return true
+        }
         return false
+    }
+
+    private fun openExternalBrowser(url: String) {
+        mainHandler.post {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                if (intent.resolveActivity(packageManager) != null) {
+                    startActivity(intent)
+                } else {
+                    Toast.makeText(this, ConsoleI18n.t("未找到可打开链接的浏览器应用"), Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, ConsoleI18n.t("无法打开链接: ") + e.message, Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun copyAssetPdfToCacheAndGetUri(assetPath: String): Uri? {
@@ -1028,11 +1061,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startBleServices() {
-        RobotGattServer.initialize(this)
-        RobotGattServer.startServer(this)
-        RobotGattServer.ensureAdvertising()
-        if (BondStore.hasClientBond()) {
-            webView.evaluateJavascript("updateBtStatus(${BleConstants.BLE_STATUS_CONNECTING})", null)
+        /* 连接入口统一兜底：权限缺失或 BLE 层异常只提示，不允许异常穿透导致 App 闪退 */
+        if (!BlePermissionHelper.hasAllPermissions(this)) {
+            showToastSafely(ConsoleI18n.t("缺少蓝牙权限，请重新打开控制台授权"))
+            return
+        }
+        try {
+            RobotGattServer.initialize(this)
+            RobotGattServer.startServer(this)
+            RobotGattServer.ensureAdvertising()
+            if (BondStore.hasClientBond()) {
+                webView.evaluateJavascript("updateBtStatus(${BleConstants.BLE_STATUS_CONNECTING})", null)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "startBleServices failed", e)
+            showToastSafely(ConsoleI18n.t("连接失败"))
         }
     }
 

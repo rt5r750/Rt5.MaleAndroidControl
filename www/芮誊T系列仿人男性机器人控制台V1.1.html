@@ -156,6 +156,7 @@
                     </div>
                     <div class="activation-row"><label>MiMo Key</label><input type="password" id="activation-mimo-key" class="login-input" placeholder="输入 MiMo API Key（留空跳过，语音走本地引擎）"></div>
                     <p class="text-xs text-[#8fbc8f]/60 mt-1">默认无 TTS API，需手动输入 Key；<a href="https://mimo.mi.com/" target="_blank" rel="noopener noreferrer" class="underline hover:text-[#c0e4c0]">前往 MiMo 开放平台申请 API Key ↗</a></p>
+                    <p class="text-xs text-[#8fbc8f]/60 mt-1">Xiaomi MiMo TTS和ASR可能需要收费，请阅读官网相关文档。</p>
                 </div>
                 <!-- 5. 机器人图片设置 -->
                 <div class="activation-section">
@@ -229,10 +230,17 @@
         <div id="settings-modal" class="settings-modal">
             <div class="settings-content">
                 <div class="modal-mobile-header">
-                    <button class="modal-mobile-back-btn" onclick="closeSettings()" aria-label="返回">
+                    <button class="modal-mobile-back-btn" onclick="settingsMobileBack()" aria-label="返回">
                         <i class="fa fa-arrow-left"></i>
                     </button>
                     <div class="modal-mobile-title">设置</div>
+                    <!-- 移动端设置操作：三枚圆形图标按钮（改自底部操作条同一组按钮，点击转发其既有事件；
+                         桌面菜单模式隐藏本顶部栏，仍用底部操作条） -->
+                    <div class="modal-mobile-actions">
+                        <button type="button" class="modal-mobile-action-btn" data-settings-action="reset-settings" aria-label="改为默认设置"><i class="fa fa-rotate-left"></i></button>
+                        <button type="button" class="modal-mobile-action-btn" data-settings-action="cancel-settings" aria-label="取消"><i class="fa fa-xmark"></i></button>
+                        <button type="button" class="modal-mobile-action-btn" data-settings-action="save-settings" aria-label="应用更改"><i class="fa fa-check"></i></button>
+                    </div>
                 </div>
                 <div class="cp-title" style="position:relative;">
                     <div class="cp-traffic-lights">
@@ -360,6 +368,7 @@
                                 <button type="button" id="mimo-save-key-btn" class="btn-add">保存</button>
                             </div>
                             <p class="text-xs text-[#8fbc8f]/70 mt-1">默认不提供 TTS API，需自行申请并手动输入；<a href="https://mimo.mi.com/" target="_blank" rel="noopener noreferrer" class="underline hover:text-[#c0e4c0]">前往 MiMo 开放平台申请 API Key ↗</a>。API Key 也可通过手机端连接时自动同步，手机端Key优先。</p>
+                            <p class="text-xs text-[#8fbc8f]/70 mt-1">Xiaomi MiMo TTS和ASR可能需要收费，请阅读官网相关文档。</p>
                         </div>
                         <div>
                             <button type="button" id="mimo-test-btn" class="btn-add">

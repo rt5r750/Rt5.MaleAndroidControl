@@ -7,6 +7,8 @@ object ApiKeyStore {
 
     private const val PREFS_NAME = "mimo_tts_prefs"
     private const val PREF_KEY_MIMO_TOKEN = "mimo_tts_token"
+    private const val PREF_KEY_ASR_CLOUD = "asr_cloud_enabled"
+    private const val PREF_KEY_ASR_ACTIVE = "phone_asr_active"
 
     private var prefs: SharedPreferences? = null
 
@@ -49,5 +51,19 @@ object ApiKeyStore {
         val prefs = getPrefs()
         prefs.edit().remove(PREF_KEY_MIMO_TOKEN).apply()
         prefs.edit().remove("mimo_api_key").apply()
+    }
+
+    /** 语音识别是否允许调用云端（MiMo ASR）；关闭后仅使用本地离线识别。默认开启。 */
+    fun isAsrCloudEnabled(): Boolean = getPrefs().getBoolean(PREF_KEY_ASR_CLOUD, true)
+
+    fun setAsrCloudEnabled(enabled: Boolean) {
+        getPrefs().edit().putBoolean(PREF_KEY_ASR_CLOUD, enabled).apply()
+    }
+
+    /** 语音识别开关是否常态保持（无权限/未连接时仍记录用户意图） */
+    fun isAsrActive(): Boolean = getPrefs().getBoolean(PREF_KEY_ASR_ACTIVE, false)
+
+    fun setAsrActive(active: Boolean) {
+        getPrefs().edit().putBoolean(PREF_KEY_ASR_ACTIVE, active).apply()
     }
 }

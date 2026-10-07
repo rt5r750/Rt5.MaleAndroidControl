@@ -1112,6 +1112,25 @@
         window.addEventListener('DOMContentLoaded', initSecondColumnSplit);
         setTimeout(initSecondColumnSplit, 1500);
 
+        /* 反向模式推送（native 调用）：手机端写入 Mode(7501) → 控制台切换到对应模式并提示「推送成功」。
+           模式切换复用 activateMode 原逻辑（高亮/播报/日志/回推 BLE），行为与原代码一致；
+           通知：win-app/桌面浏览器用 macOS 风格通知，Android WebView 由原生 Toast 负责，此处不弹。 */
+        window.__rcOnRemoteMode = function(ordinal) {
+            var modeMap = ['test', 'recovery', 'loyalty', 'simulated-human'];
+            var n = Number(ordinal);
+            var modeId = (n >= 0 && n <= 3) ? modeMap[n] : null;
+            if (!modeId || typeof MODES === 'undefined' || !MODES[modeId]) return;
+            activateMode(modeId);
+            if (isDesktopChrome() && typeof showMacosNotification === 'function') {
+                showMacosNotification({
+                    icon: 'fa-arrow-right-arrow-left',
+                    title: '推送成功',
+                    body: modeDisplayName(modeId),
+                    appName: getModelInfo('shortName')
+                });
+            }
+        };
+
         document.addEventListener('DOMContentLoaded', function() {
             var hasBond = false;
             if (typeof Android !== 'undefined' && Android.btHasClientBond) {

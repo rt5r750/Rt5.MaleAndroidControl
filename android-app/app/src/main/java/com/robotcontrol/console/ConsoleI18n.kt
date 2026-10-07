@@ -45,11 +45,13 @@ object ConsoleI18n {
         "连接已手动断开" to "Connection manually disconnected",
         "蓝牙已断开" to "Bluetooth disconnected",
         "API Key 已同步" to "API Key synced",
+        "推送成功" to "Push successful",
         "未找到可打开链接的浏览器应用" to "No browser app found to open this link",
         "无法打开链接: " to "Unable to open link: ",
         "未找到可打开PDF的应用，请安装PDF阅读器" to "No PDF app found; please install a PDF reader",
         "无法打开PDF: " to "Unable to open PDF: ",
         "无法准备PDF文件: " to "Unable to prepare PDF file: ",
-        "连接失败" to "Connection failed"
+        "连接失败" to "Connection failed",
+        "缺少蓝牙权限，请重新打开控制台授权" to "Bluetooth permission missing; reopen the console to grant it"
     )
 }
