@@ -4,7 +4,7 @@
 
 # Rt5 · 仿人男性机器人控制台
 
-**T31-750 型仿人男性机器人**的多端协同控制台：一套共享前端 + 控制台 App / 机器人端 App / WearOS 手表端 / Windows 桌面端，端间以自定义 BLE GATT 协议互联。
+**ASFR 向 · 线下控制软件**：面向实体 **T31-750 型仿人男性机器人**的多端协同控制台 —— 一套共享前端 + 控制台 App / 机器人端 App / WearOS 手表端 / Windows 桌面端，端间以自定义 BLE GATT 协议**在本地直连**（除语音引擎外不依赖云端）。
 
 [English](README.md) · **简体中文**
 
@@ -14,7 +14,7 @@
 
 </div>
 
-> 本项目是虚构产品（Rt5 A.I. Fictional Liability Company）的界面与控制逻辑实现，产品设定与文案含成人向内容，仅供技术参考。
+> 本项目是虚构产品，**ASFR 向**：面向实体仿人男性机器人的本地私有控制链路。产品设定与文案含成人向内容，公开仓库仅供技术参考。
 
 ## 演示
 
@@ -23,17 +23,23 @@
 
 ## 界面
 
-控制台桌面布局（Windows 端 / 宽屏浏览器）：终端、任务与模式控制、运行参数、情绪与服从度面板、信息参数表。
+以下为宣传片截帧（界面本身即英文版）。
 
-![控制台桌面布局](docs/screenshots/console-desktop.png)
+**一套控制台，三块屏** —— 桌面控制台、手机控制台、WearOS 手表端。
 
-控制台手机布局：模式胶囊、机体视图、终端、底部操作坞。
+![一套控制台，三块屏](docs/screenshots/ends-overview.jpg)
 
-<img src="docs/screenshots/console-mobile.png" width="360" alt="控制台手机布局">
+**控制台 · 桌面布局**（Windows 端 / 宽屏浏览器）：运行参数、控制面板、代码与日志面板、信息参数表。
 
-Windows 启动器：设备接入界面与旋转机体精灵图。
+![控制台桌面布局](docs/screenshots/console-desktop.jpg)
 
-<img src="docs/screenshots/launcher.png" width="420" alt="启动器">
+<img src="docs/screenshots/console-panels.jpg" width="49%" alt="实时的子系统面板">
+<img src="docs/screenshots/first-run-setup.jpg" width="49%" alt="首次使用设置">
+
+**控制台 · 手机布局** 与 **机器人端 App**。
+
+<img src="docs/screenshots/console-mobile.jpg" width="49%" alt="控制台手机布局">
+<img src="docs/screenshots/phone-app.jpg" width="49%" alt="机器人端 App">
 
 ## 端与仓库结构
 

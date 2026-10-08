@@ -4,7 +4,7 @@
 
 # Rt5 · Male Android Control
 
-Multi-end control console for the **T31-750** humanoid android — one shared web front end plus a console app, a robot-side phone app, a Wear OS watch app and a Windows desktop build, all linked over a custom BLE GATT protocol.
+**ASFR-oriented, offline control software** for a physical **T31-750 male android** — one shared web front end plus a console app, a robot-side phone app, a Wear OS watch app and a Windows desktop build, linked over a custom BLE GATT protocol **on a local link** (no cloud dependency except the optional speech engine).
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
@@ -14,7 +14,7 @@ Multi-end control console for the **T31-750** humanoid android — one shared we
 
 </div>
 
-> A fictional product (Rt5 A.I. Fictional Liability Company). The setting and copy contain adult-oriented content; the repository is published for technical reference only.
+> A fictional product, **ASFR-oriented**: a private, local control link for a physical male android. The setting and copy contain adult-oriented content; published for technical reference only.
 
 ## Demo
 
@@ -23,17 +23,23 @@ Multi-end control console for the **T31-750** humanoid android — one shared we
 
 ## Screenshots
 
-Console — desktop layout (Windows app / wide browser): terminal, task & mode control, live parameters, emotion & obedience panel, parameter sheet.
+Stills from the promo film; the console and app UIs run in English.
 
-![Console — desktop](docs/screenshots/console-desktop.png)
+**One console, three screens** — desktop console, mobile console, Wear OS companion.
 
-Console — mobile layout: mode capsule, android view, terminal, bottom dock.
+![One console, three screens](docs/screenshots/ends-overview.jpg)
 
-<img src="docs/screenshots/console-mobile.png" width="360" alt="Console — mobile">
+**Console — desktop** (Windows app / wide browser): live parameters, control pads, code and log panels, parameter sheet.
 
-Windows launcher — device-connect screen with the rotating android sprite.
+![Console — desktop](docs/screenshots/console-desktop.jpg)
 
-<img src="docs/screenshots/launcher.png" width="420" alt="Launcher">
+<img src="docs/screenshots/console-panels.jpg" width="49%" alt="Live subsystem panels">
+<img src="docs/screenshots/first-run-setup.jpg" width="49%" alt="First-run setup">
+
+**Console — mobile layout** and the **robot-side phone app** (narrow browser / Android apps).
+
+<img src="docs/screenshots/console-mobile.jpg" width="49%" alt="Console — mobile">
+<img src="docs/screenshots/phone-app.jpg" width="49%" alt="Robot-side phone app">
 
 ## Ends and layout
 
