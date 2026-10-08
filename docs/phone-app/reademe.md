@@ -2,7 +2,7 @@
 
 ## 概述
 
-- **目录**：[phone-app](file:///d:/AIProject/RobotControl/phone-app)
+- **目录**：[phone-app](../../phone-app)
 - **包名**：`com.robotcontrol.phone`
 - **技术栈**：Kotlin 原生 Android，纯代码构建 UI（无 XML 布局编写、无 Compose）
 - **BLE 角色**：GATT Client（连接 Console）；代码中存在 WatchGattServer 但未在 MainActivity 中启动
@@ -63,13 +63,13 @@ phone-app/
 
 ### PhoneI18n
 
-[PhoneI18n.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/PhoneI18n.kt)
+[PhoneI18n.kt](../../phone-app/app/src/main/java/com/robotcontrol/phone/PhoneI18n.kt)
 
 界面语言覆盖层（1.3.0 新增）：默认中文，`t(中文)` 按表返回英文、中文原文一字不改，覆盖情绪面板/任务名/语音消息/模式名/连接面板/权限与扫描提示等全部原生文案。`values-en/strings.xml` 仅承载随系统语言的启动器标签与胶囊初始文案。**1.5.0 起无手动语言设置（长按胶囊切换已移除），显示语言完全跟随发送端**：ConsoleBleClient 订阅+初读 BLE `7507(UiLang)`（`0x00`=zh/`0x01`=en/`0xFF` 保持当前语言），MainActivity 收到 `onLangReceived` 后 `PhoneI18n.setLang` 并 recreate；最近一次收到的语言经 SharedPreferences `robot_ui_lang` 持久化，作为未连接时的初始语言。
 
 ### MainActivity
 
-[MainActivity.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/MainActivity.kt)
+[MainActivity.kt](../../phone-app/app/src/main/java/com/robotcontrol/phone/MainActivity.kt)
 
 职责：
 1. 全屏 EdgeToEdge 沉浸式显示，状态栏/导航栏透明，不设置 FLAG_KEEP_SCREEN_ON（按系统默认息屏时间）
@@ -100,7 +100,7 @@ phone-app/
 
 ### ConsoleBleClient
 
-[ConsoleBleClient.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/ble/ConsoleBleClient.kt)
+[ConsoleBleClient.kt](../../phone-app/app/src/main/java/com/robotcontrol/phone/ble/ConsoleBleClient.kt)
 
 BLE GATT Client 单例，连接 Console 端：
 1. 扫描：`ScanFilter` 按服务 UUID 7500 过滤，回调同时接受“名称以 `RobotControl-` 开头”或“广告含服务 UUID 7500”的设备（兼容 android-app `RobotControl-Console` 与 win-app `RobotControl-Win`）
@@ -159,7 +159,7 @@ fun resumeAutoScanAfterDialog()
 
 ### PhoneDataStore
 
-[PhoneDataStore.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/data/PhoneDataStore.kt)
+[PhoneDataStore.kt](../../phone-app/app/src/main/java/com/robotcontrol/phone/data/PhoneDataStore.kt)
 
 数据中心单例（线程安全，`@Volatile`），观察者模式 + SharedPreferences 持久化：
 
@@ -213,7 +213,7 @@ val hasReceivedRealData: Boolean  // 是否收到过真实 BLE 数据
 
 ### EmotionPanelView
 
-[EmotionPanelView.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/ui/EmotionPanelView.kt)
+[EmotionPanelView.kt](../../phone-app/app/src/main/java/com/robotcontrol/phone/ui/EmotionPanelView.kt)
 
 自定义 View，展示 4 个情绪维度（服从度/羞耻度/愉悦度/机械度）的水平进度条。
 - `setEmotion(emotion: Emotion?)`：设置情绪值，传入 `null` 时显示 NA 状态（全部进度条归零）
@@ -221,13 +221,13 @@ val hasReceivedRealData: Boolean  // 是否收到过真实 BLE 数据
 
 ### QrScanActivity
 
-[QrScanActivity.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/QrScanActivity.kt)
+[QrScanActivity.kt](../../phone-app/app/src/main/java/com/robotcontrol/phone/QrScanActivity.kt)
 
 基于 Camera2 API + ZXing 的 QR 码扫描 Activity，扫码成功后通过 `EXTRA_QR_DATA` 返回 JSON 字符串给 MainActivity。
 
 #### 布局
 
-[activity_qr_scan.xml](file:///d:/AIProject/RobotControl/phone-app/app/src/main/res/layout/activity_qr_scan.xml)
+[activity_qr_scan.xml](../../phone-app/app/src/main/res/layout/activity_qr_scan.xml)
 
 ```
 FrameLayout (root, 全屏黑底, clipChildren=false, clipToPadding=false)
@@ -247,7 +247,7 @@ FrameLayout (root, 全屏黑底, clipChildren=false, clipToPadding=false)
 
 #### 主题
 
-[styles.xml](file:///d:/AIProject/RobotControl/phone-app/app/src/main/res/values/styles.xml) 中 `Theme.QrScan`：
+[styles.xml](../../phone-app/app/src/main/res/values/styles.xml) 中 `Theme.QrScan`：
 
 ```xml
 <style name="Theme.QrScan" parent="@android:style/Theme.Black.NoTitleBar">
@@ -287,7 +287,7 @@ FrameLayout (root, 全屏黑底, clipChildren=false, clipToPadding=false)
 
 #### configureTransform：矩阵变换（画面方向与无拉伸）
 
-[QrScanActivity.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/QrScanActivity.kt#L396-L429) 中的 `configureTransform` 方法负责将横屏传感器缓冲区映射到竖屏全屏显示，同时保证画面不拉伸。
+[QrScanActivity.kt](../../phone-app/app/src/main/java/com/robotcontrol/phone/QrScanActivity.kt#L396-L429) 中的 `configureTransform` 方法负责将横屏传感器缓冲区映射到竖屏全屏显示，同时保证画面不拉伸。
 
 **核心原理**：
 
@@ -316,7 +316,7 @@ matrix.postScale(scale, scale, centerX, centerY)
 
 #### 扫描遮罩（ScanOverlayView）
 
-[QrScanActivity.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/QrScanActivity.kt#L636-L725) 中的内部类 `ScanOverlayView`，自定义 View 绘制：
+[QrScanActivity.kt](../../phone-app/app/src/main/java/com/robotcontrol/phone/QrScanActivity.kt#L636-L725) 中的内部类 `ScanOverlayView`，自定义 View 绘制：
 
 - **半透明遮罩**：`Path.FillType.EVEN_ODD` 绘制全屏黑色半透明遮罩（`#99000000`），中心挖空正方形扫描框
 - **扫描框**：正方形（`minDim × 0.65`），白色半透明描边（`#66FFFFFF`），无圆角矩形
@@ -339,13 +339,13 @@ matrix.postScale(scale, scale, centerX, centerY)
 
 | 文件 | 说明 |
 |------|------|
-| [activity_qr_scan.xml](file:///d:/AIProject/RobotControl/phone-app/app/src/main/res/layout/activity_qr_scan.xml) | 扫码界面布局 |
-| [qr_btn_circle_bg.xml](file:///d:/AIProject/RobotControl/phone-app/app/src/main/res/drawable/qr_btn_circle_bg.xml) | 关闭按钮正圆形背景（oval, 48dp×48dp） |
-| [styles.xml](file:///d:/AIProject/RobotControl/phone-app/app/src/main/res/values/styles.xml) | Theme.QrScan 主题定义 |
+| [activity_qr_scan.xml](../../phone-app/app/src/main/res/layout/activity_qr_scan.xml) | 扫码界面布局 |
+| [qr_btn_circle_bg.xml](../../phone-app/app/src/main/res/drawable/qr_btn_circle_bg.xml) | 关闭按钮正圆形背景（oval, 48dp×48dp） |
+| [styles.xml](../../phone-app/app/src/main/res/values/styles.xml) | Theme.QrScan 主题定义 |
 
 ### BondStore
 
-[BondStore.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/ble/BondStore.kt)
+[BondStore.kt](../../phone-app/app/src/main/java/com/robotcontrol/phone/ble/BondStore.kt)
 
 SharedPreferences 持久化已绑定 Console 的 MAC 地址。
 
@@ -450,7 +450,7 @@ FrameLayout (root, 全屏黑底)
 
 ## 模式反向推送（1.7.0）
 
-手机端作为机器人端可主动切换四大模式并推给控制台，与「控制台下发模式」方向相反。协议细节见 [BLE 通信协议 · 反向模式推送](file:///d:/AIProject/RobotControl/docs/ble-protocol.md)。
+手机端作为机器人端可主动切换四大模式并推给控制台，与「控制台下发模式」方向相反。协议细节见 [BLE 通信协议 · 反向模式推送](../ble-protocol.md)。
 
 - **入口一（手动）**：长按顶部胶囊 `capsule` → `showModeMenuDialog()`：`Dialog` + `R.style.BleDialogTheme` + `styleDialog()`，垂直列表 4 项（调试/恢复/忠诚/拟人，各用模式色 #8FBC8F/#FB923C/#66CCFF/#F472B6，名称走 `PhoneI18n.t(Mode.displayName)`）+「关闭」。选中项：未连接 → Toast「未连接控制面板」；已连接 → `pushModeToConsole()` = `ConsoleBleClient.writeMode(ordinal)` + `armReversePushFeedback()`。
 - **入口二（语音）**：语音识别命中模式读音 → `onVoiceModeCommand(ordinal)` → 同一 `pushModeToConsole()`。

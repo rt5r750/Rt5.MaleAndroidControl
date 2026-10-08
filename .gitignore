@@ -1,11 +1,49 @@
 # ══════════════════════════════════════════════════════════════
-# PV 宣传片相关（另一位 agent 独立开发中，不入本仓库）
-# 工作区文件全部保留不动，仅 git 不跟踪
+# RobotControl —— 只跟踪源码 / 文档 / 素材
+# 构建产物、依赖、本机数据、过程文件不入库
+# （本机文件全部保留，只是 git 不跟踪）
 # ══════════════════════════════════════════════════════════════
+
+# ── 依赖 ──────────────────────────────────────────────────────
+node_modules/
+
+# ── 构建产物 ──────────────────────────────────────────────────
+# win-app/build/icon.ico 是 electron-builder 的 buildResources，仍在库里
+android-app/app/build/
+phone-app/app/build/
+watch-app/app/build/
+**/.gradle/
+win-app/dist/
+win-app/dist-new/
+win-app/runtime/
+win-app/RobotControl-Console.exe
+win-app/ble-host/bin/
+win-app/ble-host/obj/
+win-app/ble-host/publish/
+win-app/splash-loader/bin/
+# 由 Gradle syncWww / scripts/sync-www.ps1 从仓库根 www/ 生成
+android-app/app/src/main/assets/www/
+win-app/app/www/
+
+# ── 本机数据 / 密钥 / 机器相关配置 ────────────────────────────
+win-app/huancun/
+*/local.properties
+debug.keystore
+机器人.txt
+
+# ── 过程文件（仅本机留存）────────────────────────────────────
+AGENTS.md
+.mimosa/
+.workbuddy/
+.zcode/
+.trae/
+design/HANDOFF.md
+docs/release-ledger.md
+docs/plans/
+
+# ── PV 宣传片（另线开发，不入本仓库；本机文件保留）────────────
 /video/
 /index.html
 /css/film.css
 /js/film.js
-/.trae/documents/pv-*.md
-
-# ═══ 其余所有文件（源码/文档/资产/依赖/构建产物）全部入库 ═══
+/js/film-zh.js

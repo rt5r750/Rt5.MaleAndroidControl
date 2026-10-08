@@ -2,7 +2,7 @@
 
 ## 概述
 
-- **目录**：[android-app](file:///d:/AIProject/RobotControl/android-app)
+- **目录**：[android-app](../../android-app)
 - **包名**：`com.robotcontrol.console`
 - **技术栈**：Kotlin + WebView + HTML/JS/CSS 混合架构
 - **BLE 角色**：GATT Server（中心广播端）
@@ -52,7 +52,7 @@ android-app/
 
 ### MainActivity
 
-[MainActivity.kt](file:///d:/AIProject/RobotControl/android-app/app/src/main/java/com/robotcontrol/console/MainActivity.kt)
+[MainActivity.kt](../../android-app/app/src/main/java/com/robotcontrol/console/MainActivity.kt)
 
 单 Activity 架构，职责：
 1. 初始化全屏沉浸式 UI（EdgeToEdge）
@@ -84,7 +84,7 @@ Manifest 要点（2026-09 架构优化）：`MainActivity` 设 `launchMode=singl
 
 ### RobotGattServer
 
-[RobotGattServer.kt](file:///d:/AIProject/RobotControl/android-app/app/src/main/java/com/robotcontrol/console/ble/RobotGattServer.kt)
+[RobotGattServer.kt](../../android-app/app/src/main/java/com/robotcontrol/console/ble/RobotGattServer.kt)
 
 BLE GATT Server 单例（`object`），职责：
 1. 创建并启动 GATT Server，添加 Service 和 7 个 Characteristic（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey/UiLang）
@@ -154,13 +154,13 @@ BLE 回调与广播都运行在 `BleServerThread`/扫描线程上，**任何 `Se
 
 ### BlePermissionHelper
 
-[BlePermissionHelper.kt](file:///d:/AIProject/RobotControl/android-app/app/src/main/java/com/robotcontrol/console/ble/BlePermissionHelper.kt)
+[BlePermissionHelper.kt](../../android-app/app/src/main/java/com/robotcontrol/console/ble/BlePermissionHelper.kt)
 
 蓝牙权限与开关工具类，处理 Android 12+ 新权限模型。
 
 ### BondStore
 
-[BondStore.kt](file:///d:/AIProject/RobotControl/android-app/app/src/main/java/com/robotcontrol/console/ble/BondStore.kt)
+[BondStore.kt](../../android-app/app/src/main/java/com/robotcontrol/console/ble/BondStore.kt)
 
 SharedPreferences 存储已配对的 Phone 端 MAC 地址，启动时自动重连。
 
@@ -360,7 +360,7 @@ HTML 页面中的 BLE 连接弹窗（`#bt-modal`）通过左上角按钮打开�
 
 ## TTS 语音引擎
 
-[MimoTTSClient.js](file:///d:/AIProject/RobotControl/android-app/app/src/main/assets/www/MimoTTSClient.js) 封装 MiMo TTS API 调用，由前端 HTML 引用，Native 层提供 API Key 持久化、异步 HTTP 代理、原生音频播放。
+[MimoTTSClient.js](../../www/MimoTTSClient.js) 封装 MiMo TTS API 调用，由前端 HTML 引用，Native 层提供 API Key 持久化、异步 HTTP 代理、原生音频播放。
 
 ### 引擎列表
 
@@ -455,10 +455,10 @@ Android WebView 在 `file://` origin 下 `new Audio(blobUrl).play()` 会静默�
 
 | 数据文件 | 用途 | 关键字段 |
 |---|---|---|
-| [clear_process_data.json](file:///d:/AIProject/RobotControl/android-app/app/src/main/assets/www/doc/clear_process_data.json) | 清空所有进程的进程列表 | `processes: [{name, pid}]`（80 条） |
-| [system_update_data.json](file:///d:/AIProject/RobotControl/android-app/app/src/main/assets/www/doc/system_update_data.json) | 系统更新阶段文本 | `stages / codeSnippets / contents` |
-| [database_update_data.json](file:///d:/AIProject/RobotControl/android-app/app/src/main/assets/www/doc/database_update_data.json) | 数据库更新数据 | `dbs / codeSnippets / versions / infos` |
-| [boot_data.json](file:///d:/AIProject/RobotControl/android-app/app/src/main/assets/www/doc/boot_data.json) | 开机启动阶段数据 | `stages / hardware / codeSnippets` |
+| [clear_process_data.json](../../www/doc/clear_process_data.json) | 清空所有进程的进程列表 | `processes: [{name, pid}]`（80 条） |
+| [system_update_data.json](../../www/doc/system_update_data.json) | 系统更新阶段文本 | `stages / codeSnippets / contents` |
+| [database_update_data.json](../../www/doc/database_update_data.json) | 数据库更新数据 | `dbs / codeSnippets / versions / infos` |
+| [boot_data.json](../../www/doc/boot_data.json) | 开机启动阶段数据 | `stages / hardware / codeSnippets` |
 
 - 页面初始化时 `preloadAllScrollData()` 并发预加载所有 4 个 JSON 到 `_scrollDataCache` 内存缓存
 - 弹窗打开时直接读缓存，不重复 fetch
@@ -510,7 +510,7 @@ Android WebView 在 `file://` origin 下 `new Audio(blobUrl).play()` 会静默�
 
 **当前方案**（80 条进程 + auto 间隔 + 描述性行）：
 
-1. **进程数扩容**：[clear_process_data.json](file:///d:/AIProject/RobotControl/android-app/app/src/main/assets/www/doc/clear_process_data.json) 含 80 条进程（系统守护、IO、传感器、驱动、网络、安全、感知、规划、NLP 等全栈分类）
+1. **进程数扩容**：[clear_process_data.json](../../www/doc/clear_process_data.json) 含 80 条进程（系统守护、IO、传感器、驱动、网络、安全、感知、规划、NLP 等全栈分类）
 2. **总时长调整**：`durationMs` 从 8000ms 提升到 12000ms，给 80 条进程留出充分展示时间
 3. **auto 间隔**：`lineInterval: 'auto'`，由 `Math.floor(12000 / 255) = 47ms` 自动计算，无需硬编码
 4. **描述性行补充**：`getClearProcessLines()` 在扫描阶段和收尾阶段补充描述性行
@@ -524,7 +524,7 @@ Android WebView 在 `file://` origin 下 `new Audio(blobUrl).play()` 会静默�
 
 ## WebView 配置
 
-关键 WebView 设置（[MainActivity.kt:253-268](file:///d:/AIProject/RobotControl/android-app/app/src/main/java/com/robotcontrol/console/MainActivity.kt#L253-L268)）：
+关键 WebView 设置（[MainActivity.kt:253-268](../../android-app/app/src/main/java/com/robotcontrol/console/MainActivity.kt#L253-L268)）：
 - `javaScriptEnabled = true`
 - `domStorageEnabled = true`
 - `allowFileAccess = true`
@@ -554,21 +554,21 @@ App 启动时遮住 HTML 加载初期，播放品牌视频（`assets/www/pic/Rt5
 
 | 阶段 | 显示内容 | 黑色保障机制 |
 |------|---------|-------------|
-| 1. 系统 SplashScreen | 纯黑背景 | `windowSplashScreenBackground=#000000` + `windowSplashScreenAnimatedIcon`设为透明drawable（[splash_icon.xml](file:///d:/AIProject/RobotControl/android-app/app/src/main/res/drawable/splash_icon.xml)），消除默认图标的灰色背景 |
+| 1. 系统 SplashScreen | 纯黑背景 | `windowSplashScreenBackground=#000000` + `windowSplashScreenAnimatedIcon`设为透明drawable（[splash_icon.xml](../../android-app/app/src/main/res/drawable/splash_icon.xml)），消除默认图标的灰色背景 |
 | 2. Activity 首帧 | 纯黑 | `Theme.App.Transparent`的`windowBackground=@android:color/black` + `colorBackgroundCacheHint=@null` |
 | 3. 视频准备期 | 纯黑 | TextureView `isOpaque=true` + 初始`visibility=visible`，透明区域显示底层黑色；WebView `setBackgroundColor(BLACK)` |
 | 4. 视频播放 | 视频首帧(黑)→内容 | 视频首帧本身为纯黑，与前面黑色无缝衔接 |
 
 ### 主题配置
 
-- [values/themes.xml](file:///d:/AIProject/RobotControl/android-app/app/src/main/res/values/themes.xml)：`Theme.SplashScreen.RobotControl`（兼容库主题，Android 12以下也显示单色背景）
-- [values-v31/themes.xml](file:///d:/AIProject/RobotControl/android-app/app/src/main/res/values-v31/themes.xml)：Android 12+ 原生SplashScreen主题覆盖，额外设置`windowSplashScreenIconBackgroundColor=@android:color/black`
-- [AndroidManifest.xml](file:///d:/AIProject/RobotControl/android-app/app/src/main/AndroidManifest.xml)：MainActivity的`android:theme`设为`@style/Theme.SplashScreen.RobotControl`
-- [colors.xml](file:///d:/AIProject/RobotControl/android-app/app/src/main/res/values/colors.xml)：`splash_background=#000000`
+- [values/themes.xml](../../android-app/app/src/main/res/values/themes.xml)：`Theme.SplashScreen.RobotControl`（兼容库主题，Android 12以下也显示单色背景）
+- [values-v31/themes.xml](../../android-app/app/src/main/res/values-v31/themes.xml)：Android 12+ 原生SplashScreen主题覆盖，额外设置`windowSplashScreenIconBackgroundColor=@android:color/black`
+- [AndroidManifest.xml](../../android-app/app/src/main/AndroidManifest.xml)：MainActivity的`android:theme`设为`@style/Theme.SplashScreen.RobotControl`
+- [colors.xml](../../android-app/app/src/main/res/values/colors.xml)：`splash_background=#000000`
 
-### 关键实现（[MainActivity.kt](file:///d:/AIProject/RobotControl/android-app/app/src/main/java/com/robotcontrol/console/MainActivity.kt)）
+### 关键实现（[MainActivity.kt](../../android-app/app/src/main/java/com/robotcontrol/console/MainActivity.kt)）
 
-**布局**（[activity_main.xml](file:///d:/AIProject/RobotControl/android-app/app/src/main/res/layout/activity_main.xml)）：`FrameLayout`中WebView在下、TextureView在上，TextureView初始`visibility=visible`。
+**布局**（[activity_main.xml](../../android-app/app/src/main/res/layout/activity_main.xml)）：`FrameLayout`中WebView在下、TextureView在上，TextureView初始`visibility=visible`。
 
 **onCreate**：仅调用`installSplashScreen()`安装系统SplashScreen，**不使用`setKeepOnScreenCondition`等待视频首帧**（会阻塞Activity窗口渲染，导致TextureView的SurfaceTexture长时间无法创建，视频无法播放）。
 

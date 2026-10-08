@@ -130,7 +130,7 @@ Mode(7501) 除 Server→Client 的模式下发外，还支持 Client→Server �
 1. 立即 `sendResponse(GATT_SUCCESS)`；
 2. 写入值同步进 `characteristicValues`（保持 READ 一致，随后控制台会以自身真实模式回写并 Notify）；
 3. `ordinal ∈ 0..3` → 触发回调：android-app `RobotGattServer.onModeReceived`；win-app C# 宿主 `ModeReceived` 事件 → IPC `{"type":"mode","ordinal":n}` → 主进程 `bleBridge.on('mode')`；
-4. 前端统一入口 `window.__rcOnRemoteMode(ordinal)`（[app-ble.js](file:///d:/AIProject/RobotControl/www/js/app-ble.js)）→ `activateMode(modeId)`：高亮模式按钮、TTS 播报、写日志，并按既有链路把模式回推给所有已连接客户端（含发起方）；
+4. 前端统一入口 `window.__rcOnRemoteMode(ordinal)`（[app-ble.js](../www/js/app-ble.js)）→ `activateMode(modeId)`：高亮模式按钮、TTS 播报、写日志，并按既有链路把模式回推给所有已连接客户端（含发起方）；
 5. 控制端提示「推送成功」：android-app 用原生 Toast（`ConsoleI18n`）；win-app 与桌面宽度浏览器（`isDesktopChrome()`）用页面内 macOS 风格通知（`showMacosNotification`）；Android WebView 不弹页面通知，避免与原生 Toast 重复。
 
 **客户端（phone-app）通知口径**：反向推送不本地立即弹通知，而是 `PhoneDataStore.armReversePushEcho()` 开启 4s 回声窗口——窗口内到达的语音通知标题由「主人指令」改为「推送成功」并消费窗口（**只弹这一条**）；4s 内未收到回声则由 `notifyReversePushSuccess()` 兜底弹一条，同时置 4s 抑制窗口挡住晚到的回声，防止同一次推送出现两条通知。非反向场景（普通语音消息）标题仍为「主人指令」。
@@ -223,5 +223,5 @@ QR 码内容为 JSON 字符串：
 
 ### 配对信息持久化
 
-- [BondStore.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/ble/BondStore.kt) 使用 SharedPreferences 保存已绑定设备 MAC 地址
+- [BondStore.kt](../phone-app/app/src/main/java/com/robotcontrol/phone/ble/BondStore.kt) 使用 SharedPreferences 保存已绑定设备 MAC 地址
 - 启动时自动尝试连接已绑定设备

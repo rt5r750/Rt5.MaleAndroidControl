@@ -6,16 +6,14 @@ RobotControl 是一个多端协同的机器人控制系统：android-app（控�
 
 ## 文档导航
 
-- [整体架构](file:///d:/AIProject/RobotControl/docs/architecture.md)
-- [BLE通信协议](file:///d:/AIProject/RobotControl/docs/ble-protocol.md)
-- [数据模型](file:///d:/AIProject/RobotControl/docs/data-models.md)
-- [android-app（控制台端）](file:///d:/AIProject/RobotControl/docs/android-app/reademe.md)
-- [phone-app（手机端）](file:///d:/AIProject/RobotControl/docs/phone-app/reademe.md)
-- [watch-app（手表端）](file:///d:/AIProject/RobotControl/docs/watch-app/reademe.md)
-- [win-app（Windows 桌面版）](file:///d:/AIProject/RobotControl/docs/win-app/reademe.md)
-- [开发计划：v1.6.0（型号信息统一/设置重构/激活引导/配置导入导出，已实施）](file:///d:/AIProject/RobotControl/docs/plans/plan-v1.6.0.md)
-- [功能文档：移动端设置 UI、连接稳定性、外链打开与语音识别（v1.8.0 交付，语音识别退化口径 v1.9.1 更新）](file:///d:/AIProject/RobotControl/docs/compose/spec/mobile-settings-connect-voice.md)
-- [交付台账（每轮出包产物与抽验口径）](file:///d:/AIProject/RobotControl/docs/release-ledger.md)
+- [整体架构](architecture.md)
+- [BLE通信协议](ble-protocol.md)
+- [数据模型](data-models.md)
+- [android-app（控制台端）](android-app/reademe.md)
+- [phone-app（手机端）](phone-app/reademe.md)
+- [watch-app（手表端）](watch-app/reademe.md)
+- [win-app（Windows 桌面版）](win-app/reademe.md)
+- [功能文档：移动端设置 UI、连接稳定性、外链打开与语音识别（v1.8.0 交付，语音识别退化口径 v1.9.1 更新）](compose/spec/mobile-settings-connect-voice.md)
 
 ## BLE UUID 速查表
 
@@ -51,25 +49,23 @@ RobotControl 是一个多端协同的机器人控制系统：android-app（控�
 - 各端数据模型保持一致：Mode枚举顺序、Emotion四个维度顺序、Task字段、VoiceMessage字段
 - 前端三端以仓库根 `www/` 为唯一主线；同步、按需资源、平台样式边界和共享交互规则见整体架构文档。**硬性规则：修改 www 下任何 class/样式后必须在 `tools/web-build/` 执行 `npm run build` 重新生成静态 `www/css/tailwind.css` 并提交产物**（Tailwind Play CDN 运行时已替换为同版本 CLI 预编译产物，运行时零联网依赖），详见整体架构文档「前端单源架构」。`npm run build` 末步还会自动重新生成 `www/cache-manifest.json`（浏览器端 Service Worker 预缓存清单，新增/删除 www 静态文件后同样执行即可），详见整体架构文档「浏览器端分阶段加载与离线缓存」。
 - 运行时素材全部本地保存（禁止引入任何外链/CDN 资源）；唯一联网项为 MiMo 云端语音引擎（TTS 与 ASR），及用户主动点击的外链（夸克网盘下载、Telegram 等）。
-- 前端任何新增/修改的文字样式必须遵循项目字体规范（中文 `MiSans`、数字/英文 `JetBrains Mono`、win-app 标题栏 `MiSans Full`，沿用全局字体栈，禁止引入新字体），规范详见项目根 [AGENTS.md](file:///d:/AIProject/RobotControl/AGENTS.md)；桌面菜单模式（`html.desktop-chrome`）新增浮层须置于 body 直下，勿放入 `#dynamic-island-clip`（灵动岛裁剪容器会裁剪/隐藏 fixed 子元素）。
+- 前端任何新增/修改的文字样式必须遵循项目字体规范（中文 `MiSans`、数字/英文 `JetBrains Mono`、win-app 标题栏 `MiSans Full`，沿用全局字体栈，禁止引入新字体）；桌面菜单模式（`html.desktop-chrome`）新增浮层须置于 body 直下，勿放入 `#dynamic-island-clip`（灵动岛裁剪容器会裁剪/隐藏 fixed 子元素）。
 - Phone 连接方案仅支持 BLE 扫描与 QR 码；Watch 直接扫描 RobotControl- 前缀 Console 设备（ScanFilter 按服务 UUID 7500 过滤，phone/watch 通用，见 BLE 协议文档「设备命名规则」）。
 - 模块级 UI、构建、存储、性能和实现细节写入各端模块文档；协议变更必须先落到 BLE 协议文档再修改代码。
-- **判断「某个 release 包有没有某项功能」先查[交付台账](file:///d:/AIProject/RobotControl/docs/release-ledger.md)**：产物路径固定、后一版本覆盖前一版本，台账按版本记录产物时间、抽验特征串与「未改动端沿用上一版」，避免拿旧包验证或重复出包。
 - 文档准确反映当前代码状态，不要假设未实现的功能。
 
 ## 源码目录链接
 
-- [android-app源码](file:///d:/AIProject/RobotControl/android-app)
-- [phone-app源码](file:///d:/AIProject/RobotControl/phone-app)
-- [watch-app源码](file:///d:/AIProject/RobotControl/watch-app)
-- [win-app源码](file:///d:/AIProject/RobotControl/win-app)
+- [android-app源码](../android-app)
+- [phone-app源码](../phone-app)
+- [watch-app源码](../watch-app)
+- [win-app源码](../win-app)
 
 ## 版本记录
 
-版本号三位 `x.y.z`：新会话开发第二位 +1（第三位归零），同一会话内每轮更新只递增第三位；条目按 移除 → 新增 → 优化 → 修复 排序，同一会话内多次第三位递增原地合并写最终结果。
+版本号三位 `x.y.z`：新会话开发第二位 +1（第三位归零），同一会话内每轮更新只递增第三位；条目按 移除 → 新增 → 优化 → 修复 排序，同一会话内多次第三位递增原地合并写最终结果。**本段只保留最近 5 个版本**（更早条目随提交清理移出，历史追溯用 `git log -p -- docs/reademe.md`）。
 
 - **1.9.1**（2026-10-07）：
-  - 新增：**开发文档群新增《交付台账》**（[docs/release-ledger.md](file:///d:/AIProject/RobotControl/docs/release-ledger.md)）——记录每轮出包的产物路径/时间/抽验特征串与「未改动端沿用上一版」口径，附 APK dex/清单（UTF-16-LE）与 win-app www 的 grep、md5 核对命令；用于快速判断某个 release 包是否已含某项功能，避免重复出包与拿旧包验证。
   - 优化：**phone-app 本地语音规则单测扩容**——`VoiceCommandMatcherTest` 由 10 项增至 12 项，补「真实 ASR 输出带标点/句号仍正常命中或否定」与「英文否定词按词边界（know / nothing 等含 no、not 子串的普通词不得误否定）」两项；`./gradlew :app:testReleaseUnitTest` 12 项全绿。
   - 修复：**phone-app 语音识别在真机/部分设备上整体不可用**（用户实测 release 包「没实现」的根因）——三层根因一并收口：① Manifest 缺 `<queries>`（`android.speech.RecognitionService`），Android 11+ 包可见性过滤下 `isRecognitionAvailable()` / `isOnDeviceRecognitionAvailable()` 查不到系统识别服务，本地识别恒判不可用；② 设备端离线识别连续失败后直接退化（有云端条件切「仅云端」，否则关闭并提示「本地语音识别不可用」），从不回退系统识别器；③ 系统识别器强制 `EXTRA_PREFER_OFFLINE=true`，设备未下载离线语言包时同样必然失败（AVD Android 16 实测两端都落到 SODA 离线引擎报 `Failed to get language pack of required locale: error 12/13`）。现改为**三级引擎逐级回退**：设备端离线 → 系统识别器（离线优先）→ 系统识别器（允许联网），同一引擎连续 3 次错误即换下一级，三级全失败才按云端条件退化；`ERROR_INSUFFICIENT_PERMISSIONS`（录音权限被撤销）保持直接停并提示，偶发 `ERROR_CLIENT` 由「直接判死」改为计入退化计数。**实测口径**：AVD Android 16 装 release APK，点圆钮后日志完整走 `ON_DEVICE → SYSTEM_OFFLINE → SYSTEM_ONLINE → degraded to cloud-only mode`（已配 API Key 时不再关闭、圆钮保持绿色），全程无 FATAL；MiMo ASR 契约以 MiMo TTS 合成「进入调试模式」音频经 `mimo-v2.5-asr` 实测返回「进入调试模式。」，与 `MimoAsrClient` 的请求体/响应路径一致。
   - 修复：**英文否定词子串误否定**——`no` / `not` 等按子串匹配会把 know、nothing 等普通词判为否定（「I know the test mode is fine」不切换），改按词边界匹配（`\b`）；中文否定词维持子串口径不变。
@@ -131,24 +127,4 @@ RobotControl 是一个多端协同的机器人控制系统：android-app（控�
   - 新增：**watch-app 保活机制**（网络调研小米/OPPO 等定制后台管控后落地，官方正路=connectedDevice 前台服务）——`BleKeepAliveService` 前台服务（`foregroundServiceType="connectedDevice"`、START_STICKY，manifest 增 `FOREGROUND_SERVICE`/`FOREGROUND_SERVICE_CONNECTED_DEVICE`/`POST_NOTIFICATIONS`/`RECEIVE_BOOT_COMPLETED`/`VIBRATE`/`REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`）承载 BLE 连接生命周期、数据回调接线（→WatchDataStore）与**模式切换震动**：拟人=两短 `[0,150,150,150]`、忠诚=两长 `[0,600,200,600]`、调试=一长 `[0,600]`（恢复模式与 NA 不震；同一序号 1s 内去重防"初读+订阅推送"双震）；常驻通知（IMPORTANCE_LOW）显示连接状态+当前模式，点击回 App；`onTaskRemoved` 经 AlarmManager 1s 自重启，`BootReceiver` 开机（仅已绑定）拉起恢复连接；**保活设置引导**首连成功弹一次（蓝牙按钮菜单「保活设置」可再开）——按厂商适配文字指引（小米：自启动授权管理+耗电优化无限制+任务锁定；OPPO/一加/真我：自启动管理+耗电管理允许后台）+「电池优化白名单」（`ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`，失败回退列表页）与「应用信息」跳转按钮，一次性记忆。MainActivity 的 BLE 生命周期改为仅拉起服务（连接与回调在服务），`onDestroy` 不再断开 BLE（修复销毁即断连）；Activity 经 WatchDataStore 新增的 `onBleStateChanged` 观察连接状态渲染按钮。
   - 修复：**watch-app 无法连接控制台**——三层根因一并收口：① 运行时请求了 manifest 未声明的 `BLUETOOTH_ADVERTISE` 权限，系统直接拒绝（不弹窗）导致 `hasAllPermissions` 恒 false、BLE 永不启动（致命阻断）；② 扫描回调 `device.name` 为 null 时丢设备（android-app 控制台名字在 scan response，首轮缓存名可空）——改为 ScanFilter 按 UUID 过滤命中即接受、名称以 scanRecord 优先仅作展示；③ 4 次 CCCD 写不排队只等第 1 次（Emotion/Tasks/Voice 通知订阅失败、连接后数据不动）+ 无 MTU 协商与分片重组（长 JSON 任务/语音每片被当完整包解析失败）——`PhoneBleClient` 对齐 phone-app ConsoleBleClient 成熟模式重写：GATT 操作串行队列、`requestMtu(512)` 先行再发现服务、`0x7E` 三字节包头分片重组、`connectGatt(TRANSPORT_LE)`。实测（WearOS 模拟器）：权限链路通过、前台服务启动（isForeground、channel=ble_keepalive）、常驻通知内容随状态正确；真机 BLE 射频与震动手感需实机验证。
   - 修复：**仿人男性机器人信息参数中英文显示逻辑**（与四大模式同规则、按项判定）——以标签锚定默认项，值与该项中文默认或英文默认（i18n 词典译文）完全一致时随界面语言显示对应语言默认内容（此前若用户填入英文默认值，中文模式会原样显示英文）；否则按保存原文显示。自定义内容同样入保护集防子串误译；作用于移动端状态列表、三栏信息参数 chips、「关于本机」窗口；设置页输入框仍显示保存原文。
-- **1.4.0**（2026-10-03）：
-  - 新增：**win-app 启动器设置面板「界面语言」切换组**（`design/launcher.html` 设置面板顶部，中文/English 按钮、`lang-btn.active` 绿色选中态）——点击写 localStorage `robot_ui_lang`（浏览器/宣传影片 iframe 场景的同步源）+ IPC `i18n-set-lang`（主进程 `huancun/i18n-lang.json` 持久化）+ `LauncherI18N.setLang` 界面即时切换；选中态由 `launcher-i18n.js` `applyLang` 派发的 `launcher-lang-changed` 事件统一刷新（初始异步确定语言后同样同步），语言按钮文字各自保持「中文 / English」不翻译。**启动器 → 主控制台语言跟随链路**：`preload.js` 顶层 `sendSync('i18n-get-lang-sync')`（main.js 新增对应 handler，返回 `i18n.getLang()`）经 `consoleAPI.bootLang` 在页面脚本运行前带回，`www/js/i18n.js` 头脚本以该值为初始语言事实源并对齐 localStorage 副本（浏览器/Android 无此桥维持原行为）——启动器切英文后进入控制台即为英文界面（标题栏、登录页、主界面全程英文，无中文闪帧；EN 首屏遮罩判定在 bootLang 采用之后不受影响）。
-  - 修复：**EN 模式大量按钮被迫显示成两行**——窄体字体 `www/webfonts/MonoNarrow-{Regular,Bold}.woff2` 是本地生成产物（从未入库），仓库回退时工作区文件丢失，`fonts-face.css` 声明悬空导致 `i18n.js` 窄体可用性门控（`document.fonts.check('MonoNarrow')`）整体跳过拟合，所有按钮按正常字宽放不下即两行；经 `tools/gen-mono-narrow.py` 重新生成（Regular/Bold 各约 8KB）并重建缓存清单后恢复。实测（1440×900 EN 登录+主界面几何审计）：非豁免区 189 个翻译文本叶子 EN 行数与中文全部一致，四枚模式按钮单行、按钮高 68px 与中文一致（Simulated Human Mode 走窄体+分级字号）。
-  - 修复：`win-app/test/titlebar.test.js` 三处断言未随实现迁移更新——窗口标题已改经主进程 `i18n.t` 按语言输出、标题栏样式实体已从 HTML 内联迁至 `css/titlebar-fusion.css`（`-webkit-app-region` 拖拽区/窗口按钮/毛玻璃/Acrylic 分层等）、登录壁纸已是 `Background.webp`；断言随实现归属修正，`npm test` 60 项全绿。
-- **1.3.5**（2026-09-25）：
-  - 移除：phone-app `values/strings.xml` 中布局与代码均未引用的死资源键（emotion_*、test_button、section_* 等），`no_tasks`/`no_voice` 改经 `PhoneI18n` 输出。
-  - 新增：全端界面英文模式（手表端不参与），默认中文、设置中可切换。www 主控制台：设置页新增「语言」组（中文/English 按钮；`js/i18n.js` 运行时覆盖层，中文源文案零改动，EN 模式替换文本节点与 title/placeholder 等属性并随动态内容更新，localStorage 持久；术语遵循 T31-750 英文版说明书——Male Android / Simulated Human Mode / Test Mode / Self-check / Artificial Semen / Appearance-Data 等），登录页、主控制台、自检/系统更新全流程输出、终端与缓存控制台均有英文文案；win-app：主进程窗口标题与 BLE 宿主错误文案（`app/i18n.js`，`huancun/i18n-lang.json` 持久，IPC `i18n-get-lang`/`i18n-set-lang` 与页面语言双向同步）、启动器界面（`design/launcher-i18n.js` 覆盖层）与闪屏页标题随动；android-app：原生 Toast/PDF 提示（`ConsoleI18n`）经 JS 桥 `Android.setUiLang` 与页面语言同步，启动器标签随系统语言（`values-en/strings.xml`）；phone-app：原生文案全量接入 `PhoneI18n`（长按顶部胶囊切换中文/英文，情绪面板/任务/语音消息/模式名/连接面板/权限与扫描提示均覆盖），app 标签与胶囊初始文案随系统语言（`values-en/strings.xml`）。实现含两处稳定性收口：MutationObserver 同值重写守卫（同值写入会再次触发 Observer 形成微任务自反馈死循环、卡死渲染——Android WebView 实测复现并修复，www 与启动器覆盖层均带守卫）与登录过渡屏写入时直译（EN 模式不依赖 Observer，防中文闪帧）。机制详见整体架构文档「前端单源架构」。
-  - 优化：EN 模式英文字形**自适应缩窄**——等宽英文 75% 横向压缩（advance 0.6em→0.45em，16px 字号下单字 9.6px→7.2px），但**不做全页缩窄**：i18n.js `fitPass` 逐块实测 EN 与中文原文的行高/宽度（块级容器与文本直接父元素双向比对，兼容图标+行内标签结构），仅 EN 占更多行/更宽的元素加 `.i18n-cn-fit`（窄面 + 常规字重窄家族）；窄体仍放不下时**分级缩小字号**（0.9→0.6 倍，辅以 -0.03em 字距；字号只作用于高度增长的文本元素本身，图标/按钮容器不动，板块布局不变），完整术语保持单行显示（三栏模式按钮：Test Mode/Recovery Mode/Loyalty Mode @14px、Simulated Human Mode @9.8px 全部单行），保证与中文相同的行数布局与可读性层级（先缩窄、后缩字号）。窄面字体 `webfonts/MonoNarrow-{Regular,Bold}.woff2`（各约 8KB）由本机 JetBrains Mono 可变字体实例化+横压生成（工具 `tools/gen-mono-narrow.py`，衍生按 OFL 改名不占用保留名）；以 `font-stretch: condensed` 面注册进 'JetBrains Mono' 家族（粗体场景自动命中），中文默认模式无拟合类、渲染与字体下载逐位不变。EN 首屏**一步到位**：i18n.js 头脚本阶段即挂 `html.i18n-fitting` 遮罩（body visibility:hidden，布局保留可离线测量；头脚本执行于首帧绘制前，实测遮罩挂载 @12ms < 首帧 @144ms），全量拟合防抖仅 30ms、完成后立即显形，4s 安全超时兜底；语言动态切换同路径。杜绝「先正常字宽渲染、再缩窄缩字号」的文字闪烁与位移。拟合为增量驱动（语言切换/登录显形全页，动态内容仅重拟合受影响块，秒级时钟不触发全页测量），写入经同值守卫不回灌 Observer。防抽搐四件套：① 判定按「块宽 24px 分桶+原文内容」签名缓存，动态区域（调试日志等）内容不变零重测，杜绝测量翻转引发的类增删振荡；② 重测前先摘窄体类取真实 zh 基线；③ 拟合进行中到达的变更入队不丢弃（收尾自动续跑，修复登录初期静态块——如模式按钮——永久漏拟合），await 字体加载后与逐块拟合前双重复检语言（修复 EN 拟合落在已切回的 zh 页面上的竞态）；④ 切换回中文时 DOM 扫描兜底清 class（防追踪集合替换导致的泄漏）。
-  - 优化：**拟合豁免区**——终端输出、调试日志、自检/更新代码窗口等滚动文字不再强制对应中文行数（正常字宽自由换行），App 引导浮窗/通知等可自适应尺寸的浮窗同样豁免（正常字宽更易识别）；窗口 resize 时 EN 模式全页重拟合。窄面字体去 TrueType hinting（`tools/gen-mono-narrow.py` 丢弃 `cvt `/`fpgm`/`prep`）：hinting 指令按原始轮廓坐标写，缩放轮廓后小字号网格拟合错位，会在字母间渲染出「引号状」伪影（复制不可见），去 hinting 后消除。EN 日期改美式习惯 `Sep 25, 2026 Fri 20:45:18`；公司名英译更正为 Rt5 A.I. Fictional Liability Company（芮誊/芮誉智能虚构公司及相关组合句）。
-  - 优化：**EN 首屏一步到位**——i18n.js 头脚本阶段即挂 `html.i18n-fitting` 遮罩（body visibility:hidden，布局保留可离线测量），拟合完成后显形，4s 安全超时兜底；语言切换同路径。消除"先正常字宽渲染、再缩窄缩字号"的文字闪烁与位移（字体加载 await 与逐块拟合前双重语言复检，杜绝 EN 拟合落在已切回的 zh 页面）。
-  - 优化：EN 文案用词调整——界面显示的 robot 一律作 **Android**（仿人男性机器人=Male Android；Android Control Console/Live Code/Info Parameters 等；C++ 代码内容与包名/协议名类标识符除外），机械度=**Robotical**；.phone-app 同步。
-  - 优化：右上角日期 EN 模式随语言输出 `2026-09-25 Fri 12:34:56` 格式（原 `2026年09月25日 周五`，app-core.js 写入时直译，zh 格式一字不变）；EN 文案残留的全角括号统一转半角（`（/）`片段映射）。
-  - 修复：**EN 打开/切换仍闪一下**——三层根因一并收口：① `visible()` 把 `html.i18n-fitting` 遮罩下的 `visibility:hidden` 当成不可见，首屏拟合空跑、显形后再补拟合造成位移（遮罩下改按几何尺寸判定）；② fitGroup/class/style 写入经 MutationObserver 回灌 `scheduleFit` 形成无限重拟合，字号来回跳（拟合写入期间 `withMOOff` 断开 Observer + fitGroup 组签名缓存）；③ 增量防抖不断 `clearTimeout` 顶掉全量 0ms 任务，显形与中文清类被拖慢（全量待办优先、不被增量推迟；切回中文 `setLang` 立即 `clearFit`）。另：语言键统一 `robot_ui_lang`（兼容迁移旧键 `android_ui_lang`）；字体已就绪时同步拟合免 Promise 往返，慢加载 180ms 兜底不挂 4s；解析期增量翻译（首帧前完成中→英），主界面 `display` 显形后 `I18N.refit()` 同步补拟合。实测 EN 打开约 160ms 内一步显形且拟合数稳定（无振荡），zh 切换拟合类立即清零。
-  - 优化：**EN 拟合策略按视觉硬性要求收紧**——能正常放下的保持正常字宽；放不下才缩窄，仍放不下再缩小字号。**仅 `.mode-btn` 成组**统一字号保证与中文同行数（Simulated Human Mode 等单行、按钮高 68px 与中文一致）；其余兄弟块逐块拟合，禁止被最长标签拖成过小字号（Bath/Furniture 等恢复正常 12px）。代码/弹窗/**「关于本机」**整窗豁免缩窄。关于页英文布局重做：副标题公司全称+元数据两行、状态行长标签上下两行、硬件子标写入时直译且同值不写（防每秒重写引发抽搐）。
-  - 新增：**`css/i18n-en.css` 英文专属排版层**——全部选择器挂在 `html[lang='en']`，**中文一字一形零改动**（实测登录卡 zh 384px/24px 与改前逐位一致）。内容：登录卡放宽至 30rem 且标题单行、Latin 字距/行高微调、弹窗（自检提示 32rem / bt-modal 420px）英文侧加宽；后续 EN 细节一律写入此文件，禁止散落进 app.css/fonts.css。h2 增加语义类 `login-title` 便于扩展。
-  - 修复：**动态窗口闪中文**——过程/自检/更新/PDF 等运行时 `textContent` 写入先中文再靠 Observer 翻译会闪帧；i18n.js 挂 `Node.textContent` 写入钩子，EN 下含中文则**写入时直译**并保留 `__i18nOrig` 供拟合比对。**可改窗体大小的窗口**（DWM 浮窗/关于/设置/弹窗）整窗豁免缩窄缩字，英文在 `i18n-en.css` 加宽即可；仅主界面固定区（模式按钮等）走缩窄。拟合字号改 **rem**（`0.525rem` 等），浏览器/窗口缩放连续跟手不跳变；resize 全页重拟合防抖 180ms + 签名缓存，避免「先宽后窄」抽搐。中文写入路径实测不变。
-- **1.2.0**（2026-09-12）：
-  - 移除：登录壁纸 `pic/login/Background.png`（由压缩格式 `Background.webp` 替代，引用与缓存豁免清单同步更新）。
-  - 新增：自检「Male_2.png 传输」叠加层——自检文本进行到传输行时弹出右侧图片浮窗（**3:4 竖版**，占位素材 `www/pic/Male_2.png`（960×1280），替换该文件即换图）与「正在发送至T31-750」进度对话框（scope 附着自检过程窗口）；发送进度固定约 1.5 秒走完（接收行提前到达则提前补满）、停留 0.5 秒后淡出，图片窗保留至「软件性别和仿真性设置已成功运行」行显示后按 genie/淡出动画关闭；过程窗口关闭或关机中止时连带收起。版本记录段自本版本起建立。
-  - 优化：登录背景图压缩（壁纸 PNG 706KB → WebP 179KB、Gemini 登录封面 620KB → 238KB，像素尺寸不变保持清晰；其余 4 张封面经测试已处于压缩极限，维持原样）；登录页标题「仿人男性机器人操作系统」→「仿人男性机器人控制台」。
-  - 修复：win-app 全屏下 DWM 浮窗拖动/最大化上界仍按非全屏的 80px 钳制，窗口无法贴到菜单栏正下方（`headerH()` 改读 body 计算的 `--header-total`，全屏 40px 与菜单栏对齐）；缓存清单嵌套 `.mimosa` 会话目录（`css/.mimosa`/`js/.mimosa` 等任意层级）泄漏未排除；浏览器端登录前打开的缓存控制台窗口被 DWM 焦点序覆盖——窗口内任意点击即把 z 从 955 重写回 920-938、掉到登录层之下不可见（看似"未显示/关不掉"，登录后才重新出现），`bringToFront` 对 ≥950 的提层窗口保持原层级并在焦点序归一化时跳过。
+- 更早版本（1.4.0 及以前）的记录已按「只保留最近 5 个版本」的约定清理；追溯用 `git log -p -- docs/reademe.md`。

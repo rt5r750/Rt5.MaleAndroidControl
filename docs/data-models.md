@@ -17,8 +17,8 @@
 | 3 | SIMULATED_HUMAN | 拟人模式 | 0xFFF472B6 | `#F472B6`（粉色） |
 
 **代码位置**：
-- [Mode.kt (phone-app)](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/data/Mode.kt)
-- [Mode.kt (watch-app)](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/data/Mode.kt)
+- [Mode.kt (phone-app)](../phone-app/app/src/main/java/com/robotcontrol/phone/data/Mode.kt)
+- [Mode.kt (watch-app)](../watch-app/app/src/main/java/com/robotcontrol/watch/data/Mode.kt)
 
 **BLE 传输**：通过 CHAR_MODE (7501) 以 1 字节 ordinal 传输。
 
@@ -65,8 +65,8 @@
 > **注意**：phone-app 的 Emotion 数据类无默认参数值，所有字段必须显式传入。phone-app 中使用 `Emotion?` 可空类型，null 表示未接收到数据（显示 NA）。
 
 **代码位置**：
-- [Emotion.kt (phone-app)](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/data/Emotion.kt)
-- [Emotion.kt (watch-app)](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/data/Emotion.kt)
+- [Emotion.kt (phone-app)](../phone-app/app/src/main/java/com/robotcontrol/phone/data/Emotion.kt)
+- [Emotion.kt (watch-app)](../watch-app/app/src/main/java/com/robotcontrol/watch/data/Emotion.kt)
 
 **BLE 传输**：通过 CHAR_EMOTION (7502) 传输，4 字节顺序为 `[obedience, shame, pleasure, mechanical]`。
 
@@ -97,8 +97,8 @@
 - `typePriority: Int`：用于列表排序（见上表）
 
 **代码位置**：
-- [Task.kt (phone-app)](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/data/Task.kt)
-- [Task.kt (watch-app)](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/data/Task.kt)
+- [Task.kt (phone-app)](../phone-app/app/src/main/java/com/robotcontrol/phone/data/Task.kt)
+- [Task.kt (watch-app)](../watch-app/app/src/main/java/com/robotcontrol/watch/data/Task.kt)
 
 **BLE 传输**：通过 CHAR_TASKS (7503) 传输，UTF-8 JSON 数组。
 
@@ -146,8 +146,8 @@
 | content | String | 消息文本内容 |
 
 **代码位置**：
-- [VoiceMessage.kt (phone-app)](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/data/VoiceMessage.kt)
-- [VoiceMessage.kt (watch-app)](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/data/VoiceMessage.kt)
+- [VoiceMessage.kt (phone-app)](../phone-app/app/src/main/java/com/robotcontrol/phone/data/VoiceMessage.kt)
+- [VoiceMessage.kt (watch-app)](../watch-app/app/src/main/java/com/robotcontrol/watch/data/VoiceMessage.kt)
 
 **BLE 传输**：通过 CHAR_VOICE (7504) 传输，格式自动识别：
 - 首字符 `{` → 单条消息（JSON 对象）
@@ -195,5 +195,5 @@ interface DataStoreListener {
 }
 ```
 
-- Phone：[PhoneDataStore.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/data/PhoneDataStore.kt) — 使用 SharedPreferences 持久化 mode + emotion（20 天过期），tasks 不持久化
-- Watch：[WatchDataStore.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/data/WatchDataStore.kt) — 1.5.0 起新增 `connectionState` 状态与 `onBleStateChanged(state)`（默认空实现）监听方法：BLE 连接状态由保活前台服务 `BleKeepAliveService` 驱动写入，Activity 仅观察渲染
+- Phone：[PhoneDataStore.kt](../phone-app/app/src/main/java/com/robotcontrol/phone/data/PhoneDataStore.kt) — 使用 SharedPreferences 持久化 mode + emotion（20 天过期），tasks 不持久化
+- Watch：[WatchDataStore.kt](../watch-app/app/src/main/java/com/robotcontrol/watch/data/WatchDataStore.kt) — 1.5.0 起新增 `connectionState` 状态与 `onBleStateChanged(state)`（默认空实现）监听方法：BLE 连接状态由保活前台服务 `BleKeepAliveService` 驱动写入，Activity 仅观察渲染

@@ -4,10 +4,10 @@
 
 | 端 | 目录 | 技术栈 | BLE 角色 | 功能定位 |
 |---|---|---|---|---|
-| 控制台 | [android-app](file:///d:/AIProject/RobotControl/android-app) | Kotlin + WebView + HTML/JS | GATT Server | 机器人控制主界面，提供完整控制面板 |
-| 手机端 | [phone-app](file:///d:/AIProject/RobotControl/phone-app) | Kotlin 原生（纯代码 UI） | GATT Client（连接 Console / win-app） | 状态接收展示终端，双列展示任务和语音 |
-| 手表端 | [watch-app](file:///d:/AIProject/RobotControl/watch-app) | Kotlin 原生（WearOS） | GATT Client（连接 Phone） | 腕上轻量状态查看，三页面横滑切换 |
-| Windows 桌面版 | [win-app](file:///d:/AIProject/RobotControl/win-app) | Electron + HTML/JS + C# BLE 宿主 | GATT Server（`RobotControl-Win`） | 控制台桌面端：前置 USB 启动器 + android-app www 副本控制台，桥接等效；C# 宿主实现 7500 服务外设广播，phone-app 可连接 |
+| 控制台 | [android-app](../android-app) | Kotlin + WebView + HTML/JS | GATT Server | 机器人控制主界面，提供完整控制面板 |
+| 手机端 | [phone-app](../phone-app) | Kotlin 原生（纯代码 UI） | GATT Client（连接 Console / win-app） | 状态接收展示终端，双列展示任务和语音 |
+| 手表端 | [watch-app](../watch-app) | Kotlin 原生（WearOS） | GATT Client（连接 Phone） | 腕上轻量状态查看，三页面横滑切换 |
+| Windows 桌面版 | [win-app](../win-app) | Electron + HTML/JS + C# BLE 宿主 | GATT Server（`RobotControl-Win`） | 控制台桌面端：前置 USB 启动器 + android-app www 副本控制台，桥接等效；C# 宿主实现 7500 服务外设广播，phone-app 可连接 |
 
 ## BLE 连接拓扑
 
@@ -40,40 +40,40 @@
 ## 各端技术栈详情
 
 ### android-app（控制台）
-- **Activity**：[MainActivity.kt](file:///d:/AIProject/RobotControl/android-app/app/src/main/java/com/robotcontrol/console/MainActivity.kt) 单 Activity；`launchMode=singleTask`，Manifest 附带 `robotcontrol://console` 深链 intent-filter（VIEW+DEFAULT+BROWSABLE，浏览器端「打开 App」拉起入口，重复拉起经 onNewIntent 送达现有实例）
-- **UI**：全部由 [assets/www/芮誊T系列仿人男性机器人控制台V1.1.html](file:///d:/AIProject/RobotControl/android-app/app/src/main/assets/www/%E8%8A%AE%E8%85%8AT%E7%B3%BB%E5%88%97%E4%BB%BF%E4%BA%BA%E7%94%9F%E6%80%A7%E6%9C%BA%E5%99%A8%E4%BA%BA%E6%8E%A7%E5%88%B6%E5%8F%B0V1.1.html) 渲染（构建期由仓库根 `www/` 同步而来，禁止手改）
-- **BLE Server**：[RobotGattServer.kt](file:///d:/AIProject/RobotControl/android-app/app/src/main/java/com/robotcontrol/console/ble/RobotGattServer.kt) 单例
+- **Activity**：[MainActivity.kt](../android-app/app/src/main/java/com/robotcontrol/console/MainActivity.kt) 单 Activity；`launchMode=singleTask`，Manifest 附带 `robotcontrol://console` 深链 intent-filter（VIEW+DEFAULT+BROWSABLE，浏览器端「打开 App」拉起入口，重复拉起经 onNewIntent 送达现有实例）
+- **UI**：全部由仓库根 [www/芮誊T系列仿人男性机器人控制台V1.1.html](../www/芮誊T系列仿人男性机器人控制台V1.1.html) 渲染（构建期由 Gradle `syncWww` 同步进 App 的 assets/www/，禁止手改）
+- **BLE Server**：[RobotGattServer.kt](../android-app/app/src/main/java/com/robotcontrol/console/ble/RobotGattServer.kt) 单例
 - **JS Bridge**：通过 `WebView.addJavascriptInterface` 绑定名为 `Android` 的对象
 - **前端资源**：`app/src/main/assets/www/` 为 Gradle `syncWww` 任务（preBuild 自动执行，排除 `.mimosa` 工具目录，含任意层级子目录 `**/.mimosa`）从仓库根 `www/` 同步的产物（gitignore），HTML/CSS/JS/图片/字体均随 `www/` 单源维护
 
 ### phone-app（手机端）
-- **Activity**：[MainActivity.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/MainActivity.kt) + [QrScanActivity.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/QrScanActivity.kt)
+- **Activity**：[MainActivity.kt](../phone-app/app/src/main/java/com/robotcontrol/phone/MainActivity.kt) + [QrScanActivity.kt](../phone-app/app/src/main/java/com/robotcontrol/phone/QrScanActivity.kt)
 - **UI**：纯 Kotlin 代码动态构建，无 Compose，使用传统 ViewGroup
   - 顶部固定区：`topFixedContainer`（胶囊模式显示 + 情绪面板 + 黑色渐变遮罩）
   - 下部滚动区：`scrollView` 内双列布局（任务列表 | 语音列表）
-- **BLE Client**：[ConsoleBleClient.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/ble/ConsoleBleClient.kt) 单例连接 Console
-- **数据中心**：[PhoneDataStore.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/data/PhoneDataStore.kt) 单例 + 观察者模式
-- **自定义 UI 组件**：[EmotionPanelView.kt](file:///d:/AIProject/RobotControl/phone-app/app/src/main/java/com/robotcontrol/phone/ui/EmotionPanelView.kt)
+- **BLE Client**：[ConsoleBleClient.kt](../phone-app/app/src/main/java/com/robotcontrol/phone/ble/ConsoleBleClient.kt) 单例连接 Console
+- **数据中心**：[PhoneDataStore.kt](../phone-app/app/src/main/java/com/robotcontrol/phone/data/PhoneDataStore.kt) 单例 + 观察者模式
+- **自定义 UI 组件**：[EmotionPanelView.kt](../phone-app/app/src/main/java/com/robotcontrol/phone/ui/EmotionPanelView.kt)
 - **通知推送**：收到语音消息时发送系统通知（标题「主人指令」；反向推送回声为「推送成功」，1.7.0）
 - **模式反向推送（1.7.0）**：长按顶部胶囊弹模式菜单（4 项+关闭）或语音识别命中 → `ConsoleBleClient.writeMode(ordinal)` 写入 Mode(7501)；未连接时提示「未连接控制面板」
 - **语音识别（1.7.0，1.9.1 加固，`speech/` 包）**：右上角圆形麦克风按钮单击常态开/关（RECORD_AUDIO 权限、前台恢复/后台停止）；本地识别按**三级引擎逐级回退**（设备端离线 → 系统识别器离线优先 → 系统识别器允许联网；同一引擎连续 3 次错误换下一级，Manifest 需 `<queries>` 声明 `android.speech.RecognitionService`，否则 Android 11+ 包可见性过滤下查不到识别服务），识别文本过 `VoiceCommandMatcher` 本地规则（按读音拼音匹配、否定词排除——英文按词边界、语言门控跟随 7507），命中即切换模式；仅当本地得到大段文本未命中且满足门槛（≥4 字、音频 ≥1.2s、间隔 ≥4s、无并发）才把 PCM 音频发 MiMo `mimo-v2.5-asr` 云端兜底；设置页（BLE 对话框）「识别引擎调用云端（MiMo ASR）」开关关闭后仅本地识别，三级引擎全失败且有云端条件时退化为「仅云端」
 
 ### watch-app（手表端）
-- **Activity**：[MainActivity.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/MainActivity.kt) 单 Activity
+- **Activity**：[MainActivity.kt](../watch-app/app/src/main/java/com/robotcontrol/watch/MainActivity.kt) 单 Activity
 - **UI**：纯 Kotlin 代码动态构建，圆形屏幕适配
-  - 三页面横向滑动容器：[PageContainer.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ui/PageContainer.kt)
+  - 三页面横向滑动容器：[PageContainer.kt](../watch-app/app/src/main/java/com/robotcontrol/watch/ui/PageContainer.kt)
   - 页面 0：EmotionView（情绪展示）
   - 页面 1：TaskPageView（任务列表，默认显示）
   - 页面 2：VoicePageView（语音消息）
-- **BLE Client**：[PhoneBleClient.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ble/PhoneBleClient.kt) 单例
-- **数据中心**：[WatchDataStore.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/data/WatchDataStore.kt) 单例 + 观察者模式
+- **BLE Client**：[PhoneBleClient.kt](../watch-app/app/src/main/java/com/robotcontrol/watch/ble/PhoneBleClient.kt) 单例
+- **数据中心**：[WatchDataStore.kt](../watch-app/app/src/main/java/com/robotcontrol/watch/data/WatchDataStore.kt) 单例 + 观察者模式
 - **旋转表冠**：支持旋转表冠滚动 Task/Voice 页面列表
 
 ### win-app（Windows 桌面版）
-- **入口**：[win-app/app/main.js](file:///d:/AIProject/RobotControl/win-app/app/main.js)：启动器 + 主控制台窗口、固定 `app://design` / `app://bundle` 协议、USB 检测、IPC 桥接；`requestSingleInstanceLock` 单实例锁（second-instance 聚焦已有窗口）与 `setAsDefaultProtocolClient('robotcontrol')`（`robotcontrol://console` 深链，浏览器端「打开 App」拉起入口；开发模式注册须显式传 app 路径）
+- **入口**：[win-app/app/main.js](../win-app/app/main.js)：启动器 + 主控制台窗口、固定 `app://design` / `app://bundle` 协议、USB 检测、IPC 桥接；`requestSingleInstanceLock` 单实例锁（second-instance 聚焦已有窗口）与 `setAsDefaultProtocolClient('robotcontrol')`（`robotcontrol://console` 深链，浏览器端「打开 App」拉起入口；开发模式注册须显式传 app 路径）
 - **BLE 宿主**：`ble-host/`（C#，Windows GATT Service Provider，设备名 `RobotControl-Win`），由主进程经命名管道拉起；`app/ble-bridge.js` / `app/ble-protocol.js` 负责进程管理与 JSON 行协议
 - **启动器**：`design/launcher.html`，Acrylic 毛玻璃 + DWM 原生圆角；USB 热插拔检测（`app/usb.js` / `usb-watcher.js`，PowerShell WMI 轮询）与多设备匹配规则；huimo/color 精灵图状态机；F2 测试模式仅本次启动生效；点击设备按钮进入控制台
-- **桥接**：[win-app/app/preload.js](file:///d:/AIProject/RobotControl/win-app/app/preload.js)：`contextBridge` 暴露 `window.Android`（与 Android JS Bridge 同名等价）+ `window.consoleAPI`；[win-app/app/preload-launcher.js](file:///d:/AIProject/RobotControl/win-app/app/preload-launcher.js) 暴露 `window.electronAPI`
+- **桥接**：[win-app/app/preload.js](../win-app/app/preload.js)：`contextBridge` 暴露 `window.Android`（与 Android JS Bridge 同名等价）+ `window.consoleAPI`；[win-app/app/preload-launcher.js](../win-app/app/preload-launcher.js) 暴露 `window.electronAPI`
 - **前端**：`win-app/app/www/` 为仓库根 `www/` 的构建期同步镜像（`scripts/sync-www.ps1`，npm prestart/predist 自动执行，gitignore），经 `app://bundle` 加载，启动为 启动器 → 闪屏 → 登录 → 三栏布局
 - **窗口控制**：自绘仿 Win11 按钮（启动器最小化/关闭，控制台最小化/最大化还原/关闭），替代原生 WCO（原生按钮无法与毛玻璃/暗绿顶栏融合）
 - **能力边界**：BLE GATT Server 由 `ble-host/`（C#，Windows GATT Service Provider）提供，设备名 `RobotControl-Win`，需蓝牙适配器支持 Peripheral 模式（不支持时回退“暂不支持”提示）；MiMo TTS 经主进程 `net.fetch` 代理；运行时数据全部持久化在 `win-app/huancun/`（首次启动自动迁移旧 `%APPDATA%` 数据）

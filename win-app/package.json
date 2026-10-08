@@ -11,7 +11,7 @@
     "dist": "electron-builder --win dir"
   },
   "author": "RobotControl",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "build": {
     "appId": "com.robotcontrol.console.win",
     "productName": "RobotControl控制台",

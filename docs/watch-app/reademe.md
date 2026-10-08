@@ -2,7 +2,7 @@
 
 ## 概述
 
-- **目录**：[watch-app](file:///d:/AIProject/RobotControl/watch-app)
+- **目录**：[watch-app](../../watch-app)
 - **包名**：`com.robotcontrol.watch`
 - **技术栈**：Kotlin 原生 WearOS
 - **BLE 角色**：GATT Client（连接 Console：android-app / win-app）
@@ -54,7 +54,7 @@ watch-app/
 
 ### MainActivity
 
-[MainActivity.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/MainActivity.kt)
+[MainActivity.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/MainActivity.kt)
 
 职责：
 1. 全屏黑色背景、常亮（`FLAG_KEEP_SCREEN_ON`）、无标题栏
@@ -79,7 +79,7 @@ watch-app/
 
 ### PhoneBleClient
 
-[PhoneBleClient.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ble/PhoneBleClient.kt)
+[PhoneBleClient.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/ble/PhoneBleClient.kt)
 
 BLE GATT Client 单例（object），连接 Console（android-app `RobotControl-Console` / win-app `RobotControl-Win`），与 phone-app ConsoleBleClient 同一套成熟模式（1.5.0 对齐重写）：
 1. 扫描按 `ScanFilter`（Service UUID=7500）过滤，命中即接受（名称以 `scanRecord` 优先、系统缓存名兜底，仅用于展示——旧版因首轮 `device.name` 为 null 直接丢设备的缺陷已修复）
@@ -110,7 +110,7 @@ fun isConnected(): Boolean
 
 ### WatchDataStore
 
-[WatchDataStore.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/data/WatchDataStore.kt)
+[WatchDataStore.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/data/WatchDataStore.kt)
 
 数据中心单例（object，`@Volatile` 线程安全），观察者模式：
 - 维护当前 mode、tasks、emotion、voiceMessages 与 `connectionState`（BLE 连接状态，BleConstants.BLE_STATUS_*）
@@ -130,7 +130,7 @@ interface DataStoreListener {
 
 ### BleKeepAliveService（保活前台服务）
 
-[BleKeepAliveService.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ble/BleKeepAliveService.kt)
+[BleKeepAliveService.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/ble/BleKeepAliveService.kt)
 
 BLE 保活前台服务（`foregroundServiceType="connectedDevice"`，`START_STICKY`），1.5.0 新增——**连接生命周期、数据回调接线（→WatchDataStore）、模式切换震动全部收拢于此**，Activity 退出/被杀/息屏后连接与震动仍工作：
 
@@ -143,7 +143,7 @@ BLE 保活前台服务（`foregroundServiceType="connectedDevice"`，`START_STIC
 
 ### PageContainer
 
-[PageContainer.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ui/PageContainer.kt)
+[PageContainer.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/ui/PageContainer.kt)
 
 自定义 ViewGroup，三页面横向滑动：
 - 手势阈值 24px 拦截
@@ -161,7 +161,7 @@ fun getCurrentPage(): Int
 
 ### EmotionView
 
-[EmotionView.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ui/EmotionView.kt)
+[EmotionView.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/ui/EmotionView.kt)
 
 自定义 View（纯 onDraw 绘制），4 个情绪维度：
 - 服从度：#4ade80（绿色）
@@ -173,7 +173,7 @@ fun getCurrentPage(): Int
 
 ### TaskPageView
 
-[TaskPageView.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ui/TaskPageView.kt)
+[TaskPageView.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/ui/TaskPageView.kt)
 
 ScrollView + 垂直 LinearLayout：
 - 不解析 task.type 字段（只有 id/name/status）
@@ -182,7 +182,7 @@ ScrollView + 垂直 LinearLayout：
 
 ### VoicePageView
 
-[VoicePageView.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ui/VoicePageView.kt)
+[VoicePageView.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/ui/VoicePageView.kt)
 
 ScrollView + 垂直 LinearLayout：
 - 时间格式 HH:mm:ss（灰色 11sp）
@@ -191,7 +191,7 @@ ScrollView + 垂直 LinearLayout：
 
 ### BondStore
 
-[BondStore.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ble/BondStore.kt)
+[BondStore.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/ble/BondStore.kt)
 
 SharedPreferences 保存 Phone 地址：
 - `hasConsoleBond(): Boolean`
@@ -201,19 +201,19 @@ SharedPreferences 保存 Phone 地址：
 
 ### BlePermissionHelper
 
-[BlePermissionHelper.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ble/BlePermissionHelper.kt)
+[BlePermissionHelper.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/ble/BlePermissionHelper.kt)
 
 蓝牙权限工具，处理运行时权限请求和蓝牙开关检查。
 
 ### QrCodeGenerator
 
-[QrCodeGenerator.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ble/QrCodeGenerator.kt)
+[QrCodeGenerator.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/ble/QrCodeGenerator.kt)
 
 QR码生成工具类存在，但当前 MainActivity 中未使用。
 
 ### BleConstants
 
-[BleConstants.kt](file:///d:/AIProject/RobotControl/watch-app/app/src/main/java/com/robotcontrol/watch/ble/BleConstants.kt)
+[BleConstants.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/ble/BleConstants.kt)
 
 UUID 常量、状态常量、超时参数，与其他端一致。
 
@@ -223,7 +223,7 @@ UUID 常量、状态常量、超时参数，与其他端一致。
 
 ### 布局层级
 
-[activity_main.xml](file:///d:/AIProject/RobotControl/watch-app/app/src/main/res/layout/activity_main.xml)
+[activity_main.xml](../../watch-app/app/src/main/res/layout/activity_main.xml)
 
 ```
 FrameLayout (root, 全屏黑底 #000000)
