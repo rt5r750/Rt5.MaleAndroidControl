@@ -25,6 +25,9 @@ win-app/splash-loader/bin/
 android-app/app/src/main/assets/www/
 win-app/app/www/
 
+# ── 出包暂存区（本机；发布素材走 GitHub Releases，不入库）──────
+release/
+
 # ── 本机数据 / 密钥 / 机器相关配置 ────────────────────────────
 win-app/huancun/
 */local.properties

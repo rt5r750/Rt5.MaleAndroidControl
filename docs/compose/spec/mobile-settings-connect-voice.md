@@ -3,7 +3,7 @@ feature: mobile-settings-connect-voice
 status: delivered
 updated: 2026-10-07
 branch: main
-commits: 21d02ce..（工作区未提交，本轮交付态即工作区）
+commits: 03ba035（v1.6.0 基线）.. c08ff38（v1.9.0）
 ---
 
 # 移动端设置 UI、连接稳定性、外链打开与语音识别收口
