@@ -5739,17 +5739,20 @@
             return true;
         }
 
+        /* 该平台是否显示登录页（与 DOMContentLoaded 的分支判定保持一致）：
+           窄屏 / Android WebView 无登录界面，激活完成后不得回落登录页。 */
+        function hasLoginScreen() {
+            return !(window.innerWidth < 750 || window.__rcIsAndroidWebview);
+        }
+
         function hideActivationModal() {
             const modal = document.getElementById('activation-modal');
             if (modal) modal.style.display = 'none';
-            // First Run 模式不回落登录页：宿主会在完成后关闭本窗口/进入主界面
-            if (_firstRunMode) {
-                const firstRunLogin = document.getElementById('login-modal');
-                if (firstRunLogin) firstRunLogin.style.display = 'none';
-                return;
-            }
+            // First Run 模式与无登录页平台都不回落登录页：
+            // 前者由宿主在完成后关窗/进入主界面，后者（移动端/Android）须保持登录层隐藏。
             const loginModal = document.getElementById('login-modal');
-            if (loginModal) loginModal.style.display = '';
+            if (!loginModal) return;
+            loginModal.style.display = (_firstRunMode || !hasLoginScreen()) ? 'none' : '';
         }
 
         /* ===== 激活页动态控件渲染（登录前 state 未初始化，全部直接读 storage） ===== */
