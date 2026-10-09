@@ -533,6 +533,13 @@ FrameLayout (root, 全屏黑底)
 
 ---
 
+### 二轮修复（同日复核）
+
+- **首启界面先于权限申请**：`showFirstRunIfNeeded()` 返回是否已显示，`initBle()` 与相机/通知授权在首启完成前推迟——此前系统蓝牙与相机弹窗会先盖在首启界面上。
+- **首启选语言立刻作用于主界面**：语言按钮改为「先落库已输入的 API Key → `PhoneI18n.setLang` → `recreate()`」；此前只重建首启界面本身，主界面要等重启才换语言。
+- **切语言不丢 Key**：重建前从当前视图取回已输入内容（`findFirstRunKeyInput`）。
+- **二维码扫描页提示随语言**：`hintText`/`bottomHint` 此前只取视图未回写文案，英文模式恒显示中文；现走 `PhoneI18n.t()`。
+
 ## 构建配置
 
 - **compileSdk / targetSdk**: 34

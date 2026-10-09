@@ -10,7 +10,11 @@ win-app 是 master-app 控制台的 Windows 桌面版（Electron + HTML/JS + C# 
 - 蓝牙外设：`ble-host/`（C#，Windows GATT Service Provider）广播 `RobotControl-Win`，slave-app 可扫描或扫码连接，复用 7500 服务协议（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey/UiLang、分片 0x7E、心跳 5s、0xFF 手动断开、API Key 同步）；`UiLang(7507)`（1.5.0 新增）`READ|NOTIFY` 1 字节（0x00=zh/0x01=en），主进程在宿主就绪与每次广播启动时补推当前语言、`i18n-set-lang` 即时推送——**1.10.0 起 slave-app 不再消费该特征**（其界面语言改为本机检测 + 手选），服务端推送与订阅补发保持不变，旧版客户端仍可用。**Mode(7501) 1.7.0 起 `Read|Write|Notify` 可写**：phone 反向推送模式经 C# 宿主 `ModeReceived` 事件 → IPC `{"type":"mode","ordinal":n}` → 主进程 `bleBridge.on('mode')` → `window.__rcOnRemoteMode(ordinal)` 切换并高亮对应模式按钮，桌面端同时弹 macOS 风格通知「推送成功」（详见 BLE 协议文档「反向模式推送」）。
 - 启动流程：双击 `RobotControl-Console.exe`（无窗口 C# 启动器，拉起 Electron 后立即退出）→ 启动器直接出现（冷启动实测约 0.5s、常规 1.0~1.3s 窗口可见，已移除前序可见加载界面）→（点击设备按钮，立即弹出“正在进入控制台”遮罩）→ 主窗口首帧渲染完成后显示轻量闪屏页（Rt5Open_169.mp4 横屏视频、带声音、无文字，点击/任意按键立即跳过）→ 登录页（进入登录页**无**加载动画）→ 登录成功后登录卡片下半部收缩、原位换入系统加载动画（属于登录界面，约 1.2s，进度起步即挂载主界面）→ 三栏控制台。
 - 默认账号 `admin` / `admin`；登录页标题为「仿人男性机器人控制台」。
-- **首次启动（1.10.0）**：`huancun/activated.json` 无 `done` 标记时，激活窗口（1080×860，载入控制台 `?firstrun=1`）先于启动器出现；完成后写标记 → 关窗 → 建启动器继续原流程。窗口保持隐藏直到页面判定确需填表（已激活用户直接收尾回启动器，不闪窗，3s 兜底）；用户直接关闭窗口视为跳过（不写标记，控制台内激活页仍兜底）。
+- **首次启动（1.10.0）**：`huancun/activated.json` 无 `done` 标记时，激活窗口（1080×860，载入控制台 `?firstrun=1`）先于启动器出现；完成后写标记 → 关窗 → 建启动器继续原流程。窗口保持隐藏直到页面报出「是否需要填表」（`firstRunReady(needsForm)`）：已激活用户直接收尾回启动器、不闪窗。
+  - **相位机**（`firstRunPhase`：pending/表单/form/done/timeout/closed）与三条收尾路径：① 页面报需要填表 → 显示窗口；② 页面报无需填表 → 写标记并进启动器；③ **3s 内无任何信号**（页面自身出错，如缺文件）→ 关窗进启动器且**不写标记**，交回控制台内置激活页兜底——否则会把用户卡在一个显示控制台登录页的窗口里。
+  - 用户直接关闭窗口 = 跳过：**与 www/Android、slave 语义一致写入完成标记**（否则每次启动都会再弹，Alt+F4 也甩不掉）。
+  - 激活窗口的标题栏按钮经 `framelessTarget()` 解析到「当前活动的无边框窗口」——激活阶段 `mainWindow` 尚未创建，若只认它则按钮全部失效、无处可关。
+  - 安装目录不可写（解压到 Program Files 等）时，由启动器入口 `splash-loader` 前置探测并提示移动到可写目录（否则 Chromium 建不了 userData/临时目录会静默退出，表现为双击没反应）。
 
 ## 架构与关键实现
 

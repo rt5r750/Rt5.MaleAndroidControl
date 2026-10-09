@@ -235,23 +235,27 @@ class MainActivity : ComponentActivity(), DataStoreListener {
 
         if (!firstRunShowing) {
             initBle()
+            requestRuntimePermissionsIfNeeded()
         }
 
-        if (checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
-        }
-
-        if (Build.VERSION.SDK_INT >= 33) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-            }
-        }
-
-        /* 语音识别常态保持：上次为开启且已授权时自动恢复（低功耗：仅前台运行） */
+        /* 语音识别常态保持：上次为开启且已授权时自动恢复（低功耗：仅前台运行）。
+           与权限申请无关（用已授予的权限），保持无条件执行。 */
         if (ApiKeyStore.isAsrActive() &&
             checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         ) {
             startSpeech(showToast = false)
+        }
+    }
+
+    /** 相机（扫码）与通知（语音消息）授权：首启界面未完成时推迟，避免系统弹窗盖住设置项。 */
+    private fun requestRuntimePermissionsIfNeeded() {
+        if (checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
         }
     }
 
@@ -1502,8 +1506,9 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         markFirstRunDone()
         firstRunContainer?.let { it.visibility = View.GONE; it.removeAllViews() }
         firstRunContainer = null
-        // 首启期间推迟的 BLE 初始化在此补上（正常首启路径 onCreate 不会重复调用）
+        // 首启期间推迟的 BLE 初始化与权限申请在此补上
         initBle()
+        requestRuntimePermissionsIfNeeded()
     }
 
     private fun buildFirstRunView(): View {
