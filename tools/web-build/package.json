@@ -7,6 +7,7 @@
     "build": "tailwindcss -i ./input.css -o ../../www/css/tailwind.css --minify && node ../manual-build/build.mjs && node generate-cache-manifest.mjs",
     "build:css": "tailwindcss -i ./input.css -o ../../www/css/tailwind.css --minify",
     "build:manual": "node ../manual-build/build.mjs",
+    "check:i18n": "node ../i18n-check/check-gaps.cjs && node ../i18n-check/check-dynamic.cjs && node ../i18n-check/check-english-leak.cjs",
     "watch": "tailwindcss -i ./input.css -o ../../www/css/tailwind.css --watch"
   },
   "devDependencies": {

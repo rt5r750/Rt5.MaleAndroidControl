@@ -255,10 +255,10 @@
                     <!-- 侧边导航（仅桌面菜单模式显示；JS 生成组标题列表，点击跳转+滚动高亮） -->
                     <aside id="settings-nav" aria-label="设置导航"></aside>
                     <div class="settings-body">
-                    <!-- 界面语言（默认中文，可切换英文；英文译文见 js/i18n.js，遵循 T31-750 说明书术语） -->
+                    <!-- 界面语言（v1.10.0 起默认英文：按设备语言检测，可在此手动切换；英文译文见 js/i18n.js） -->
                     <div class="setting-group" id="lang-setting">
                         <label class="setting-label">语言</label>
-                        <p class="text-xs text-[#8fbc8f]/70 mb-2">默认中文；切换后界面文案立即生效，刷新后保持</p>
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">默认按设备语言自动匹配（中文设备显示中文，其余显示英文）；切换后界面文案立即生效，刷新后保持</p>
                         <div class="flex flex-wrap gap-2">
                             <button type="button" id="lang-zh-btn" class="btn-add lang-active" data-lang="zh">中文</button>
                             <button type="button" id="lang-en-btn" class="btn-add" data-lang="en">English</button>
