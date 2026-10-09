@@ -1,0 +1,4 @@
+<resources>
+    <!-- MACS = Master Android Control Station：品牌名，中英同值（语言自适应用于界面文案，不改品牌名） -->
+    <string name="app_name">MACS</string>
+</resources>

@@ -2,12 +2,12 @@
 
 ## 定位
 
-win-app 是 android-app 控制台的 Windows 桌面版（Electron + HTML/JS + C# BLE 宿主），运行于 Windows：
+win-app 是 master-app 控制台的 Windows 桌面版（Electron + HTML/JS + C# BLE 宿主），运行于 Windows：
 
 - 由前置启动器与控制台两部分组成：
   - 启动器（`design/launcher.html`）：标题“男性机器人控制终端”，Acrylic 毛玻璃 USB 前置页，检测/匹配 USB 存储设备后点击进入控制台；
   - 控制台：1440×900 宽屏三栏布局，前端资源为仓库根 `www/` 的构建期同步镜像（`scripts/sync-www.ps1`，npm prestart/predist 自动执行，gitignore；`css/win.css`/`js/win.js` 仅本端按需加载；同步排除 `.mimosa` 等工具状态目录，拷贝后递归清扫目标内同名目录兜底）。
-- 蓝牙外设：`ble-host/`（C#，Windows GATT Service Provider）广播 `RobotControl-Win`，phone-app 可扫描或扫码连接，复用 7500 服务协议（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey/UiLang、分片 0x7E、心跳 5s、0xFF 手动断开、API Key 同步）；`UiLang(7507)`（1.5.0 新增）`READ|NOTIFY` 1 字节（0x00=zh/0x01=en），主进程在宿主就绪与每次广播启动时补推当前语言、`i18n-set-lang` 即时推送——phone 连接后显示语言跟随控制台。**Mode(7501) 1.7.0 起 `Read|Write|Notify` 可写**：phone 反向推送模式经 C# 宿主 `ModeReceived` 事件 → IPC `{"type":"mode","ordinal":n}` → 主进程 `bleBridge.on('mode')` → `window.__rcOnRemoteMode(ordinal)` 切换并高亮对应模式按钮，桌面端同时弹 macOS 风格通知「推送成功」（详见 BLE 协议文档「反向模式推送」）。
+- 蓝牙外设：`ble-host/`（C#，Windows GATT Service Provider）广播 `RobotControl-Win`，slave-app 可扫描或扫码连接，复用 7500 服务协议（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey/UiLang、分片 0x7E、心跳 5s、0xFF 手动断开、API Key 同步）；`UiLang(7507)`（1.5.0 新增）`READ|NOTIFY` 1 字节（0x00=zh/0x01=en），主进程在宿主就绪与每次广播启动时补推当前语言、`i18n-set-lang` 即时推送——phone 连接后显示语言跟随控制台。**Mode(7501) 1.7.0 起 `Read|Write|Notify` 可写**：phone 反向推送模式经 C# 宿主 `ModeReceived` 事件 → IPC `{"type":"mode","ordinal":n}` → 主进程 `bleBridge.on('mode')` → `window.__rcOnRemoteMode(ordinal)` 切换并高亮对应模式按钮，桌面端同时弹 macOS 风格通知「推送成功」（详见 BLE 协议文档「反向模式推送」）。
 - 启动流程：双击 `RobotControl-Console.exe`（无窗口 C# 启动器，拉起 Electron 后立即退出）→ 启动器直接出现（冷启动实测约 0.5s、常规 1.0~1.3s 窗口可见，已移除前序可见加载界面）→（点击设备按钮，立即弹出“正在进入控制台”遮罩）→ 主窗口首帧渲染完成后显示轻量闪屏页（Rt5Open_169.mp4 横屏视频、带声音、无文字，点击/任意按键立即跳过）→ 登录页（进入登录页**无**加载动画）→ 登录成功后登录卡片下半部收缩、原位换入系统加载动画（属于登录界面，约 1.2s，进度起步即挂载主界面）→ 三栏控制台。
 - 默认账号 `admin` / `T31750`；登录页标题为「仿人男性机器人控制台」。
 
@@ -79,9 +79,9 @@ win-app 是 android-app 控制台的 Windows 桌面版（Electron + HTML/JS + C#
 - `window.consoleAPI` → IPC `win-minimize` / `win-maximize-toggle` / `win-close` / `win-fullscreen-toggle` / `win-back-to-launcher`；v1.6.0 新增 `setModelInfo(info)` → IPC `model-info-set`（型号信息生效值推送）。
 - `app/titlebar-width.js` 保留用于计算窗口控件宽度（无 WCO 时为 0）；`app/titlebar.js` 已删除。
 
-### 界面、动画与衔接（与 android-app 同步）
+### 界面、动画与衔接（与 master-app 同步）
 
-- 主控制台 `app/www` 已同步 android-app 的精灵图旋转方案（仅动画部分，其余功能保持不变）：新增 `RotationSprite.js` 与 `www/sprites/`（灰模/彩色双精灵 + JSON，216×504、11 列、56 帧、30fps），蓝牙弹窗与灵动岛均改为 Canvas 渲染，状态机与启动器一致（回正/停顿/MORPH 锁正面帧/断连反向）。
+- 主控制台 `app/www` 已同步 master-app 的精灵图旋转方案（仅动画部分，其余功能保持不变）：新增 `RotationSprite.js` 与 `www/sprites/`（灰模/彩色双精灵 + JSON，216×504、11 列、56 帧、30fps），蓝牙弹窗与灵动岛均改为 Canvas 渲染，状态机与启动器一致（回正/停顿/MORPH 锁正面帧/断连反向）。
 - 中文字体使用 `www/webfonts/` 内的 MiSans（Regular/Demibold，仅汉字与中文标点范围），数字/英文保持 JetBrains Mono 等原字体；自绘标题栏整行文字（含 `T31-750`）使用全字符集 MiSans。
 - 连接弹窗随窗口高度自适应：桌面菜单模式下面板 `max-height: calc(100vh - var(--header-total) - 96px)` 收缩（预留底部程序坞高度）、精灵图按 `min(56vh, 480px)` 缩放，底部按钮在最小窗口高度下仍完整可见（移动端单栏保留 `calc(100vh - 40px - 12vh)` 旧规则）。
 - 三栏布局按列独立分配高度（不再共享行高，各栏互不跟随）：第一栏情绪与服从度面板按内容高度自适应且无留白、永不滚动，终端与机器人控制台对半分配剩余高度；第二栏运行参数窗口始终按内容完整显示，任务指令系统与调试日志按方向感知分配剩余高度——缩矮时优先缩调试日志（最小 1 条）再缩任务系统、之后均匀分配；扩高时优先扩任务系统（到 3 条）再扩调试日志（到 4 条）、之后继续扩任务系统；日志文字缩小、行距收紧、最多显示约 4 行。

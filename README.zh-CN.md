@@ -39,15 +39,15 @@
 **控制台 · 手机布局** 与 **机器人端 App**。
 
 <img src="docs/screenshots/console-mobile.jpg" width="49%" alt="控制台手机布局">
-<img src="docs/screenshots/phone-app.jpg" width="49%" alt="机器人端 App">
+<img src="docs/screenshots/slave-app.jpg" width="49%" alt="机器人端 App">
 
 ## 端与仓库结构
 
 | 目录 | 说明 | 技术栈 |
 |---|---|---|
 | `www/` | **三端共用的唯一前端主线**（控制台页面、样式、字体、词典、素材）；所有同步副本一律由它生成 | 原生 HTML/CSS/JS（Tailwind 已静态化，运行时零外链） |
-| `android-app/` | 控制台 App：WebView 壳 + BLE GATT Server + 外链处理 | Kotlin，compileSdk/targetSdk 34，minSdk 31 |
-| `phone-app/` | 机器人端 App：模式 / 情绪 / 任务 / 连接面板，本地语音识别按读音匹配四大模式 | Kotlin，minSdk 24 |
+| `master-app/` | 控制台 App：WebView 壳 + BLE GATT Server + 外链处理 | Kotlin，compileSdk/targetSdk 34，minSdk 31 |
+| `slave-app/` | 机器人端 App：模式 / 情绪 / 任务 / 连接面板，本地语音识别按读音匹配四大模式 | Kotlin，minSdk 24 |
 | `watch-app/` | WearOS 手表端：保活前台服务、模式切换震动、连接状态 | Kotlin，minSdk 31 |
 | `win-app/` | Windows 桌面端：Electron 主程序 + C# BLE 宿主 + 启动器窗口 + 闪屏入口 | Electron 43 + Node + .NET 8 |
 | `design/` | 启动器 UI 设计稿与精灵图素材 | 原生 HTML/CSS/Canvas |
@@ -71,12 +71,12 @@ npm run build        # 重新生成 www/css/tailwind.css 与 www/cache-manifest.
 ### 控制台 / 机器人端 / 手表端
 
 ```bash
-cd android-app && ./gradlew assembleRelease     # app/build/outputs/apk/release/app-release.apk
-cd phone-app   && ./gradlew assembleRelease
+cd master-app && ./gradlew assembleRelease     # app/build/outputs/apk/release/app-release.apk
+cd slave-app   && ./gradlew assembleRelease
 cd watch-app   && ./gradlew assembleRelease
 ```
 
-`android-app` 构建前会自动执行 `syncWww`，把仓库根 `www/` 同步进 `app/src/main/assets/www/`（该副本为生成物，不入库）。
+`master-app` 构建前会自动执行 `syncWww`，把仓库根 `www/` 同步进 `app/src/main/assets/www/`（该副本为生成物，不入库）。
 
 ### Windows 桌面端
 
@@ -98,10 +98,10 @@ pwsh scripts/package-with-splash.ps1   # 组装 runtime/ 与双击入口 exe
 ```
 Rt5.MaleAndroidControl/
 ├── www/                              ✔ 共享前端唯一主线
-├── android-app/                      ✔ Kotlin 源码
+├── master-app/                      ✔ Kotlin 源码
 │   └── app/src/main/assets/www/      ⚙ 由 Gradle syncWww 生成
 │   └── app/build/                    ⚙ 构建产物
-├── phone-app/  watch-app/            ✔ Kotlin 源码（app/build/ 为 ⚙）
+├── slave-app/  watch-app/            ✔ Kotlin 源码（app/build/ 为 ⚙）
 ├── win-app/                          ✔ Electron 与 C# 源码（app/、ble-host/*.cs、scripts/、test/）
 │   ├── app/www/                      ⚙ 由 scripts/sync-www.ps1 生成
 │   ├── ble-host/{bin,obj,publish}/   ⚙ dotnet publish 产物
@@ -121,7 +121,7 @@ git status --ignored --short    # 只在本地保留的内容
 
 ## 文档
 
-[开发文档群入口](docs/reademe.md) · [整体架构](docs/architecture.md) · [BLE 协议](docs/ble-protocol.md) · [数据模型](docs/data-models.md) · 各端说明：[android-app](docs/android-app/reademe.md) · [phone-app](docs/phone-app/reademe.md) · [watch-app](docs/watch-app/reademe.md) · [win-app](docs/win-app/reademe.md)
+[开发文档群入口](docs/reademe.md) · [整体架构](docs/architecture.md) · [BLE 协议](docs/ble-protocol.md) · [数据模型](docs/data-models.md) · 各端说明：[master-app](docs/master-app/reademe.md) · [slave-app](docs/slave-app/reademe.md) · [watch-app](docs/watch-app/reademe.md) · [win-app](docs/win-app/reademe.md)
 
 ## 许可
 

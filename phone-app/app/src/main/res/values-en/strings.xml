@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- English resources for 750 Receiver (system-locale driven: launcher label & capsule initial text).
-     In-app UI language (default Chinese, switch via capsule long-press) is handled by PhoneI18n. -->
-<resources>
-    <string name="app_name">750 Receiver</string>
-    <string name="capsule_text_default">Test Mode</string>
-</resources>

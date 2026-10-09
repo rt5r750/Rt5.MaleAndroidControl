@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 品牌名 Slave 中英同值（values/ 与 values-en/ 一致）。
+     胶囊初始占位文案随系统语言；应用内文案由 PhoneI18n 覆盖层负责。 -->
+<resources>
+    <string name="app_name">Slave</string>
+    <string name="capsule_text_default">Test Mode</string>
+</resources>

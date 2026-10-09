@@ -25,13 +25,13 @@ import java.util.Queue
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-/* 与 phone-app ConsoleBleClient 对齐的 GATT 客户端：
+/* 与 slave-app ConsoleBleClient 对齐的 GATT 客户端：
    · GATT 操作串行队列（CCCD 订阅×N、初读排队，杜绝并发 writeDescriptor 互相踩踏——
      旧版连发 4 次 CCCD 只等第 1 次，Emotion/Tasks/Voice 通知订阅失败、连接后数据不动）
    · requestMtu(512) 协商 + 0x7E 分片重组（旧版无分片，长 JSON 任务/语音每片被当完整包解析失败）
    · connectGatt 指定 TRANSPORT_LE
    · 扫描回调不再因 device.name 为 null 丢设备：ScanFilter 已按服务 UUID 7500 过滤，
-     名称以 scanRecord 优先（android-app 控制台的名字在 scan response，首轮可能取不到缓存名） */
+     名称以 scanRecord 优先（master-app 控制台的名字在 scan response，首轮可能取不到缓存名） */
 @SuppressLint("MissingPermission")
 object PhoneBleClient {
 

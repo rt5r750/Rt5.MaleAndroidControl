@@ -5,7 +5,7 @@
 - **目录**：[watch-app](../../watch-app)
 - **包名**：`com.robotcontrol.watch`
 - **技术栈**：Kotlin 原生 WearOS
-- **BLE 角色**：GATT Client（连接 Console：android-app / win-app）
+- **BLE 角色**：GATT Client（连接 Console：master-app / win-app）
 - **入口**：MainActivity（单 Activity）
 
 ---
@@ -81,7 +81,7 @@ watch-app/
 
 [PhoneBleClient.kt](../../watch-app/app/src/main/java/com/robotcontrol/watch/ble/PhoneBleClient.kt)
 
-BLE GATT Client 单例（object），连接 Console（android-app `RobotControl-Console` / win-app `RobotControl-Win`），与 phone-app ConsoleBleClient 同一套成熟模式（1.5.0 对齐重写）：
+BLE GATT Client 单例（object），连接 Console（master-app `RobotControl-Console` / win-app `RobotControl-Win`），与 slave-app ConsoleBleClient 同一套成熟模式（1.5.0 对齐重写）：
 1. 扫描按 `ScanFilter`（Service UUID=7500）过滤，命中即接受（名称以 `scanRecord` 优先、系统缓存名兜底，仅用于展示——旧版因首轮 `device.name` 为 null 直接丢设备的缺陷已修复）
 2. 独立 BLE 线程 + **GATT 操作串行队列**（CCCD 订阅×4、初读排队执行——旧版连发 4 次 `writeDescriptor` 只等第 1 次，Emotion/Tasks/Voice 通知订阅失败的缺陷已修复）
 3. 连接后 `requestMtu(512)` 协商再发现服务；`connectGatt` 指定 `TRANSPORT_LE`
@@ -272,13 +272,13 @@ FrameLayout (root, 全屏黑底 #000000)
 
 ---
 
-## 关键差异点（与 phone-app 对比）
+## 关键差异点（与 slave-app 对比）
 
-| 特性 | watch-app | phone-app |
+| 特性 | watch-app | slave-app |
 |---|---|---|
 | Task 数据类 | 无 type 字段，不区分任务类型/优先级 | 有 type 字段（cognitive/terminal/button等） |
 | 语音历史保留 | 20 条 | 100 条 |
-| BLE Client | MTU=512 协商 + 0x7E 分片重组 + 串行队列（1.5.0 对齐 phone-app） | MTU=512、分片重组（Magic=0x7E）、长读反射 |
+| BLE Client | MTU=512 协商 + 0x7E 分片重组 + 串行队列（1.5.0 对齐 slave-app） | MTU=512、分片重组（Magic=0x7E）、长读反射 |
 | 语言 | 保持中文（不订阅 7507 UiLang） | 跟随发送端（订阅 7507 UiLang） |
 | 保活 | `BleKeepAliveService` 前台服务 + 开机自启 + 划掉自重启 + 模式切换震动 | 无前台服务（Activity 进程内） |
 | NFC 读取 | 不支持 | 不支持（已移除） |

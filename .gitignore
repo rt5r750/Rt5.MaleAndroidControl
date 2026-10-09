@@ -9,8 +9,8 @@ node_modules/
 
 # ── 构建产物 ──────────────────────────────────────────────────
 # win-app/build/icon.ico 是 electron-builder 的 buildResources，仍在库里
-android-app/app/build/
-phone-app/app/build/
+master-app/app/build/
+slave-app/app/build/
 watch-app/app/build/
 **/.gradle/
 win-app/dist/
@@ -22,7 +22,7 @@ win-app/ble-host/obj/
 win-app/ble-host/publish/
 win-app/splash-loader/bin/
 # 由 Gradle syncWww / scripts/sync-www.ps1 从仓库根 www/ 生成
-android-app/app/src/main/assets/www/
+master-app/app/src/main/assets/www/
 win-app/app/www/
 
 # ── 出包暂存区（本机；发布素材走 GitHub Releases，不入库）──────

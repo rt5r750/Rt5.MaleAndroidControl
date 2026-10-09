@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Slave：品牌名，中英同值；界面语言由 PhoneI18n 决定（默认英文，可手动改） -->
+    <string name="app_name">Slave</string>
+    <!-- 胶囊初始占位文案随系统语言（与 PhoneI18n 的设备语言检测口径一致：zh→中文，其余→英文） -->
+    <string name="capsule_text_default">调试模式</string>
+</resources>

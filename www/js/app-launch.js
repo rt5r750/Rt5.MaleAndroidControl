@@ -1,5 +1,5 @@
 // 浏览器端 App 拉起引导（仅纯浏览器由 platform-bootstrap 注入本文件；Android WebView / Electron 壳内不加载）
-// 协议：robotcontrol://console（android-app VIEW+BROWSABLE / win-app setAsDefaultProtocolClient）
+// 协议：robotcontrol://console（master-app VIEW+BROWSABLE / win-app setAsDefaultProtocolClient）
 // 检测：跳转 scheme 后监听 visibilitychange/pagehide；~2.2s 内页面未隐藏视为未安装 → 高亮下载引导
 // 首访强制模式（lite 且支持缓存）：窗口不可关闭/忽略，「缓存网页」按钮置顶突出，
 // 必须完成缓存才能进入；已缓存/不支持缓存的用户为常规可关闭引导，缓存入口退居末位弱化样式。

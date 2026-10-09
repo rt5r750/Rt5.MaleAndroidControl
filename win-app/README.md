@@ -1,6 +1,6 @@
 # RobotControl 控制台（Windows 版）
 
-将 android-app 的网页控制台（Kotlin + WebView + HTML/JS）迁移为 Windows 桌面应用，默认以 1440×900 宽屏打开，自动进入页面的桌面三栏布局。
+将 master-app 的网页控制台（Kotlin + WebView + HTML/JS）迁移为 Windows 桌面应用，默认以 1440×900 宽屏打开，自动进入页面的桌面三栏布局。
 
 ## 运行
 
@@ -12,14 +12,14 @@
 
 ## 功能与桥接说明
 
-前端资源为 android-app `assets/www` 的原样副本（仅修正了使用说明书的 PDF 路径，原路径指向不存在的 www 根目录）。
+前端资源为 master-app `assets/www` 的原样副本（仅修正了使用说明书的 PDF 路径，原路径指向不存在的 www 根目录）。
 
 | 功能 | Windows 实现 |
 |------|-------------|
 | 安全区 / 输入法 | 桌面无手机安全区，返回 0 |
 | 外链 / PDF | 系统浏览器打开 / 系统默认 PDF 程序打开；宽屏模式内嵌 PDF 阅读器 |
-| 二维码 | 生成含 `RobotControl-Win` 配对信息的 QR 图（使用宿主真实 MAC，phone-app 可扫码直连） |
-| 蓝牙连接 | Windows GATT Service Provider 外设模式：`ble-host/`（C#）广播 `RobotControl-Win`，phone-app 扫描/扫码连接后实时接收 Mode/Emotion/Tasks/Voice；适配器不支持外设模式时提示并保持未绑定 |
+| 二维码 | 生成含 `RobotControl-Win` 配对信息的 QR 图（使用宿主真实 MAC，slave-app 可扫码直连） |
+| 蓝牙连接 | Windows GATT Service Provider 外设模式：`ble-host/`（C#）广播 `RobotControl-Win`，slave-app 扫描/扫码连接后实时接收 Mode/Emotion/Tasks/Voice；适配器不支持外设模式时提示并保持未绑定 |
 | MiMo TTS | API Key/引擎持久化到本地存储；浏览器请求失败时经主进程代理（无 CORS 限制）；音频经 preload 播放并回调 `__ttsOnComplete` |
 | localStorage | 持久化在代码根目录 `huancun/userData/`（自动迁移旧 `%APPDATA%` 数据） |
 | USB 前置启动器 | PowerShell WMI 轮询可移动盘（DriveType=2 反查物理磁盘）+ 多设备匹配规则（支持 deviceId/卷标/盘符，设置面板自动扫描）；F2 测试模式；huimo/color 精灵图状态机；点击进入控制台 |
@@ -60,7 +60,7 @@ $env:ELECTRON_BUILDER_BINARIES_MIRROR='https://npmmirror.com/mirrors/electron-bu
 - `app/splash.html` — 黑色闪屏页
 - `splash-loader/` — 无窗口 C# 启动器源码（Program.cs）
 - `scripts/` — 打包脚本（package-with-splash.ps1，生成入口 exe + runtime/）
-- `app/www/` — 主控制台前端资源（从 android-app 复制，含系统级 Acrylic 毛玻璃标题栏）
+- `app/www/` — 主控制台前端资源（从 master-app 复制，含系统级 Acrylic 毛玻璃标题栏）
 - `design/launcher.html` / `design/launcher-assets/` — 启动器页面与精灵图、字体资源
 - `test/` — 自动化测试
 - `tools/` — CDP 调试脚本（截图/状态/桥接自检，不参与打包）

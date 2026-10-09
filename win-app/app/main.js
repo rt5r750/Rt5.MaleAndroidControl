@@ -162,7 +162,7 @@ function createLauncherWindow() {
     fullscreenable: false,
     icon: APP_ICON,
     autoHideMenuBar: true,
-    title: i18n.t('男性机器人控制终端'),
+    title: 'MACS',
     webPreferences: {
       preload: path.join(__dirname, 'preload-launcher.js'),
       contextIsolation: true,

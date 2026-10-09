@@ -8,7 +8,6 @@
 (function (global) {
     'use strict';
     var DICT = {
-        '男性机器人控制终端': 'Male Android Control Terminal',
         '最小化': 'Minimize',
         '关闭': 'Close',
         'T31-750型仿人男性机器人': 'T31-750 Male Android',

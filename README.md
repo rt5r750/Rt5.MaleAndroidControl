@@ -39,15 +39,15 @@ Stills from the promo film; the console and app UIs run in English.
 **Console — mobile layout** and the **robot-side phone app** (narrow browser / Android apps).
 
 <img src="docs/screenshots/console-mobile.jpg" width="49%" alt="Console — mobile">
-<img src="docs/screenshots/phone-app.jpg" width="49%" alt="Robot-side phone app">
+<img src="docs/screenshots/slave-app.jpg" width="49%" alt="Robot-side phone app">
 
 ## Ends and layout
 
 | Directory | What it is | Stack |
 |---|---|---|
 | `www/` | **Single source of truth for the shared front end** (console pages, styles, fonts, dictionaries, assets); every synced copy is generated from here | Plain HTML/CSS/JS (Tailwind pre-compiled, zero runtime CDN) |
-| `android-app/` | Console app — WebView shell + BLE GATT server + external-link handling | Kotlin, compileSdk/targetSdk 34, minSdk 31 |
-| `phone-app/` | Robot-side app — mode / emotion / task / connection panels, on-device speech recognition by pronunciation matching | Kotlin, minSdk 24 |
+| `master-app/` | Console app — WebView shell + BLE GATT server + external-link handling | Kotlin, compileSdk/targetSdk 34, minSdk 31 |
+| `slave-app/` | Robot-side app — mode / emotion / task / connection panels, on-device speech recognition by pronunciation matching | Kotlin, minSdk 24 |
 | `watch-app/` | Wear OS app — keep-alive foreground service, mode-change haptics, connection state | Kotlin, minSdk 31 |
 | `win-app/` | Windows desktop build — Electron main app + C# BLE host + launcher window + splash entry | Electron 43 + Node + .NET 8 |
 | `design/` | Launcher UI design and sprite assets | Plain HTML/CSS/Canvas |
@@ -71,12 +71,12 @@ npm run build        # regenerates www/css/tailwind.css and www/cache-manifest.j
 ### Android console / robot-side / watch apps
 
 ```bash
-cd android-app && ./gradlew assembleRelease     # app/build/outputs/apk/release/app-release.apk
-cd phone-app   && ./gradlew assembleRelease
+cd master-app && ./gradlew assembleRelease     # app/build/outputs/apk/release/app-release.apk
+cd slave-app   && ./gradlew assembleRelease
 cd watch-app   && ./gradlew assembleRelease
 ```
 
-`android-app` runs the `syncWww` Gradle task before building, mirroring the repository's `www/` into `app/src/main/assets/www/` (that copy is generated, never committed).
+`master-app` runs the `syncWww` Gradle task before building, mirroring the repository's `www/` into `app/src/main/assets/www/` (that copy is generated, never committed).
 
 ### Windows desktop build
 
@@ -98,10 +98,10 @@ Only source, docs and assets are tracked. Directories marked ⚙ are produced by
 ```
 Rt5.MaleAndroidControl/
 ├── www/                              ✔ shared front end (only source of truth)
-├── android-app/                      ✔ Kotlin sources
+├── master-app/                      ✔ Kotlin sources
 │   └── app/src/main/assets/www/      ⚙ mirrored by the Gradle syncWww task
 │   └── app/build/                    ⚙ Gradle output
-├── phone-app/  watch-app/            ✔ Kotlin sources (app/build/ is ⚙)
+├── slave-app/  watch-app/            ✔ Kotlin sources (app/build/ is ⚙)
 ├── win-app/                          ✔ Electron + C# sources (app/, ble-host/*.cs, scripts/, test/)
 │   ├── app/www/                      ⚙ mirrored by scripts/sync-www.ps1
 │   ├── ble-host/{bin,obj,publish}/   ⚙ dotnet publish output
@@ -121,7 +121,7 @@ git status --ignored --short    # what stays local only
 
 ## Documentation
 
-[docs/reademe.md](docs/reademe.md) (index) · [architecture](docs/architecture.md) · [BLE protocol](docs/ble-protocol.md) · [data models](docs/data-models.md) · per-end notes: [android-app](docs/android-app/reademe.md) · [phone-app](docs/phone-app/reademe.md) · [watch-app](docs/watch-app/reademe.md) · [win-app](docs/win-app/reademe.md)
+[docs/reademe.md](docs/reademe.md) (index) · [architecture](docs/architecture.md) · [BLE protocol](docs/ble-protocol.md) · [data models](docs/data-models.md) · per-end notes: [master-app](docs/master-app/reademe.md) · [slave-app](docs/slave-app/reademe.md) · [watch-app](docs/watch-app/reademe.md) · [win-app](docs/win-app/reademe.md)
 
 The documentation set is written in Chinese; the code, comments on protocol constants and this README are the English entry points.
 

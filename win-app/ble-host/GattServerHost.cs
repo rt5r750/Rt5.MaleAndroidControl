@@ -7,7 +7,7 @@ using Windows.Storage.Streams;
 namespace RobotControl.BleHost;
 
 /// <summary>
-/// 与 android-app RobotGattServer 对齐的 GATT Service 7500 外设宿主：
+/// 与 master-app RobotGattServer 对齐的 GATT Service 7500 外设宿主：
 /// 7 个特征（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey/UiLang），分片 0x7E、心跳 5s、0xFF 手动断开、API Key 转发。
 /// </summary>
 public sealed class GattServerHost : IAsyncDisposable
@@ -100,7 +100,7 @@ public sealed class GattServerHost : IAsyncDisposable
                 Log?.Invoke("info", $"广告状态：{_provider?.AdvertisementStatus}");
             };
 
-            // Mode(7501)：Read|Write|Notify —— 客户端（phone-app）可写入 ordinal 反向切换控制台模式
+            // Mode(7501)：Read|Write|Notify —— 客户端（slave-app）可写入 ordinal 反向切换控制台模式
             await AddCharacteristicAsync(ModeUuid, "Mode", GattCharacteristicProperties.Read | GattCharacteristicProperties.Write | GattCharacteristicProperties.Notify);
             await AddCharacteristicAsync(EmotionUuid, "Emotion", GattCharacteristicProperties.Read | GattCharacteristicProperties.Notify);
             await AddCharacteristicAsync(TasksUuid, "Tasks", GattCharacteristicProperties.Read | GattCharacteristicProperties.Notify);

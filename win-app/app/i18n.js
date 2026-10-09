@@ -16,7 +16,6 @@ const STORE_FILE = () => {
 };
 
 const DICT = {
-  '男性机器人控制终端': 'Male Android Control Terminal',
   '已连接至T31-750型仿人男性机器人的内部系统': 'Connected to the internal system of T31-750 Male Android',
   'BLE 宿主未就绪，请稍后重试': 'BLE host is not ready, please try again later',
   '未找到 BLE 宿主程序（AndroidControl-BleHost.exe），请重新打包': 'BLE host program (AndroidControl-BleHost.exe) not found; please repackage',

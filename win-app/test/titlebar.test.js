@@ -95,7 +95,7 @@ test('main.js maps app://bundle host to app root so console splash can load', ()
 
 test('build icon is a valid ico containing 256px frame', async () => {
   const sourcePng = path.join(
-    __dirname, '..', '..', 'android-app', 'app', 'src', 'main', 'res', 'mipmap-xxxhdpi', 'ic_launcher.png'
+    __dirname, '..', '..', 'master-app', 'app', 'src', 'main', 'res', 'mipmap-xxxhdpi', 'ic_launcher.png'
   );
   const icoPath = path.join(__dirname, '..', 'build', 'icon.ico');
   assert.ok(fs.existsSync(icoPath), 'build/icon.ico missing');
