@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MACS · 使用说明书</title>
+<style>
+  /* 与主控制台一致的深绿配色；字体栈遵循项目规范（中文 MiSans / 数字英文 JetBrains Mono）。
+     本页可能经 file://（Android 资产）、app://（win-app）或直接打开仓库文件访问，
+     因此字体只引用相对路径，缺失时回退系统字体，不依赖网络。 */
+  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Demibold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+  @font-face { font-family: 'JetBrains Mono'; src: url('../../webfonts/JetBrainsMono-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: #05100a; color: #c0e4c0;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', 'MiSans', monospace;
+    font-size: 14px; line-height: 1.75;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 28px 24px 72px; }
+  .bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px;
+         margin: -28px -24px 24px; padding: 12px 24px;
+         background: rgba(5,16,10,0.94); border-bottom: 1px solid #24381f; backdrop-filter: blur(6px); }
+  .bar-title { flex: 1; font-weight: 600; color: #8fbc8f; font-size: 13px; }
+  .bar a { color: #8fbc8f; text-decoration: none; border: 1px solid #2f4a2f; border-radius: 6px;
+           padding: 5px 12px; font-size: 12px; white-space: nowrap; }
+  .bar a:hover { background: rgba(143,188,143,0.12); }
+  h1 { font-size: 25px; line-height: 1.35; color: #eaf5ea; margin: 8px 0 20px; padding-bottom: 12px; border-bottom: 2px solid #2f4a2f; }
+  h2 { font-size: 20px; color: #a8d5a8; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #24381f; }
+  h3 { font-size: 16px; color: #8fbc8f; margin: 26px 0 10px; }
+  h4 { font-size: 14px; color: #8fbc8f; margin: 20px 0 8px; }
+  p { margin: 10px 0; }
+  a { color: #9ad19a; }
+  strong { color: #eaf5ea; font-weight: 600; }
+  ul, ol { margin: 10px 0; padding-left: 24px; }
+  li { margin: 5px 0; }
+  li > ul, li > ol { margin: 5px 0; }
+  code { background: #0d1a0d; border: 1px solid #24381f; border-radius: 4px; padding: 1px 5px; font-size: 0.92em; color: #a8d5a8; }
+  pre { background: #0a140a; border: 1px solid #24381f; border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 14px 0; }
+  pre code { background: none; border: none; padding: 0; color: #c0e4c0; font-size: 12.5px; line-height: 1.6; }
+  blockquote { margin: 14px 0; padding: 10px 16px; border-left: 3px solid #4e6f4e; background: #0d1a0d; color: #9ec69e; border-radius: 0 6px 6px 0; }
+  hr { border: none; border-top: 1px solid #24381f; margin: 32px 0; }
+  img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #24381f; margin: 12px 0; display: block; }
+  .tbl-wrap { overflow-x: auto; margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 420px; }
+  th, td { border: 1px solid #24381f; padding: 8px 11px; text-align: left; vertical-align: top; }
+  th { background: #0d1a0d; color: #8fbc8f; font-weight: 600; white-space: nowrap; }
+  tr:nth-child(even) td { background: rgba(13,26,13,0.5); }
+  @media (max-width: 600px) {
+    .wrap { padding: 20px 16px 56px; }
+    .bar { margin: -20px -16px 18px; padding: 10px 16px; }
+    h1 { font-size: 21px; }
+    h2 { font-size: 17px; }
+    body { font-size: 13.5px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <span class="bar-title">MACS · 使用说明书</span>
+    <a href="manual.en.html">English</a>
+  </div>
+<h1>MACS · 使用说明书</h1>
+<p>MACS（Male Android Control System，仿人男性机器人控制系统）是 T31-750 型仿人男性机器人的控制台。本说明书覆盖随包发布的全部客户端：Android 与 Windows 上的 <strong>MACS</strong> 控制台、随机器人携带的 <strong>Slave</strong> 应用、Wear OS 手表应用，以及浏览器版本和把各端连接起来的配对方式。</p>
+<blockquote>本产品为虚构设定。控制台中的许多读数——CPU/GPU/NPU 占用率、剩余仿真精液、剩余存储、系统版本、自检与更新过程输出——属于演出式呈现，并非真实遥测。下文对这类内容均标注为「模拟」。</blockquote>
+<h2>目录</h2>
+<div class="tbl-wrap"><table>
+<thead><tr><th>章节</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td>1. 客户端与分工</td><td>各端用途，以及你需要装哪一个</td></tr>
+<tr><td>2. 安装与首次启动</td><td>各端安装方式与首次启动激活流程</td></tr>
+<tr><td>3. 语言</td><td>设备语言自动匹配与手动切换</td></tr>
+<tr><td>4. 连接各端</td><td>蓝牙、二维码配对、USB 进入、App 拉起</td></tr>
+<tr><td>5. 控制台</td><td>主界面的每一个面板、按钮与读数</td></tr>
+<tr><td>6. 控制台设置</td><td>全部设置组与配置文件</td></tr>
+<tr><td>7. 信息面板</td><td>设备信息、文档与链接</td></tr>
+<tr><td>8. Slave 应用</td><td>机器人侧手机端完整说明</td></tr>
+<tr><td>9. 手表应用</td><td>Wear OS 端</td></tr>
+<tr><td>10. 浏览器版本</td><td>缓存、离线与 App 拉起</td></tr>
+<tr><td>11. 故障排查</td><td>按现象逐项检查</td></tr>
+</tbody></table></div>
+<hr>
+<h2>1. 客户端与分工</h2>
+<div class="tbl-wrap"><table>
+<thead><tr><th>客户端</th><th>运行环境</th><th>应用名</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td>控制台（控制端）</td><td>Android 手机/平板（Android 12+）</td><td><strong>MACS</strong></td><td>完整控制台；对外广播蓝牙供各端连接</td></tr>
+<tr><td>控制台（控制端）</td><td>Windows 10/11 桌面</td><td><strong>MACS</strong></td><td>同一套控制台，外加桌面启动器与 USB 进入方式</td></tr>
+<tr><td>接收端</td><td>Android 手机（Android 7.0+）</td><td><strong>Slave</strong></td><td>由机器人携带：显示模式、情绪、任务与语音消息，并可反向推送模式与语音指令</td></tr>
+<tr><td>手表端</td><td>Wear OS</td><td>750接收端</td><td>腕上精简状态显示</td></tr>
+<tr><td>浏览器版</td><td>任意现代浏览器</td><td>—</td><td>同一套控制台以网页形式提供，可选完整离线缓存</td></tr>
+</tbody></table></div>
+<p><strong>控制端</strong>负责分发状态，<strong>接收端</strong>与<strong>手表端</strong>负责接收展示。接收端还能把选定的模式回推给控制端，既可手动（长按模式胶囊），也可用语音。</p>
+<p><strong>我该装哪一个？</strong> 仅需控制时，装 MACS 控制台即可；若要在另一部手机上查看机器人状态，再加装 Slave；手表端为可选项。</p>
+<hr>
+<h2>2. 安装与首次启动</h2>
+<h2>2.1 一句话概括首次启动</h2>
+<p>所有客户端现在均<strong>默认以英文打开</strong>，能读到设备语言时自动匹配，并在进入主界面之前引导你完成一次初始设置。这些设置都不是必填项，每个首启界面都提供「跳过，保持默认」。</p>
+<h2>2.2 Android 版 MACS</h2>
+<ol>
+<li>安装 APK 并打开，先播放一次品牌宣传片。</li>
+</ol>
+<ol>
+<li>宣传片播完后出现<strong>激活界面</strong>（首次启动设置）。表单内容与 2.5 节相同，在手机上为单页滚动。</li>
+</ol>
+<ol>
+<li>按需填写个性化内容后点「开始使用」，或直接点「跳过，保持默认」。</li>
+</ol>
+<ol>
+<li>进入控制台。此后不会再出现该界面。</li>
+</ol>
+<blockquote>宣传片会完整播放后才出现首启界面；点按屏幕可提前结束播放。</blockquote>
+<h2>2.3 Windows 版 MACS</h2>
+<ol>
+<li>将发布包解压到可写目录，运行 <code>MACS.exe</code>。</li>
+</ol>
+<ol>
+<li><strong>首次</strong>启动时，激活窗口会在启动器<strong>之前</strong>弹出。完成设置，或直接关闭窗口跳过。</li>
+</ol>
+<ol>
+<li>进入启动器，等待机器人的 USB 设备接入（见 4.3 节）。</li>
+</ol>
+<ol>
+<li>点击设备按钮进入控制台。</li>
+</ol>
+<p>此后启动不再弹激活窗口，直接进入启动器。若想重新体验首次启动流程：关闭应用，删除 <code>MACS.exe</code> 同级的 <code>huancun</code> 文件夹，再启动即可。</p>
+<h2>2.4 Slave</h2>
+<ol>
+<li>安装 APK 并打开。</li>
+</ol>
+<ol>
+<li>首启界面覆盖在主界面之上：选择「中文 / English」，可选填 MiMo API Key，并设置云端识别开关。</li>
+</ol>
+<ol>
+<li>点「开始使用」或「跳过，保持默认」。</li>
+</ol>
+<ol>
+<li>露出主界面，该界面不再出现。</li>
+</ol>
+<h2>2.5 激活表单</h2>
+<p>控制台的激活界面是一页可滚动的表单，共十组。任何字段留空即保持默认。</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>#</th><th>分组</th><th>字段</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>语言</strong></td><td><code>中文</code> / <code>English</code></td></tr>
+<tr><td>2</td><td><strong>型号信息</strong></td><td>完整型号、简称、制造公司、主人、语音播报读法</td></tr>
+<tr><td>3</td><td><strong>账号管理</strong></td><td>登录密码与确认密码（两项均留空则保持 <code>admin</code> / <code>admin</code>）</td></tr>
+<tr><td>4</td><td><strong>TTS 语音引擎</strong></td><td>引擎 <code>白桦音色</code> / <code>音色设计</code>、MiMo API Key、MiMo 开放平台链接</td></tr>
+<tr><td>5</td><td><strong>机器人图片设置</strong></td><td>两张图片文件与预览</td></tr>
+<tr><td>6</td><td><strong>模式名称设置</strong></td><td>重命名四大模式</td></tr>
+<tr><td>7</td><td><strong>信息面板链接</strong></td><td>各链接条目的名称与地址</td></tr>
+<tr><td>8</td><td><strong>信息参数</strong></td><td>第三条起的状态项标签与值</td></tr>
+<tr><td>9</td><td><strong>运行参数设置</strong></td><td>剩余仿真精液、剩余电量、剩余存储</td></tr>
+<tr><td>10</td><td><strong>控制按钮文本设置</strong></td><td>按钮文案；1–10 号固定，11 号及以后可编辑</td></tr>
+</tbody></table></div>
+<p>底部两个按钮结束流程：</p>
+<ul>
+<li><strong>开始使用</strong> — 校验填写内容（两次密码一致、链接以 <code>http://</code> 或 <code>https://</code> 开头、精液当前量不大于总量、电量 0–100、存储量在范围内）并保存。</li>
+</ul>
+<ul>
+<li><strong>跳过，保持默认</strong> — 除「已完成设置」这一标记外不写入任何内容。</li>
+</ul>
+<p>此处或日后在设置页填写的型号信息会同步到窗口标题、顶栏、启动器标题、语音播报读法与状态胶囊。若整组都保持中文或英文默认值，则整组随界面语言切换；只要有一项被自定义，整组即按填写原样显示。</p>
+<hr>
+<h2>3. 语言</h2>
+<h2>3.1 语言如何决定</h2>
+<p>各端按以下顺序确定界面语言：</p>
+<ol>
+<li><strong>你手动选过的语言</strong>（只要手动切过一次就永久记住）。</li>
+</ol>
+<ol>
+<li><strong>设备语言</strong> — 系统设为中文则以中文打开，否则以英文打开。</li>
+</ol>
+<ol>
+<li><strong>英文</strong>，当设备语言读不到或不是中文时。</li>
+</ol>
+<p>自动检测每次启动都会重新判断，且<strong>不写入存储</strong>；因此因设备语言而显示中文的端，在你之后更改系统语言后仍会跟着变。只有手动切换才是永久的。</p>
+<h2>3.2 手动切换位置</h2>
+<div class="tbl-wrap"><table>
+<thead><tr><th>客户端</th><th>切换位置</th></tr></thead>
+<tbody>
+<tr><td>MACS 控制台</td><td>登录页与激活页右上角的 <code>ZH</code> / <code>EN</code>；进入后为<strong>设置 → 语言</strong></td></tr>
+<tr><td>MACS Windows 启动器</td><td>设置 → <strong>界面语言</strong></td></tr>
+<tr><td>Slave</td><td>蓝牙对话框的<strong>语言</strong>行；或首启界面</td></tr>
+</tbody></table></div>
+<p>切换即时生效并跨重启保留。Slave 上切换会重建界面，所有文案一次性更新。</p>
+<h2>3.3 Slave 不再跟随控制端</h2>
+<p>此前 Slave 会镜像控制端经蓝牙推送的语言。自本版本起 Slave 保持自己的语言：控制端的语言设置不再改变 Slave 的显示。请在 Slave 上自行设置。</p>
+<blockquote>蓝牙的语言特征仍然存在并照常广播，因此旧版 Slave 依旧可用——只是当前版本不再消费它。</blockquote>
+<hr>
+<h2>4. 连接各端</h2>
+<p>各端通过低功耗蓝牙通信：控制端负责广播，接收端与手表端负责扫描并连接。</p>
+<h2>4.1 蓝牙扫描</h2>
+<ol>
+<li>在控制台打开连接对话框，点「开始连接」。Windows 端同时会启动 BLE 宿主开始广播。</li>
+</ol>
+<ol>
+<li>在 Slave 上点圆形的 <strong>B</strong> 按钮打开「控制面板连接」，再点「重新扫描」，附近控制台会出现在列表中。</li>
+</ol>
+<ol>
+<li>点选设备即可连接。</li>
+</ol>
+<p>Slave 每次扫描十秒，未绑定时会自动重试。连接成功后订阅模式、情绪、任务、语音、心跳、API Key 与语言通知。链路断开时两端都会自动重连；由任一侧主动断开则会被尊重，不会陷入重连循环。</p>
+<h2>4.2 二维码配对</h2>
+<p>无需扫描列表即可完成配对：</p>
+<ol>
+<li>控制台蓝牙对话框中点二维码按钮，显示「绑定二维码」，提示用接收端扫描。</li>
+</ol>
+<ol>
+<li>在 Slave 上点「扫描二维码」。</li>
+</ol>
+<ol>
+<li>用摄像头对准二维码，Slave 读取到控制台地址后连接。</li>
+</ol>
+<blockquote>二维码生成需要原生壳（Android 或 Windows）。纯浏览器中没有蓝牙射频可读，二维码区域会保持空白。</blockquote>
+<h2>4.3 Windows 的 USB 进入方式</h2>
+<p>Windows 启动器通过 USB 而非蓝牙识别机器人：</p>
+<ol>
+<li>打开启动器设置，至少添加一条规则。每条规则需填写 <strong>VID</strong>、<strong>PID</strong> 或<strong>设备/磁盘 ID</strong>；序列号与厂商名为可选细化条件。留空的字段不参与匹配。</li>
+</ol>
+<ol>
+<li>插入机器人。启动器每四秒扫描一次，报告状态，匹配成功时点亮设备按钮。</li>
+</ol>
+<ol>
+<li>点击设备按钮进入控制台。以此方式进入会被标记为 USB 进入，这正是保持连接期间显示「正在充电」的依据。</li>
+</ol>
+<p>拔出设备会停止充电显示，重新插上则恢复。<strong>测试模式</strong>（<code>测试模式</code> 按钮或 F2 键）可模拟连接成功，便于在没有硬件时进入控制台；该状态仅在本次应用启动内有效。</p>
+<h2>4.4 从浏览器拉起 App</h2>
+<p>网页版提供 <code>robotcontrol://console</code> 协议，用于打开已安装的 MACS 控制台。浏览器引导窗口与<strong>设置 → 拉起 App</strong> 均使用它。若未安装，浏览器会在约两秒后判定页面仍可见，转为高亮下载链接。</p>
+<hr>
+<h2>5. 控制台</h2>
+<p>控制台会自适应屏幕：宽屏桌面显示三栏，手机上显示单栏并通过页面切换。</p>
+<h2>5.1 登录</h2>
+<p>桌面端控制台在随机壁纸上显示登录卡片。</p>
+<ul>
+<li><strong>账号</strong>、<strong>密码</strong> — 出厂账号为 <code>admin</code> / <code>admin</code>，除非你在激活时另行设置。</li>
+</ul>
+<ul>
+<li><strong>记住账号</strong> — 保存凭据，下次自动填入。</li>
+</ul>
+<ul>
+<li><strong>进入控制台</strong> — 播放一段过渡动画后加载主界面。</li>
+</ul>
+<p>在手机宽度的窗口内以及 Android App 中<strong>没有登录界面</strong>：直接进入主界面，日志中会记录这一自动登录。</p>
+<h2>5.2 终端</h2>
+<p>终端在 <code>root:~#</code> 提示符下接受命令：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>命令</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td><code>help</code></td><td>列出可用命令</td></tr>
+<tr><td><code>mode</code></td><td>显示当前模式</td></tr>
+<tr><td><code>mode test</code> / <code>recovery</code> / <code>loyalty</code> / <code>simulated-human</code></td><td>切换模式</td></tr>
+<tr><td><code>system</code></td><td>打印规格表</td></tr>
+<tr><td><code>clear</code></td><td>清屏</td></tr>
+<tr><td><code>*</code> 加文本</td><td>语音播报该文本，并记为一条任务</td></tr>
+</tbody></table></div>
+<p>上下方向键可翻阅历史命令。机器人关机期间输入会被禁用。</p>
+<h2>5.3 模式按钮</h2>
+<p>四个按钮用于选择运行模式，当前模式会高亮并呼吸。登录后初始为 <strong>NA</strong>（未设置模式）。</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>模式</th><th>特性</th></tr></thead>
+<tbody>
+<tr><td>调试模式</td><td>无自我意识，仅响应指令</td></tr>
+<tr><td>恢复模式</td><td>仅 BIOS 层运行，用于系统修复</td></tr>
+<tr><td>忠诚模式</td><td>具备自我意识并服从，机器算法</td></tr>
+<tr><td>拟人模式</td><td>行为如同人类，需要仿真皮肤</td></tr>
+</tbody></table></div>
+<p>切换模式会播报模式名，并把新模式同步给所有已连接客户端。也可通过顶栏的模式菜单或终端的 <code>mode</code> 命令切换。</p>
+<h2>5.4 控制按钮</h2>
+<p>出厂共十二个按钮，可在设置中增添：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>按钮</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td>清空所有进程</td><td>清空全部进程，带进度窗口</td></tr>
+<tr><td>自检</td><td>运行自检程序</td></tr>
+<tr><td>系统更新</td><td>运行更新流程</td></tr>
+<tr><td>数据库更新</td><td>运行数据库迁移</td></tr>
+<tr><td>开机</td><td>开机（仅在关机状态可用）</td></tr>
+<tr><td>关机</td><td>关机——停止语音播报、中止运行中的窗口、将各控件置灰</td></tr>
+<tr><td>重启</td><td>重启：静默关机、等待、再开机</td></tr>
+<tr><td>认知偏移</td><td>打开对话框，所填内容会作为认知任务加入并播报</td></tr>
+<tr><td>暂停</td><td>暂停，图表保持平直；标签变为「结束暂停」</td></tr>
+<tr><td>停止</td><td>停止并将唤起值图表归零；标签变为「恢复」</td></tr>
+<tr><td>洗澡子模式</td><td>仅播报并记录日志</td></tr>
+<tr><td>家具模式</td><td>仅播报并记录日志</td></tr>
+</tbody></table></div>
+<p>11 号及以后的按钮由你自行定义，按下时也会记录一条任务。拟人模式下功能按钮全部禁用；关机期间仅「开机」与「重启」可用。</p>
+<h2>5.5 情绪面板</h2>
+<p>四个滑杆，可在轨道上任意位置点按或拖动，取值 0–100：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>滑杆</th><th>颜色</th><th>默认值</th></tr></thead>
+<tbody>
+<tr><td>服从度</td><td>绿色</td><td>100</td></tr>
+<tr><td>羞耻度</td><td>橙色</td><td>0</td></tr>
+<tr><td>愉悦度</td><td>粉色</td><td>100</td></tr>
+<tr><td>机械度</td><td>红色</td><td>50</td></tr>
+</tbody></table></div>
+<p>每次调整都会播报数值，并推送给已连接的客户端。数值跨会话保留。</p>
+<h2>5.6 状态参数</h2>
+<p>下方各面板列出机器人的各项参数——系列、代数、序列号、系统与数据库版本、机体与部件编号、身高、体重、尺寸、性别、取向、阈值、唤起条件、生产与激活日期。其中<strong>主人</strong>与<strong>制造公司</strong>两项跟随你设置的型号信息，其余各项在设置页逐条编辑。</p>
+<h2>5.7 运行参数与图表</h2>
+<p>监控面板显示剩余电量、剩余仿真精液、剩余存储，以及内存/CPU/NPU/GPU/读写占用率，并配有内温、系统负载与唤起值三条折线图。电量、精液与存储按你在设置中填写的数值显示；占用率与图表则按演出式呈现自行波动（模拟）。</p>
+<p>关机后除电量外的项目全部显示 N/A，电量仍按既定计划继续走。</p>
+<h2>5.8 灵动岛、通知与代码视图</h2>
+<p>Android 与 Windows 端在有客户端连入或正在充电时会播放灵动岛动画。桌面窗口还会在右上角显示 macOS 风格通知，用于连接、断开、充电状态变化与模式推送成功等事件；最多同时堆叠三条，五秒后淡出。</p>
+<p>第三个面板持续滚动显示机器人的源码，滚动速度随模拟 CPU 占用上升；另有一对图片展示机器人的两张参考照片，均可在设置中配置。</p>
+<h2>5.9 自检</h2>
+<p>点「自检」打开进度窗口，逐项走过诊断清单——型号、面部、机体、底盘、性功能配置与软件子系统——并报告已用时间与行数。桌面宽度下会在性功能测试环节出现文件传输窗口。成功结束时报出总用时并播报结果。运行中关闭窗口会先请求确认。</p>
+<hr>
+<h2>6. 控制台设置</h2>
+<p>设置可从顶栏齿轮、Rt5 菜单、程序坞，或手机上的胶囊进入。桌面端左侧列出分组，手机端点选分组后带返回箭头。</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>分组</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td><strong>语言</strong></td><td><code>中文</code> / <code>English</code></td></tr>
+<tr><td><strong>型号信息</strong></td><td>五个型号信息字段</td></tr>
+<tr><td><strong>网页缓存与 App</strong></td><td>缓存、拉起、下载三个按钮（仅浏览器版）</td></tr>
+<tr><td><strong>账号管理</strong></td><td>增删账号；最后一个账号不可删除</td></tr>
+<tr><td><strong>TTS 语音引擎</strong></td><td>引擎选择、MiMo API Key 与保存按钮、测试播报、开放平台链接</td></tr>
+<tr><td><strong>灵动岛模拟效果</strong></td><td>连接灵动岛、充电灵动岛与文字通知的预览</td></tr>
+<tr><td><strong>运行参数设置</strong></td><td>仿真精液、电量（自动计划或手动百分比）、存储</td></tr>
+<tr><td><strong>控制按钮文本设置</strong></td><td>重命名 11 号起的按钮，可增删</td></tr>
+<tr><td><strong>机器人图片设置</strong></td><td>载入两张图片，可逐张恢复默认</td></tr>
+<tr><td><strong>模式名称设置</strong></td><td>重命名四大模式，保存前会请求确认</td></tr>
+<tr><td><strong>信息面板链接</strong></td><td>链接条目的名称与地址，可恢复默认</td></tr>
+<tr><td><strong>机器人状态设置</strong></td><td>逐条设置状态项标签与值</td></tr>
+<tr><td><strong>配置导入导出</strong></td><td>导出或导入整套配置</td></tr>
+</tbody></table></div>
+<p>底部三个按钮：<strong>改为默认设置</strong>（全部恢复默认）、<strong>取消</strong>、<strong>应用更改</strong>。关闭面板会丢弃未应用的修改。若修改了模式名称，点应用后会弹出确认清单逐条列出新旧名称；确认则整组保存，取消则整次保存中止。</p>
+<p>默认的电量为自动计划：01:00 为 1%、07:00 为 100%，其间显示正在充电。取消勾选后可设定固定百分比并选择是否显示充电。</p>
+<h2>6.1 配置文件</h2>
+<p><strong>导出配置</strong> 生成 <code>robotcontrol-config-YYYYMMDD.json</code>，包含按钮文本、状态项、模式名称、型号信息、链接、运行参数、账号、两张图片、情绪值、语言、TTS 引擎与 MiMo API Key。</p>
+<blockquote>导出文件以明文包含登录密码与 API Key，且可能包含机器人图片，请妥善保管。</blockquote>
+<p><strong>导入配置</strong> 读回该文件，并提示会覆盖全部个性化设置后刷新页面。无效文件会被拒绝。</p>
+<hr>
+<h2>7. 信息面板</h2>
+<p>点 <strong>?</strong> 按钮打开信息面板，分两块。</p>
+<p><strong>关于</strong> —— 设备型号与制造公司（均跟随你设置的型号信息）、机器人系统名、底层版本、与服务器的通讯状态。</p>
+<p><strong>文件与链接</strong> —— 文档列表。每条都有「新窗口」按钮：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>条目</th><th>打开方式</th></tr></thead>
+<tbody>
+<tr><td>T系列仿人男性机器人使用说明书（PDF）</td><td>内置 PDF 阅读器；浏览器不支持内嵌预览时提供兜底链接</td></tr>
+<tr><td>T31-750的演示合集</td><td>Telegram</td></tr>
+<tr><td>T31-750的公众号</td><td>Telegram</td></tr>
+<tr><td>T31-750的社交账号</td><td>X</td></tr>
+<tr><td>芮誊智能虚构公司机器人日志</td><td>Pixiv</td></tr>
+<tr><td><strong>App 使用说明书</strong></td><td>本说明书，按控制台当前语言显示对应版本</td></tr>
+<tr><td>获取 App（打开 / 下载）</td><td>浏览器 App 拉起引导</td></tr>
+</tbody></table></div>
+<p>链接名称与地址可在设置中编辑；PDF 条目保持固定文件名。</p>
+<hr>
+<h2>8. Slave 应用</h2>
+<p>Slave 是随机器人携带的客户端。</p>
+<h2>8.1 界面布局</h2>
+<p>固定顶部区域放置蓝牙按钮、模式胶囊与语音识别按钮，其下为情绪面板。再往下是两列滚动区：左侧任务，右侧语音消息。</p>
+<p><strong>模式胶囊</strong>按各自颜色显示当前模式，无模式时为灰色 <strong>NA</strong>。<strong>长按</strong>可打开模式菜单，把另一模式推送给控制台；若未连接会给出提示。这是语音指令的手动等价操作。</p>
+<h2>8.2 蓝牙按钮</h2>
+<ul>
+<li><strong>单击</strong> 打开连接对话框。</li>
+</ul>
+<ul>
+<li><strong>长按</strong> 注入模拟数据——一批演示任务、情绪与语音消息。这是测试辅助，并非真实数据。</li>
+</ul>
+<p>按钮颜色：已连接为绿色、断开为红色、连接中为琥珀色、尚未配对为灰色。</p>
+<h2>8.3 连接对话框</h2>
+<p>「控制面板连接」内含连接状态与地址、附近设备列表与扫描控制、二维码入口，以及机器人自身需要的设置：</p>
+<ul>
+<li><strong>MiMo API Key</strong> —— 可选；用于高质量语音合成，连接时同步到控制台。</li>
+</ul>
+<ul>
+<li><strong>识别引擎调用云端（MiMo ASR）</strong> —— 开启时识别可回退到云端；关闭时仅用本机引擎，不向外发送任何内容。</li>
+</ul>
+<ul>
+<li><strong>语言</strong> —— <code>中文</code> / <code>English</code>。</li>
+</ul>
+<ul>
+<li><strong>断开</strong> —— 断开链路并清除配对。</li>
+</ul>
+<h2>8.4 语音识别</h2>
+<p>右上角圆形麦克风按钮用于开关识别。仅在应用处于前台时运行，并记住上次的开关状态。</p>
+<p>识别优先在本机完成，按读音匹配模式名，因此近音词也能命中；以否定词（如「不」）开头的语句会被排除。识别同时遵循界面语言：中文界面识别中文模式名，英文界面识别英文。云端识别仅作为兜底，且必须同时满足开关开启、已有 Key、已采集到足够语音等条件。</p>
+<p>识别到的模式会以与长按完全相同的链路推送给控制台。</p>
+<h2>8.5 任务与语音消息</h2>
+<p><strong>任务</strong>按来源标注——认知、终端、按钮或普通，已完成的会划去。<strong>语音消息</strong>按时间倒序显示时间与内容；每条新消息都会发出系统通知，标题为「主人指令」，若该消息是控制台对你所推送模式的确认，则标题为「推送成功」。</p>
+<h2>8.6 隐私控制</h2>
+<p>未经你的许可不会有任何内容离开设备：云端识别由开关控制，API Key 仅用于 MiMo 服务。</p>
+<hr>
+<h2>9. 手表应用</h2>
+<p>手表有三页，可左右滑动或用表冠滚动切换：</p>
+<ol>
+<li><strong>情绪页</strong> —— 与控制台相同的四个滑杆。</li>
+</ol>
+<ol>
+<li><strong>任务页</strong> —— 任务列表一览。</li>
+</ol>
+<ol>
+<li><strong>语音页</strong> —— 最近的语音消息。</li>
+</ol>
+<p>顶部显示时间与模式胶囊，右下角圆形蓝牙按钮打开连接对话框，可扫描、断开、解绑，并打开<strong>保活设置</strong>指引。该指引说明如何把应用加入各品牌手机（小米、OPPO、一加、realme 等）的电池优化白名单——建议照做，否则系统会在后台停止连接。手表在不同模式切换时有不同振动提示。</p>
+<p>手表以前台服务保持连接并在断线后自动重连，重启后同样恢复。</p>
+<hr>
+<h2>10. 浏览器版本</h2>
+<p>同一套控制台也能在浏览器中运行，与原生端主要有两点不同。</p>
+<p><strong>缓存。</strong> 首次访问会提示缓存整套控制台，使其打开更快并支持离线。确认后会把全部资源下载一次；此后控制台从本地运行。站点更新时会通过通知或横幅提示重新缓存。</p>
+<p><strong>App 拉起。</strong> 浏览器无法使用蓝牙；要连接硬件需使用 Android 或 Windows 应用。弹出的引导窗口提供打开已安装应用、下载应用，或继续在浏览器中使用三个选项。</p>
+<p><strong>设置 → 网页缓存与 App</strong> 分组可随时重复缓存、拉起与下载操作。</p>
+<hr>
+<h2>11. 故障排查</h2>
+<div class="tbl-wrap"><table>
+<thead><tr><th>现象</th><th>检查项</th></tr></thead>
+<tbody>
+<tr><td>界面语言不对</td><td>更改系统语言，或手动切换——手动切换是永久的，会覆盖自动检测</td></tr>
+<tr><td>Slave 与控制台语言不同</td><td>这是预期行为：Slave 现在保持自己的语言。请在 Slave 上设置</td></tr>
+<tr><td>Slave 找不到控制台</td><td>确认控制台正在广播（打开其连接对话框并开始连接）、两台设备相距几米内，并让扫描走完十秒</td></tr>
+<tr><td>二维码扫不出来</td><td>只有原生壳能生成可用二维码；浏览器中二维码区域为空，请改用扫描连接</td></tr>
+<tr><td>Windows 启动器一直等待</td><td>至少添加一条 USB 规则，或按 F2 进入测试模式</td></tr>
+<tr><td>语音识别没有反应</td><td>检查麦克风权限、保持应用在前台，并确认界面语言与你说话的语言一致</td></tr>
+<tr><td>手表自行断开</td><td>从蓝牙对话框打开保活指引，把应用加入电池优化白名单</td></tr>
+<tr><td>设置改动没有生效</td><td>设置在你点「应用更改」时才写入，而非边输入边保存</td></tr>
+<tr><td>控制台又出现首启界面</td><td>只有从未完成过初始设置才会再次出现；完成或跳过即可</td></tr>
+</tbody></table></div>
+</div>
+</body>
+</html>

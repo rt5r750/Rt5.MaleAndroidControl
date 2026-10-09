@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MACS · User Manual</title>
+<style>
+  /* 与主控制台一致的深绿配色；字体栈遵循项目规范（中文 MiSans / 数字英文 JetBrains Mono）。
+     本页可能经 file://（Android 资产）、app://（win-app）或直接打开仓库文件访问，
+     因此字体只引用相对路径，缺失时回退系统字体，不依赖网络。 */
+  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Demibold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
+  @font-face { font-family: 'JetBrains Mono'; src: url('../../webfonts/JetBrainsMono-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: #05100a; color: #c0e4c0;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Courier New', 'MiSans', monospace;
+    font-size: 14px; line-height: 1.75;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 900px; margin: 0 auto; padding: 28px 24px 72px; }
+  .bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px;
+         margin: -28px -24px 24px; padding: 12px 24px;
+         background: rgba(5,16,10,0.94); border-bottom: 1px solid #24381f; backdrop-filter: blur(6px); }
+  .bar-title { flex: 1; font-weight: 600; color: #8fbc8f; font-size: 13px; }
+  .bar a { color: #8fbc8f; text-decoration: none; border: 1px solid #2f4a2f; border-radius: 6px;
+           padding: 5px 12px; font-size: 12px; white-space: nowrap; }
+  .bar a:hover { background: rgba(143,188,143,0.12); }
+  h1 { font-size: 25px; line-height: 1.35; color: #eaf5ea; margin: 8px 0 20px; padding-bottom: 12px; border-bottom: 2px solid #2f4a2f; }
+  h2 { font-size: 20px; color: #a8d5a8; margin: 40px 0 14px; padding-bottom: 8px; border-bottom: 1px solid #24381f; }
+  h3 { font-size: 16px; color: #8fbc8f; margin: 26px 0 10px; }
+  h4 { font-size: 14px; color: #8fbc8f; margin: 20px 0 8px; }
+  p { margin: 10px 0; }
+  a { color: #9ad19a; }
+  strong { color: #eaf5ea; font-weight: 600; }
+  ul, ol { margin: 10px 0; padding-left: 24px; }
+  li { margin: 5px 0; }
+  li > ul, li > ol { margin: 5px 0; }
+  code { background: #0d1a0d; border: 1px solid #24381f; border-radius: 4px; padding: 1px 5px; font-size: 0.92em; color: #a8d5a8; }
+  pre { background: #0a140a; border: 1px solid #24381f; border-radius: 8px; padding: 14px 16px; overflow-x: auto; margin: 14px 0; }
+  pre code { background: none; border: none; padding: 0; color: #c0e4c0; font-size: 12.5px; line-height: 1.6; }
+  blockquote { margin: 14px 0; padding: 10px 16px; border-left: 3px solid #4e6f4e; background: #0d1a0d; color: #9ec69e; border-radius: 0 6px 6px 0; }
+  hr { border: none; border-top: 1px solid #24381f; margin: 32px 0; }
+  img { max-width: 100%; height: auto; border-radius: 8px; border: 1px solid #24381f; margin: 12px 0; display: block; }
+  .tbl-wrap { overflow-x: auto; margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; min-width: 420px; }
+  th, td { border: 1px solid #24381f; padding: 8px 11px; text-align: left; vertical-align: top; }
+  th { background: #0d1a0d; color: #8fbc8f; font-weight: 600; white-space: nowrap; }
+  tr:nth-child(even) td { background: rgba(13,26,13,0.5); }
+  @media (max-width: 600px) {
+    .wrap { padding: 20px 16px 56px; }
+    .bar { margin: -20px -16px 18px; padding: 10px 16px; }
+    h1 { font-size: 21px; }
+    h2 { font-size: 17px; }
+    body { font-size: 13.5px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="bar">
+    <span class="bar-title">MACS · User Manual</span>
+    <a href="manual.zh-CN.html">简体中文</a>
+  </div>
+<h1>MACS · User Manual</h1>
+<p>MACS (Male Android Control System) is the control console for the T31-750 male android. This manual covers every client in the package: the <strong>MACS</strong> console app on Android and Windows, the <strong>Slave</strong> app that runs on the android's own phone, and the Wear OS watch app. It also covers the browser edition and the pairing methods that link them.</p>
+<blockquote>The product is fictional. Many readouts in the console — CPU/GPU/NPU load, remaining artificial semen, storage, system version, self-check and update output — are part of the staged presentation rather than live telemetry. Sections below mark these as simulated.</blockquote>
+<h2>Contents</h2>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Chapter</th><th>What it covers</th></tr></thead>
+<tbody>
+<tr><td>1. Clients and roles</td><td>Which app does what, and which one you need</td></tr>
+<tr><td>2. Installation and first launch</td><td>Installing each client, the first-run activation flow</td></tr>
+<tr><td>3. Language</td><td>Automatic device-language matching and manual switching</td></tr>
+<tr><td>4. Connecting the clients</td><td>Bluetooth, QR pairing, USB entry, app launching</td></tr>
+<tr><td>5. The console</td><td>Every panel, button and readout of the main interface</td></tr>
+<tr><td>6. Console settings</td><td>All settings groups and the configuration file</td></tr>
+<tr><td>7. Information panel</td><td>Device information, documents and links</td></tr>
+<tr><td>8. Slave app</td><td>The android's phone client in full</td></tr>
+<tr><td>9. Watch app</td><td>The Wear OS client</td></tr>
+<tr><td>10. Browser edition</td><td>Caching, offline use and app launching</td></tr>
+<tr><td>11. Troubleshooting</td><td>Symptom-by-symptom checks</td></tr>
+</tbody></table></div>
+<hr>
+<h2>1. Clients and roles</h2>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Client</th><th>Where it runs</th><th>App name</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td>Master console</td><td>Android phone/tablet (Android 12+)</td><td><strong>MACS</strong></td><td>Full control console; advertises Bluetooth so clients can connect</td></tr>
+<tr><td>Master console</td><td>Windows 10/11 desktop</td><td><strong>MACS</strong></td><td>Same console with a desktop launcher and USB entry</td></tr>
+<tr><td>Slave</td><td>Android phone (Android 7.0+)</td><td><strong>Slave</strong></td><td>Carried by the android: shows mode, emotion, tasks and voice messages; can push mode and voice commands back</td></tr>
+<tr><td>Watch</td><td>Wear OS</td><td>750 Receiver</td><td>Compact status display worn on the wrist</td></tr>
+<tr><td>Browser edition</td><td>Any modern browser</td><td>—</td><td>The same console served over the web, with optional full offline caching</td></tr>
+</tbody></table></div>
+<p>The <strong>Master</strong> distributes state; the <strong>Slave</strong> and <strong>Watch</strong> receive it. The Slave can also send the selected mode back to the Master, either by hand (long-press the mode capsule) or by voice.</p>
+<p><strong>Which do I need?</strong> For control alone, the MACS console is enough. To read the android's state on a separate phone, add the Slave. The watch is optional.</p>
+<hr>
+<h2>2. Installation and first launch</h2>
+<h2>2.1 First run in one sentence</h2>
+<p>Every client now opens in <strong>English on first launch</strong>, matches the device language automatically when it can, and walks you through a one-time setup before the main interface appears. Nothing is compulsory — each setup screen has a <strong>Skip and keep defaults</strong> option.</p>
+<h2>2.2 MACS on Android</h2>
+<ol>
+<li>Install the APK and open it. A brand film plays once.</li>
+</ol>
+<ol>
+<li>When the film ends, the <strong>activation screen</strong> (first-run setup) appears. It is the same form described in section 2.5; on a phone it is a single scrollable page.</li>
+</ol>
+<ol>
+<li>Fill in whatever you want to personalise, then tap <strong>Get started</strong>; or tap <strong>Skip and keep defaults</strong>.</li>
+</ol>
+<ol>
+<li>The console opens. The setup screen does not appear again.</li>
+</ol>
+<blockquote>The film plays to the end before the setup screen appears. Tapping the screen skips the film early.</blockquote>
+<h2>2.3 MACS on Windows</h2>
+<ol>
+<li>Unpack the release archive somewhere you can write to, then run <code>MACS.exe</code>.</li>
+</ol>
+<ol>
+<li>On the <strong>first</strong> launch the activation window opens <strong>before the launcher</strong>. Complete it, or close the window to skip.</li>
+</ol>
+<ol>
+<li>The launcher appears. It waits for the robot's USB device — see section 4.3.</li>
+</ol>
+<ol>
+<li>Click the device button to enter the console.</li>
+</ol>
+<p>On later launches the activation window stays away and the launcher opens directly. To see the first-run flow again, close the app, delete the <code>huancun</code> folder next to <code>MACS.exe</code>, and start it again.</p>
+<h2>2.4 Slave</h2>
+<ol>
+<li>Install the APK and open it.</li>
+</ol>
+<ol>
+<li>The first-run screen appears over the interface: choose <strong>中文</strong> or <strong>English</strong>, optionally enter a MiMo API key, and set the cloud-recognition switch.</li>
+</ol>
+<ol>
+<li>Tap <strong>Get started</strong> or <strong>Skip and keep defaults</strong>.</li>
+</ol>
+<ol>
+<li>The main interface is revealed and the screen does not return.</li>
+</ol>
+<h2>2.5 The activation form</h2>
+<p>The console's activation screen is one scrollable page with ten numbered groups. Leave any field empty to keep its default.</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>#</th><th>Group</th><th>Fields</th></tr></thead>
+<tbody>
+<tr><td>1</td><td><strong>Language</strong></td><td><code>中文</code> / <code>English</code></td></tr>
+<tr><td>2</td><td><strong>Model information</strong></td><td>Full model name, short name, manufacturing company, master, spoken pronunciation</td></tr>
+<tr><td>3</td><td><strong>Account</strong></td><td>Login password and confirmation (leave both empty to keep <code>admin</code> / <code>admin</code>)</td></tr>
+<tr><td>4</td><td><strong>TTS voice engine</strong></td><td>Engine <code>白桦音色</code> / <code>音色设计</code>, MiMo API key, link to the MiMo platform</td></tr>
+<tr><td>5</td><td><strong>Android images</strong></td><td>Two image files with previews</td></tr>
+<tr><td>6</td><td><strong>Mode names</strong></td><td>Rename the four modes</td></tr>
+<tr><td>7</td><td><strong>Information-panel links</strong></td><td>Name and URL for each link entry</td></tr>
+<tr><td>8</td><td><strong>Status parameters</strong></td><td>Label and value for each status item from the third onward</td></tr>
+<tr><td>9</td><td><strong>Operating parameters</strong></td><td>Remaining artificial semen, battery, storage</td></tr>
+<tr><td>10</td><td><strong>Control-button text</strong></td><td>Button captions; buttons 1–10 are fixed, 11 and up are editable</td></tr>
+</tbody></table></div>
+<p>Two buttons close the screen:</p>
+<ul>
+<li><strong>Get started</strong> — validates the entries (passwords match, links start with <code>http://</code> or <code>https://</code>, liquid litres ≤ total, battery 0–100, storage within range) and saves them.</li>
+</ul>
+<ul>
+<li><strong>Skip and keep defaults</strong> — saves nothing except the fact that setup is complete.</li>
+</ul>
+<p>Model information entered here or later in Settings propagates to the window title, the header, the launcher title, spoken pronunciation and the status chips. If every value is left at its Chinese or English default, the whole group follows the interface language; a single customised value makes the entire group show verbatim.</p>
+<hr>
+<h2>3. Language</h2>
+<h2>3.1 How the language is chosen</h2>
+<p>Each client resolves its interface language in this order:</p>
+<ol>
+<li><strong>Your own choice</strong>, if you have switched language manually at least once. This is remembered permanently.</li>
+</ol>
+<ol>
+<li><strong>The device language</strong> — if the system is set to Chinese the client opens in Chinese, otherwise in English.</li>
+</ol>
+<ol>
+<li><strong>English</strong>, when the device language cannot be read or is not Chinese.</li>
+</ol>
+<p>Automatic detection is re-evaluated on every launch and is never written to storage, so a client that matched Chinese because of the device setting will still follow the device if you later change the system language. Only a manual switch is permanent.</p>
+<h2>3.2 Switching by hand</h2>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Client</th><th>Where to switch</th></tr></thead>
+<tbody>
+<tr><td>MACS console</td><td><code>ZH</code> / <code>EN</code> at the top right of the login and activation screens; <strong>Settings → 语言</strong> afterwards</td></tr>
+<tr><td>MACS Windows launcher</td><td>Settings → <strong>界面语言</strong></td></tr>
+<tr><td>Slave</td><td>Bluetooth dialog → <strong>Language</strong> row; or the first-run screen</td></tr>
+</tbody></table></div>
+<p>The switch takes effect immediately and survives restarts. On the Slave it rebuilds the screen so every label updates at once.</p>
+<h2>3.3 Slave no longer follows the console</h2>
+<p>The Slave previously mirrored whatever language the console pushed over Bluetooth. From this version it keeps its own language: the console's setting no longer changes what the Slave displays. Set it on the Slave itself.</p>
+<blockquote>The Bluetooth language characteristic still exists and is still broadcast, so older Slave builds continue to work — it is simply no longer consumed by current ones.</blockquote>
+<hr>
+<h2>4. Connecting the clients</h2>
+<p>The clients talk over Bluetooth Low Energy. The Master advertises, the Slave and Watch scan and connect.</p>
+<h2>4.1 Bluetooth scanning</h2>
+<ol>
+<li>On the console, open the connection dialog and tap <strong>开始连接</strong> (Start connection). On Windows the BLE host starts advertising as well.</li>
+</ol>
+<ol>
+<li>On the Slave, tap the round <strong>B</strong> button to open <strong>控制面板连接</strong> (Console connection), then <strong>重新扫描</strong> (Rescan). Nearby consoles appear in the list.</li>
+</ol>
+<ol>
+<li>Tap a device to connect.</li>
+</ol>
+<p>The Slave scans for ten seconds per attempt and retries on its own while it stays unbound. Once connected it subscribes to mode, emotion, tasks, voice, heartbeat, API key and language notifications. If the link drops, both sides retry automatically; a deliberate disconnect from either side is respected and does not trigger a reconnect loop.</p>
+<h2>4.2 QR pairing</h2>
+<p>Pairs the two devices without a scan list:</p>
+<ol>
+<li>On the console's Bluetooth dialog tap the QR button. A code appears labelled <strong>绑定二维码</strong> — &quot;scan this with the receiving client&quot;.</li>
+</ol>
+<ol>
+<li>On the Slave tap <strong>扫描二维码</strong> (Scan QR code).</li>
+</ol>
+<ol>
+<li>Point the camera at the code. The Slave reads the console's address and connects.</li>
+</ol>
+<blockquote>QR generation needs the native shells (Android or Windows). In a plain browser the QR area stays empty, because there is no Bluetooth radio for the page to read.</blockquote>
+<h2>4.3 USB entry on Windows</h2>
+<p>The Windows launcher recognises the robot by USB rather than Bluetooth:</p>
+<ol>
+<li>Open the launcher's settings and add at least one rule. Each rule needs <strong>VID</strong>, <strong>PID</strong> or a <strong>device/disk ID</strong>; serial number and manufacturer are optional refinements. A blank field is not used for matching.</li>
+</ol>
+<ol>
+<li>Plug the robot in. The launcher scans every four seconds, reports the state and lights the device button when a rule matches.</li>
+</ol>
+<ol>
+<li>Click the device button to enter the console. Entry is marked as USB-based, which is what drives the &quot;charging&quot; indication while the device stays attached.</li>
+</ol>
+<p>Removing the device stops the charging indication; reconnecting restores it. <strong>Test mode</strong> (the <code>测试模式</code> button, or the F2 key) simulates a successful connection so you can open the console without hardware; it applies only to the current run of the app.</p>
+<h2>4.4 Launching the app from a browser</h2>
+<p>The web edition offers <code>robotcontrol://console</code>, which opens the installed MACS console. The browser guide and <strong>Settings → 拉起 App</strong> both use it. If the app is not installed the browser detects that the page is still visible after roughly two seconds and highlights the download link instead.</p>
+<hr>
+<h2>5. The console</h2>
+<p>The console adapts to the screen. On a wide desktop it shows three columns; on a phone it shows a single column with pages you switch between.</p>
+<h2>5.1 Signing in</h2>
+<p>The desktop console shows a login card on a random wallpaper.</p>
+<ul>
+<li><strong>Account</strong> and <strong>Password</strong> — the factory account is <code>admin</code> / <code>admin</code> unless you set something else during activation.</li>
+</ul>
+<ul>
+<li><strong>Remember account</strong> — stores the credentials so they are filled in next time.</li>
+</ul>
+<ul>
+<li><strong>Enter the console</strong> — plays a short transition, then the main interface loads.</li>
+</ul>
+<p>On a phone-sized window and inside the Android app there is <strong>no login screen</strong>: the console opens straight into the interface. Log entries record this.</p>
+<h2>5.2 Terminal</h2>
+<p>The terminal accepts commands at the <code>root:~#</code> prompt:</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Command</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><code>help</code></td><td>Lists the available commands</td></tr>
+<tr><td><code>mode</code></td><td>Shows the current mode</td></tr>
+<tr><td><code>mode test</code> / <code>recovery</code> / <code>loyalty</code> / <code>simulated-human</code></td><td>Switches mode</td></tr>
+<tr><td><code>system</code></td><td>Prints the specification sheet</td></tr>
+<tr><td><code>clear</code></td><td>Clears the screen</td></tr>
+<tr><td><code>*</code> followed by text</td><td>Speaks the text and records it as a task</td></tr>
+</tbody></table></div>
+<p>The up and down arrows walk through command history. While the android is powered off the input is disabled.</p>
+<h2>5.3 Mode buttons</h2>
+<p>Four buttons select the operating mode; the active one is highlighted and pulses. The console starts in <strong>NA</strong> (no mode) after login.</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Mode</th><th>Character</th></tr></thead>
+<tbody>
+<tr><td>调试模式 (Test)</td><td>No self-awareness; responds to commands only</td></tr>
+<tr><td>恢复模式 (Recovery)</td><td>BIOS-level operation used for system repair</td></tr>
+<tr><td>忠诚模式 (Loyalty)</td><td>Self-aware and obedient; machine algorithms</td></tr>
+<tr><td>拟人模式 (Simulated human)</td><td>Behaves as a person would; simulated skin required</td></tr>
+</tbody></table></div>
+<p>Changing mode speaks the mode name and syncs the new mode to every connected client. The mode can also be changed from the mode menu in the header, or with the terminal's <code>mode</code> command.</p>
+<h2>5.4 Control buttons</h2>
+<p>Twelve buttons come as standard, and you can add more in Settings:</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Button</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td>清空所有进程</td><td>Clears all processes, with a progress window</td></tr>
+<tr><td>自检</td><td>Runs the self-check programme</td></tr>
+<tr><td>系统更新</td><td>Runs the update sequence</td></tr>
+<tr><td>数据库更新</td><td>Runs the database migration</td></tr>
+<tr><td>开机</td><td>Powers on (available only while off)</td></tr>
+<tr><td>关机</td><td>Powers off — stops speech, aborts running windows, greys out the controls</td></tr>
+<tr><td>重启</td><td>Restarts: silent shutdown, pause, boot</td></tr>
+<tr><td>认知偏移</td><td>Opens a dialog; the text you enter is added as a cognitive task and spoken</td></tr>
+<tr><td>暂停</td><td>Pauses, holding the charts flat; the label becomes 结束暂停</td></tr>
+<tr><td>停止</td><td>Stops and zeroes the arousal chart; the label becomes 恢复</td></tr>
+<tr><td>洗澡子模式</td><td>Speaks and logs only</td></tr>
+<tr><td>家具模式</td><td>Speaks and logs only</td></tr>
+</tbody></table></div>
+<p>Buttons 11 and up are yours to define; pressing one also records a task. In Simulated-human mode the function buttons are disabled, and while the android is off only 开机 and 重启 remain.</p>
+<h2>5.5 Emotion panel</h2>
+<p>Four gauges, each draggable or clickable anywhere along its track, from 0 to 100:</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Gauge</th><th>Colour</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td>服从度 (Obedience)</td><td>Green</td><td>100</td></tr>
+<tr><td>羞耻度 (Shame)</td><td>Orange</td><td>0</td></tr>
+<tr><td>愉悦度 (Pleasure)</td><td>Pink</td><td>100</td></tr>
+<tr><td>机械度 (Robotic)</td><td>Red</td><td>50</td></tr>
+</tbody></table></div>
+<p>Each change speaks the value and is pushed to the connected clients. Values persist between sessions.</p>
+<h2>5.6 Status values</h2>
+<p>The lower panels list the android's parameters — series, generation, serial number, system and database versions, body and component serial numbers, height, weight, dimensions, gender, orientation, threshold, arousal conditions, production and activation dates. Two entries, <strong>master</strong> and <strong>manufacturing company</strong>, follow the model information you set; the rest are edited individually in Settings.</p>
+<h2>5.7 Operating parameters and charts</h2>
+<p>The monitoring panel shows remaining battery, remaining artificial semen, remaining storage, and memory/CPU/NPU/GPU/I/O load, with line charts for internal temperature, system load and arousal. Battery, semen and storage follow the values you set in Settings; the load figures and charts move on their own as part of the staged presentation.</p>
+<p>When the android is switched off everything drops to N/A apart from the battery, which continues to follow its schedule.</p>
+<h2>5.8 Dynamic island, notifications and code view</h2>
+<p>On the Android and Windows clients a dynamic island animates when a client connects or when the android is charging. Desktop windows also show macOS-style notifications in the top-right corner for connections, disconnections, charging changes and successful mode pushes; they stack up to three and fade after five seconds.</p>
+<p>A third panel streams the android's source code, scrolling faster as simulated CPU load rises, and a pair of images shows the android's two reference photographs. Both are configured in Settings.</p>
+<h2>5.9 Self-check</h2>
+<p><strong>自检</strong> opens a progress window and walks through the diagnostic list — model, face, body, chassis, sex-function configuration and software subsystems — reporting elapsed time and line count. On desktop widths a file-transfer window appears during the sex-function test. When it finishes successfully it reports <strong>总用时</strong> (total time) and speaks the result. Closing a running window asks for confirmation first.</p>
+<hr>
+<h2>6. Console settings</h2>
+<p>Open Settings from the cog in the header, the Rt5 menu, the dock, or the capsule on mobile. On desktop the groups are listed down the left; on mobile you pick a group and get a back arrow.</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Group</th><th>Contents</th></tr></thead>
+<tbody>
+<tr><td><strong>语言</strong></td><td><code>中文</code> / <code>English</code></td></tr>
+<tr><td><strong>型号信息</strong></td><td>The five model-information fields</td></tr>
+<tr><td><strong>网页缓存与 App</strong></td><td>Cache, launch and download buttons (browser edition only)</td></tr>
+<tr><td><strong>账号管理</strong></td><td>Add and remove accounts; the last account cannot be deleted</td></tr>
+<tr><td><strong>TTS 语音引擎</strong></td><td>Engine choice, MiMo API key with a save button, a test broadcast, and the platform link</td></tr>
+<tr><td><strong>灵动岛模拟效果</strong></td><td>Previews for the connection island, charging island and a text notification</td></tr>
+<tr><td><strong>运行参数设置</strong></td><td>Artificial semen, battery (automatic schedule or manual percentage) and storage</td></tr>
+<tr><td><strong>控制按钮文本设置</strong></td><td>Rename buttons from number 11 upward, add or remove them</td></tr>
+<tr><td><strong>机器人图片设置</strong></td><td>Load the two images, with a per-image reset to default</td></tr>
+<tr><td><strong>模式名称设置</strong></td><td>Rename the four modes; you are asked to confirm before saving</td></tr>
+<tr><td><strong>信息面板链接</strong></td><td>Names and URLs for the link entries, with a reset to defaults</td></tr>
+<tr><td><strong>机器人状态设置</strong></td><td>Label and value for each status row</td></tr>
+<tr><td><strong>配置导入导出</strong></td><td>Export or import the whole configuration</td></tr>
+</tbody></table></div>
+<p>Three buttons sit at the bottom: <strong>改为默认设置</strong> (reset everything to defaults), <strong>取消</strong> and <strong>应用更改</strong>. Closing the panel discards unapplied edits. Applying after changing a mode name shows a confirmation listing each old and new name; confirming saves the whole group, cancelling aborts the entire save.</p>
+<p>The battery schedule, which is the default, runs from 1 % at 01:00 to 100 % at 07:00, showing &quot;charging&quot; through that window. Untick it to set a fixed percentage and choose whether charging is shown.</p>
+<h2>6.1 Configuration files</h2>
+<p><strong>导出配置</strong> writes <code>robotcontrol-config-YYYYMMDD.json</code> containing button texts, status items, mode names, model information, links, runtime parameters, accounts, both images, emotion values, language, the TTS engine and the MiMo API key.</p>
+<blockquote>The exported file contains your login password and API key in plain text, and may include the robot images. Store it accordingly.</blockquote>
+<p><strong>导入配置</strong> reads such a file back, warns that it overwrites every personalisation and reloads the page. Invalid files are rejected.</p>
+<hr>
+<h2>7. Information panel</h2>
+<p>The <strong>?</strong> button opens the information panel in two blocks.</p>
+<p><strong>About</strong> — device model and manufacturing company (both following your model information), the robot's system name, firmware revision, and the server link status.</p>
+<p><strong>Files and links</strong> — the document list. Each row has an open-in-new-window button:</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Entry</th><th>Opens</th></tr></thead>
+<tbody>
+<tr><td>T-series user manual (PDF)</td><td>The built-in PDF viewer, with fallback links if your browser cannot display PDFs inline</td></tr>
+<tr><td>The demo collection</td><td>Telegram</td></tr>
+<tr><td>The public channel</td><td>Telegram</td></tr>
+<tr><td>The social account</td><td>X</td></tr>
+<tr><td>The company's android logs</td><td>Pixiv</td></tr>
+<tr><td><strong>App user manual</strong></td><td>This manual, in whichever language the console is currently using</td></tr>
+<tr><td>Get the app (open / download)</td><td>The browser app-launch guide</td></tr>
+</tbody></table></div>
+<p>Link names and addresses are editable in Settings; the PDF entry keeps its fixed filename.</p>
+<hr>
+<h2>8. Slave app</h2>
+<p>The Slave is the client that travels with the android.</p>
+<h2>8.1 Screen layout</h2>
+<p>The fixed top area holds the Bluetooth button, the mode capsule and the voice-recognition button, with the emotion panel underneath. Below them, two scrolling columns show tasks on the left and voice messages on the right.</p>
+<p>The <strong>mode capsule</strong> shows the current mode in its own colour, or <strong>NA</strong> in grey. <strong>Long-press it</strong> to open the mode menu and push a different mode to the console; if nothing is connected you are told so. This is the manual equivalent of a voice command.</p>
+<h2>8.2 Bluetooth button</h2>
+<ul>
+<li><strong>Tap</strong> to open the connection dialog.</li>
+</ul>
+<ul>
+<li><strong>Long-press</strong> to inject sample data — a row of demo tasks, emotions and voice messages. This is a test aid, not real traffic.</li>
+</ul>
+<p>The button is green when connected, red when disconnected, amber while connecting and grey before the first pairing.</p>
+<h2>8.3 Connection dialog</h2>
+<p><strong>控制面板连接</strong> holds the connection state and address, the nearby-device list with scan controls, the QR scanner entry, and the settings the android itself needs:</p>
+<ul>
+<li><strong>MiMo API Key</strong> — optional; used for high-quality speech synthesis and synced to the console when you connect.</li>
+</ul>
+<ul>
+<li><strong>Use cloud engine (MiMo ASR)</strong> — when on, recognition may fall back to the cloud; when off, only the on-device engine runs and nothing is sent anywhere.</li>
+</ul>
+<ul>
+<li><strong>Language</strong> — <code>中文</code> / <code>English</code>.</li>
+</ul>
+<ul>
+<li><strong>Disconnect</strong> — drops the link and forgets the pairing.</li>
+</ul>
+<h2>8.4 Voice recognition</h2>
+<p>The round microphone button at the top right toggles recognition. It runs only while the app is in the foreground, and remembers whether it was on.</p>
+<p>Recognition happens on the device first, matching the mode names by pronunciation so near-homophones still register, and rejecting phrases that begin with a negative such as &quot;don't&quot;. It also follows the interface language: Chinese mode names are recognised in Chinese, English ones in English. Cloud recognition is used only as a fallback, and only when the switch is on, a key is present, and enough speech has been captured.</p>
+<p>A recognised mode is pushed to the console exactly as a manual long-press would be.</p>
+<h2>8.5 Tasks and voice messages</h2>
+<p><strong>Tasks</strong> are tagged by origin — cognitive, terminal, button or ordinary — and finished ones are struck through. <strong>Voice messages</strong> show the time and content, newest first; a system notification is posted for each new message, titled 主人指令, or 推送成功 when the message is the console acknowledging a mode you pushed.</p>
+<h2>8.6 Your privacy controls</h2>
+<p>Nothing leaves the device unless you allow it: the cloud switch governs speech recognition, and the API key is only used for the MiMo service.</p>
+<hr>
+<h2>9. Watch app</h2>
+<p>The watch shows three pages you swipe between, or scroll with the crown:</p>
+<ol>
+<li><strong>Emotion</strong> — the same four gauges as the console.</li>
+</ol>
+<ol>
+<li><strong>Tasks</strong> — the task list, at a glance.</li>
+</ol>
+<ol>
+<li><strong>Voice</strong> — the most recent voice messages.</li>
+</ol>
+<p>The time and a mode capsule sit at the top, and a round Bluetooth button at the bottom right opens the connection dialog, where you can scan, disconnect, unbind, and open the <strong>keep-alive settings</strong> guidance. That guidance explains how to exempt the app from battery optimisation on Xiaomi, Oppo, OnePlus, realme and similar phones — worth doing, or the system will stop the connection in the background. The watch vibrates differently for each mode change.</p>
+<p>The watch keeps its connection alive with a foreground service and reconnects automatically, including after a reboot.</p>
+<hr>
+<h2>10. Browser edition</h2>
+<p>The same console runs in a browser. Two things differ from the native clients.</p>
+<p><strong>Caching.</strong> A first visit offers to cache the whole console so it opens instantly and works offline. Following that link downloads every asset once. Afterwards the console runs from local storage, and if the site is updated you are offered a re-cache through a notification or a banner.</p>
+<p><strong>App launching.</strong> The browser cannot use Bluetooth; to connect to hardware you need the Android or Windows app. The guide that appears offers to open the installed app, download it, or continue in the browser.</p>
+<p>The <strong>Settings → 网页缓存与 App</strong> group repeats the cache, launch and download actions at any time.</p>
+<hr>
+<h2>11. Troubleshooting</h2>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Symptom</th><th>What to check</th></tr></thead>
+<tbody>
+<tr><td>The client is in the wrong language</td><td>Change the system language, or switch manually — a manual switch is permanent and overrides detection</td></tr>
+<tr><td>The Slave shows a different language from the console</td><td>That is intended: the Slave keeps its own language now. Set it on the Slave</td></tr>
+<tr><td>The Slave cannot find the console</td><td>Make sure the console is advertising (open its connection dialog and start), keep the two devices within a few metres, and give the scan its ten seconds</td></tr>
+<tr><td>QR code will not scan</td><td>Only the native shells generate usable codes; in a browser the QR area stays empty. Use scanning instead</td></tr>
+<tr><td>The Windows launcher waits forever</td><td>Add at least one USB rule, or press F2 for test mode</td></tr>
+<tr><td>Voice recognition does not respond</td><td>Check the microphone permission, keep the app in the foreground, and confirm the interface language matches how you are speaking</td></tr>
+<tr><td>The watch disconnects by itself</td><td>Open the keep-alive guidance from the Bluetooth dialog and add the app to the battery-optimisation whitelist</td></tr>
+<tr><td>A settings change had no effect</td><td>Settings are written when you press <strong>应用更改</strong>, not as you type</td></tr>
+<tr><td>The console reopens the first-run screen</td><td>It reappears only if setup was never completed; complete or skip it</td></tr>
+</tbody></table></div>
+</div>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {
-  "version": "9f876994dd45",
-  "generatedAt": "2026-10-07T11:23:40.713Z",
-  "totalSize": 15477280,
+  "version": "3e659b53ac94",
+  "generatedAt": "2026-10-09T05:00:50.761Z",
+  "totalSize": 15551242,
   "files": [
     {
       "path": "MimoTTSClient.js",
@@ -84,6 +84,16 @@
       "hash": "9d743f4c3455"
     },
     {
+      "path": "doc/manual/manual.en.html",
+      "size": 33962,
+      "hash": "b9b916e4dfff"
+    },
+    {
+      "path": "doc/manual/manual.zh-CN.html",
+      "size": 30942,
+      "hash": "35cbe6838029"
+    },
+    {
       "path": "doc/robot_code.txt",
       "size": 20058,
       "hash": "b896d8bbef96"
@@ -115,8 +125,8 @@
     },
     {
       "path": "js/app-core.js",
-      "size": 383236,
-      "hash": "822b2b038ade"
+      "size": 390778,
+      "hash": "41fc0420411c"
     },
     {
       "path": "js/app-desktop.js",
@@ -125,8 +135,8 @@
     },
     {
       "path": "js/app-launch.js",
-      "size": 11199,
-      "hash": "3922bd534b27"
+      "size": 11198,
+      "hash": "a9e637ffca4c"
     },
     {
       "path": "js/cache-console.js",
@@ -135,8 +145,8 @@
     },
     {
       "path": "js/i18n.js",
-      "size": 128902,
-      "hash": "4ff811c08f9e"
+      "size": 130464,
+      "hash": "a63826d22153"
     },
     {
       "path": "js/platform-bootstrap.js",
@@ -265,8 +275,8 @@
     },
     {
       "path": "sprites/rotation-sprites.json",
-      "size": 4075,
-      "hash": "24f98de88f02"
+      "size": 4030,
+      "hash": "671089d230c1"
     },
     {
       "path": "webfonts/JetBrainsMono-Bold.woff2",

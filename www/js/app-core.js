@@ -125,6 +125,15 @@
                 meta: 'Pixiv'
             },
             {
+                /* App 使用说明书（v1.10.0）：中英双版本，按当前界面语言取对应 HTML 在应用内阅读。
+                   type:'doc' 与 action 一样不进「信息面板链接」可配置列表（名称为固定文档名）。 */
+                id: 'app-manual',
+                name: 'App 使用说明书',
+                type: 'doc',
+                iconPath: './pic/links/doc.svg',
+                meta: 'Markdown'
+            },
+            {
                 id: 'get-app',
                 name: '获取 App（打开 / 下载）',
                 type: 'action',
@@ -133,6 +142,29 @@
                 meta: 'Android / Windows'
             }
         ];
+
+        /* App 使用说明书路径（按界面语言取版本；中英各一份，随包本地保存） */
+        var MANUAL_PATHS = {
+            zh: './doc/manual/manual.zh-CN.html',
+            en: './doc/manual/manual.en.html'
+        };
+        function manualPath() {
+            try {
+                var l = (typeof I18N !== 'undefined' && I18N.getLang) ? I18N.getLang() : 'en';
+                return MANUAL_PATHS[l] || MANUAL_PATHS.en;
+            } catch (e) {
+                return MANUAL_PATHS.en;
+            }
+        }
+        /** 说明书条目名按语言显示（其余固定名称条目沿用既定用词） */
+        function manualName() {
+            try {
+                var l = (typeof I18N !== 'undefined' && I18N.getLang) ? I18N.getLang() : 'en';
+                return l === 'zh' ? 'App 使用说明书' : 'App User Manual';
+            } catch (e) {
+                return 'App User Manual';
+            }
+        }
 
         // 占位SVG图片
         const PLACEHOLDER_SVG_1 = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='400' viewBox='0 0 180 400'%3E%3Crect width='180' height='400' fill='%232d4a2d'/%3E%3Ccircle cx='90' cy='100' r='30' fill='%234e6f4e'/%3E%3Crect x='70' y='130' width='40' height='180' fill='%234e6f4e'/%3E%3Crect x='30' y='130' width='40' height='80' fill='%234e6f4e'/%3E%3Crect x='110' y='130' width='40' height='80' fill='%234e6f4e'/%3E%3Crect x='30' y='290' width='40' height='80' fill='%234e6f4e'/%3E%3Crect x='110' y='290' width='40' height='80' fill='%234e6f4e'/%3E%3C/svg%3E";
@@ -2836,6 +2868,8 @@
         window.addEventListener('rc-lang-changed', function () {
             try { applyModelInfoToDom(); } catch (e) { /* ignore */ }
             try { if (typeof buildSettingsNav === 'function') buildSettingsNav(); } catch (e) { /* ignore */ }
+            // 信息面板文件列表：说明书条目名称与语言版本随界面语言切换（v1.10.0）
+            try { if (typeof renderFileList === 'function') renderFileList(); } catch (e) { /* ignore */ }
         });
 
         /* ===== 模式名称自定义与信息参数中英文解析 =====
@@ -5543,10 +5577,10 @@
         }
 
         /* 生效链接（信息面板用）：存储 null=全部默认（取 FILES 默认名/URL）；否则按 id 合并保存值。
-           get-app 是 action 项不可配置，不进存储与设置行 */
+           get-app(action) 与 app-manual(doc) 不可配置，不进存储与设置行 */
         function getEffectiveInfoLinks() {
             const saved = (Array.isArray(state.infoLinks) && state.infoLinks.length) ? state.infoLinks : storage.getInfoLinks();
-            return FILES.filter(f => f.type !== 'action').map(f => {
+            return FILES.filter(f => f.type !== 'action' && f.type !== 'doc').map(f => {
                 const s = (Array.isArray(saved) ? saved : []).find(x => x && x.id === f.id);
                 return {
                     id: f.id,
@@ -6236,13 +6270,15 @@
             const containers = document.querySelectorAll('.file-list');
             if (containers.length === 0) return;
 
-            // v1.6.0：名称/URL 支持自定义（存储 robotInfoLinks，null=全部默认；action 项不可配置）
+            // v1.6.0：名称/URL 支持自定义（存储 robotInfoLinks，null=全部默认；action/doc 项不可配置）
             const effective = getEffectiveInfoLinks();
             const nameOf = file => {
+                if (file.type === 'doc') return manualName();   // 说明书按界面语言显示名称
                 const e = effective.find(lk => lk.id === file.id);
                 return (e && e.name) || file.name;
             };
             const urlOf = file => {
+                if (file.type === 'doc') return manualPath();   // 说明书按界面语言取版本
                 const e = effective.find(lk => lk.id === file.id);
                 return (e && e.url) || file.url || '';
             };
@@ -6253,15 +6289,18 @@
                 FILES.forEach(file => {
                     const isPdf = file.type === 'pdf';
                     const isAction = file.type === 'action';
+                    const isDoc = file.type === 'doc';
                     const item = document.createElement('div');
                     item.className = isPdf ? 'file-item file-item-full' : 'file-item';
                     const metaText = isPdf
                         ? `${file.version} · ${file.type.toUpperCase()} · ${file.sizeText}`
                         : isAction
                             ? `${file.meta} · APP`
-                            : `${file.meta} · LINK`;
+                            : isDoc
+                                ? `${file.meta} · DOC`
+                                : `${file.meta} · LINK`;
 
-                    // PDF 和链接都增加"新窗口"按钮（用多标签页打开）；action 条目无外链，不渲染
+                    // PDF、链接与说明书都增加"新窗口"按钮；action 条目无外链，不渲染
                     const actionsHtml = isAction ? '' : `<button class="file-open-new-btn btn-active" data-file-new-id="${file.id}" title="在新窗口打开">
                                <i class="fa fa-external-link-alt mr-1"></i>新窗口
                            </button>`;
@@ -6279,7 +6318,12 @@
 
                     // 点击条目主体执行默认操作
                     item.addEventListener('click', () => {
-                        if (isPdf) {
+                        if (isDoc) {
+                            /* 说明书始终在应用内阅读（Android 不外抛，保证任何端都读得到） */
+                            openManualViewer();
+                            if (typeof isDesktopChrome === 'function' && isDesktopChrome() && typeof closeInfoModal === 'function') closeInfoModal();
+                            appendToLogs(`打开了文件：${nameOf(file)}`);
+                        } else if (isPdf) {
                             openPdfViewer(file);
                             /* 桌面菜单模式：打开 PDF 窗口后自动收起信息面板（链接条目与"新窗口"按钮行为不变） */
                             if (typeof isDesktopChrome === 'function' && isDesktopChrome() && typeof closeInfoModal === 'function') closeInfoModal();
@@ -6313,7 +6357,7 @@
                     container.appendChild(item);
                 });
 
-                // 绑定新窗口按钮（PDF 用 path，链接用 url，都用多标签页打开）
+                // 绑定新窗口按钮（PDF 用 path，链接用 url，说明书用当前语言版本；都用多标签页打开）
                 container.querySelectorAll('[data-file-new-id]').forEach(btn => {
                     btn.addEventListener('click', (e) => {
                         e.stopPropagation();
@@ -6321,7 +6365,7 @@
                         const file = FILES.find(f => f.id === id);
                         if (file) {
                             const target = file.path || urlOf(file);
-                            if (isSingleColumn() && isAndroidApp()) {
+                            if (isSingleColumn() && isAndroidApp() && file.type !== 'doc') {
                                 if (file.type === 'pdf') {
                                     window.Android.openPdfFile(target);
                                 } else {
@@ -6349,9 +6393,17 @@
         // 打开 PDF 阅读器
         let currentPdfFile = null;
 
+        /* 应用内阅读使用说明书（v1.10.0）：复用 PDF 阅读器弹窗的 iframe 与「新窗口」按钮，
+           始终在本应用内打开（Android 也不外抛），确保各端都能读到对应语言的版本。 */
+        function openManualViewer() {
+            /* inApp：说明书为本地 HTML，始终用内置阅读器（Android 也不外抛） */
+            const file = { id: 'app-manual', name: manualName(), path: manualPath(), inApp: true };
+            openPdfViewer(file);
+        }
+
         function openPdfViewer(file) {
             currentPdfFile = file;
-            if (isSingleColumn() && isAndroidApp()) {
+            if (isSingleColumn() && isAndroidApp() && !file.inApp) {
                 window.Android.openPdfFile(file.path);
                 return;
             }

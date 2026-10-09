@@ -13,6 +13,8 @@ const OUT_FILE = join(WWW_ROOT, 'cache-manifest.json');
 // - pic/Rt5Open*.mp4：仅 Android 原生闪屏（assets 直读）与 win-app splash.html 使用，浏览器不 fetch
 // - doc/*.pdf：1.5MB 按需打开，交给 SW 运行时缓存（首次打开后离线可用）
 // - doc/自检.txt：全仓库无引用
+// - doc/manual/*.md：使用说明书 Markdown 源（仅供 GitHub 直读与 tools/manual-build 构建，
+//   应用内阅读用同目录 .html 产物，两份 html 已进清单）
 // - sw.js / cache-manifest.json：基础设施自身（manifest 在 SW/页面侧恒 no-store）
 const EXACT_EXCLUDES = new Set([
     'sw.js',
@@ -22,7 +24,8 @@ const EXACT_EXCLUDES = new Set([
 const EXCLUDE_TESTS = [
     /(^|\/)\.mimosa(\/|$)/, /* 任意层级的 .mimosa 会话目录（顶层与 css/js 等嵌套子目录一并排除） */
     /^pic\/Rt5Open.*\.mp4$/,
-    /^doc\/.+\.pdf$/
+    /^doc\/.+\.pdf$/,
+    /^doc\/manual\/.+\.md$/
 ];
 
 function walk(dir, base) {
