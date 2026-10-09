@@ -2799,7 +2799,9 @@
             return (window.I18N && I18N.getLang() === 'en') ? `${n} Internal System Panel` : `${n}内部系统面板`;
         }
         function modelSentenceMasterDe() {
-            return getModelInfo('master') + '的';   // 单栏 hero 第一行（en 现状保留中文助词，行为不变）
+            // 单栏 hero 第一行：中文「X的」；英文用所有格 "X's"（英文助词不保留中文的）
+            var master = getModelInfo('master');
+            return (window.I18N && I18N.getLang() === 'en') ? master + "'s" : master + '的';
         }
         function modelSentenceLogout() {
             const n = getModelInfo('shortName');

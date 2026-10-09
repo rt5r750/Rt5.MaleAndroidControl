@@ -198,6 +198,12 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         emotionPanelContainer = findViewById(R.id.emotionPanelContainer)
         btWatchBtn.visibility = View.GONE
 
+        // 语言必须先初始化再构建界面：buildContent() 与首启界面都按 PhoneI18n.t()
+        // 取值，若排在 init 之前会用默认语言渲染（手选语言不生效）。
+        BondStore.init(this)
+        ApiKeyStore.initialize(this)
+        PhoneI18n.init(this)
+
         setupEdgeToEdgeInsets()
 
         buildContent()
@@ -216,11 +222,6 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         setupAsrButton()
         updateAsrButtonState(false)
 
-        BondStore.init(this)
-        ApiKeyStore.initialize(this)
-        PhoneI18n.init(this)
-        // 显示语言跟随发送端（BLE 7507 UiLang），phone 端不再提供手动切换：
-        // 连接后初读/订阅推送即按发送端语言重建界面；未收到(255)保持当前语言
         asrBtn.contentDescription = PhoneI18n.t("语音识别")
 
         PhoneDataStore.initialize(applicationContext)
