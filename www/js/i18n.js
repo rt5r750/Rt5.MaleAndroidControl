@@ -1,6 +1,8 @@
 /**
  * i18n runtime overlay (English translation test).
- * Default language is Chinese. Switch to English in Settings.
+ * Default language is English; the device language is auto-detected on every
+ * launch (zh* -> Chinese, anything else/unavailable -> English). A language the
+ * user picked manually wins over detection and is the only value persisted.
  * Existing Chinese strings are never modified in source; this module
  * only replaces display text at runtime and restores Chinese on switch-back.
  * Terminology follows the T31-750 English manuals.
@@ -898,22 +900,48 @@
     };
 
     var _sortedKeys = Object.keys(DICT).sort(function (a, b) { return b.length - a.length; });
-    var lang = 'zh';
+    /* ===== 初始语言决策（v1.10.0）=====
+       优先级：① 用户手选（localStorage robot_ui_lang，仅 setLang 写入）→
+              ② 原生桥 bootLang（win-app 主进程 huancun/i18n-lang.json）
+              ③ 设备语言自动检测（navigator.languages / navigator.language）
+              ④ 兜底英文。
+       自动检测结果**不落盘**——每次启动重新检测，只有手选才持久化，
+       因此"检测到中文设备"与"用户改回英文"不会互相覆盖。
+       判定口径：语言主标签 zh* → 中文；其余（en 及其他全部语言）/检测不到 → 英文。 */
+    var lang = 'en';
+    function isZhTag(tag) {
+        return typeof tag === 'string' && /^zh\b/i.test(tag.trim());
+    }
+    function detectDeviceLang() {
+        try {
+            var list = global.navigator && global.navigator.languages;
+            if (list && list.length) {
+                for (var i = 0; i < list.length; i++) {
+                    if (list[i]) return isZhTag(list[i]) ? 'zh' : 'en';
+                }
+            }
+            var one = global.navigator && global.navigator.language;
+            if (one) return isZhTag(one) ? 'zh' : 'en';
+        } catch (e) { /* ignore */ }
+        return 'en';
+    }
+    var manualLang = null;
     try {
-        var saved = global.localStorage && global.localStorage.getItem(STORAGE_KEY);
-        if (!saved && global.localStorage) {
-            saved = global.localStorage.getItem(LEGACY_STORAGE_KEY);
-            if (saved === 'en' || saved === 'zh') {
-                global.localStorage.setItem(STORAGE_KEY, saved);
+        manualLang = global.localStorage && global.localStorage.getItem(STORAGE_KEY);
+        if (!manualLang && global.localStorage) {
+            manualLang = global.localStorage.getItem(LEGACY_STORAGE_KEY);
+            if (manualLang === 'en' || manualLang === 'zh') {
+                global.localStorage.setItem(STORAGE_KEY, manualLang);
                 global.localStorage.removeItem(LEGACY_STORAGE_KEY);
             }
         }
-        if (saved === 'en' || saved === 'zh') lang = saved;
     } catch (e) { /* ignore */ }
+    if (manualLang !== 'en' && manualLang !== 'zh') manualLang = null;
+    lang = manualLang || detectDeviceLang();
     /* win-app：主进程 huancun/i18n-lang.json 是初始语言的单一事实源（preload 顶层
        sendSync 经 consoleAPI.bootLang 在页面脚本前带回）。启动器设置里切换语言后，
        本 origin 的 localStorage 不会自动更新——以 bootLang 为准并对齐本地副本，
-       保证「启动器切英文 → 进入控制台即英文」。浏览器/Android 无此桥，维持 localStorage。 */
+       保证「启动器切英文 → 进入控制台即英文」。浏览器/Android 无此桥，走检测。 */
     try {
         var bootLang = global.consoleAPI && global.consoleAPI.bootLang;
         if ((bootLang === 'en' || bootLang === 'zh') && bootLang !== lang) {

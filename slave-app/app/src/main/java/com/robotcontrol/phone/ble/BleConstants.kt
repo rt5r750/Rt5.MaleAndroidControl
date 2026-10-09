@@ -11,6 +11,7 @@ object BleConstants {
     val CHAR_VOICE_UUID: UUID = UUID.fromString("00007504-0000-1000-8000-00805f9b34fb")
     val CHAR_HEARTBEAT_UUID: UUID = UUID.fromString("00007505-0000-1000-8000-00805f9b34fb")
     val CHAR_APIKEY_UUID: UUID = UUID.fromString("00007506-0000-1000-8000-00805f9b34fb")
+    /** 7507(UiLang)：服务端特征保留（旧版客户端仍订阅），本端 v1.10.0 起不再读写 */
     val CHAR_UI_LANG_UUID: UUID = UUID.fromString("00007507-0000-1000-8000-00805f9b34fb")
 
     const val DEVICE_NAME_PREFIX = "RobotControl-"

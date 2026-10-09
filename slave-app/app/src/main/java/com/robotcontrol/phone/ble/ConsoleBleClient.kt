@@ -49,8 +49,7 @@ object ConsoleBleClient {
     var onTasksReceived: ((tasksJson: String) -> Unit)? = null
     var onVoiceReceived: ((voiceJson: String) -> Unit)? = null
     var onVoiceHistoryReceived: ((historyJson: String) -> Unit)? = null
-    /** UiLang(7507)：0=zh、1=en、255=未设置。phone 无语言设置，显示语言跟随发送端 */
-    var onLangReceived: ((lang: String) -> Unit)? = null
+    // 7507(UiLang) 在 v1.10.0 起不再消费：Slave 界面语言由本机检测/手选决定，不跟随控制端
 
     private var bluetoothManager: BluetoothManager? = null
     private var bluetoothAdapter: BluetoothAdapter? = null
@@ -77,7 +76,6 @@ object ConsoleBleClient {
     private var voiceCharacteristic: BluetoothGattCharacteristic? = null
     private var heartbeatCharacteristic: BluetoothGattCharacteristic? = null
     private var apikeyCharacteristic: BluetoothGattCharacteristic? = null
-    private var uiLangCharacteristic: BluetoothGattCharacteristic? = null
 
     private var bleHandlerThread: HandlerThread? = null
     private var bleHandler: Handler? = null
@@ -255,7 +253,6 @@ object ConsoleBleClient {
                 voiceCharacteristic = service.getCharacteristic(BleConstants.CHAR_VOICE_UUID)
                 heartbeatCharacteristic = service.getCharacteristic(BleConstants.CHAR_HEARTBEAT_UUID)
                 apikeyCharacteristic = service.getCharacteristic(BleConstants.CHAR_APIKEY_UUID)
-                uiLangCharacteristic = service.getCharacteristic(BleConstants.CHAR_UI_LANG_UUID)
 
                 android.util.Log.d("BleClient", "Services discovered, enabling notifications...")
 
@@ -271,11 +268,10 @@ object ConsoleBleClient {
                 voiceCharacteristic?.let { enqueueGattAction(GattAction(GattAction.SET_NOTIFICATION, it)) }
                 heartbeatCharacteristic?.let { enqueueGattAction(GattAction(GattAction.SET_NOTIFICATION, it)) }
                 apikeyCharacteristic?.let { enqueueGattAction(GattAction(GattAction.SET_NOTIFICATION, it)) }
-                uiLangCharacteristic?.let { enqueueGattAction(GattAction(GattAction.SET_NOTIFICATION, it)) }
+                // 7507(UiLang) 不再订阅：v1.10.0 起界面语言不跟随控制端（特征在服务端保留供旧版客户端使用）
 
                 enqueueGattAction(GattAction(GattAction.READ_CHAR, modeCharacteristic))
                 enqueueGattAction(GattAction(GattAction.READ_CHAR, emotionCharacteristic))
-                enqueueGattAction(GattAction(GattAction.READ_CHAR, uiLangCharacteristic))
                 enqueueGattAction(GattAction(GattAction.READ_LONG_CHAR, voiceCharacteristic, offset = 0))
 
                 processNextGattAction()
@@ -511,19 +507,7 @@ object ConsoleBleClient {
             BleConstants.CHAR_VOICE_UUID -> {
                 dispatchVoiceData(String(value, Charsets.UTF_8))
             }
-            BleConstants.CHAR_UI_LANG_UUID -> {
-                if (value.isNotEmpty()) {
-                    // 0=zh、1=en、255=未设置；未设置时保持当前语言
-                    val lang = when (value[0].toInt() and 0xFF) {
-                        0x00 -> "zh"
-                        0x01 -> "en"
-                        else -> null
-                    }
-                    if (lang != null) {
-                        mainHandler.post { onLangReceived?.invoke(lang) }
-                    }
-                }
-            }
+            // 7507(UiLang) 已不订阅，不会走到这里（服务端特征保留供旧版客户端）
         }
     }
 

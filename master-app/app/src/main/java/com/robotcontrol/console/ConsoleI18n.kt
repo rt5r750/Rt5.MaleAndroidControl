@@ -1,33 +1,50 @@
 package com.robotcontrol.console
 
 import android.content.Context
+import java.util.Locale
 
 /**
- * 界面语言覆盖层（英语翻译测试）。
- * 默认中文；www 设置页切换语言后经 JS 桥 setUiLang 同步（robot_ui_lang）。
+ * 界面语言覆盖层。
+ * 语言决策（v1.10.0）：① 用户手选（SharedPreferences robot_ui_lang 且 manual=true）→
+ * ② 设备语言自动检测（Locale.getDefault()，zh* → 中文）→ ③ 兜底英文。
+ * 自动检测结果不落盘——每次启动重新检测，仅手选持久化。
  * 中文源字符串不改动，仅在取值时按表替换，保证中文一字不改。
  * 术语遵循 T31-750 说明书英文版。
  */
 object ConsoleI18n {
     private const val PREFS = "robot_ui_lang"
     private const val KEY = "lang"
+    private const val KEY_MANUAL = "lang_manual"
 
     @Volatile
-    private var lang: String = "zh"
+    private var lang: String = detectDeviceLang()
+
+    /** 设备语言检测：zh* → 中文，其余/取不到 → 英文。 */
+    fun detectDeviceLang(): String {
+        return try {
+            if (Locale.getDefault().toLanguageTag().trim().startsWith("zh", ignoreCase = true)) "zh" else "en"
+        } catch (e: Exception) {
+            "en"
+        }
+    }
 
     fun init(context: Context) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        lang = prefs.getString(KEY, "zh") ?: "zh"
-        if (lang != "en") lang = "zh"
+        // 仅手选值可信；无手选标记时按设备语言重新检测（自动检测结果不入库）
+        val manual = prefs.getBoolean(KEY_MANUAL, false)
+        val saved = prefs.getString(KEY, null)
+        lang = if (manual && (saved == "en" || saved == "zh")) saved else detectDeviceLang()
     }
 
     fun getLang(): String = lang
 
+    /** 用户手选语言：持久化并标记 manual，此后设备语言检测不再覆盖。 */
     fun setLang(context: Context, next: String) {
         lang = if (next == "en") "en" else "zh"
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY, lang)
+            .putBoolean(KEY_MANUAL, true)
             .apply()
     }
 

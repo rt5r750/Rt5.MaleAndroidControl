@@ -1622,6 +1622,24 @@
         
         // 页面加载时只初始化登录相关功能
         document.addEventListener('DOMContentLoaded', function() {
+            /* ===== First Run 模式（?firstrun=1）=====
+               只显示激活页：不跑登录背景/表单逻辑，激活完成或跳过后回调宿主。
+               已激活（如控制台内已完成、或重复打开该窗口）则立即回调，不重复弹表单。 */
+            if (_firstRunMode) {
+                const frLogin = document.getElementById('login-modal');
+                if (frLogin) frLogin.style.display = 'none';
+                const frActivation = document.getElementById('activation-modal');
+                if (frActivation) frActivation.style.display = 'none';
+                bindActivationButtons();
+                if (isRobotActivated()) {
+                    notifyFirstRunReady();
+                    setTimeout(function () { notifyFirstRunDone(); if (typeof _firstRunDone === 'function') _firstRunDone(); }, 60);
+                } else {
+                    showActivationModal();
+                    notifyFirstRunReady();
+                }
+                return;
+            }
             // 单栏模式（移动端）与 Android WebView 直接跳过登录进入主界面。
             // v1.6.0 起 Android 按平台保证无登录/激活页（不再依赖 <750 宽度的巧合——
             // 平板或横屏 WebView 同样直进；历史版本纯宽度判断在 Android ≥750 时会误出登录页）。
@@ -1631,6 +1649,21 @@
                 if (loginModal) loginModal.style.display = 'none';
                 const activationModal = document.getElementById('activation-modal');
                 if (activationModal) activationModal.style.display = 'none';
+                /* v1.10.0：Android App 与窄屏移动端不再免除 First Run——
+                   未激活时先显示激活页（品牌 PV 播完即见），完成/跳过后再进主界面。
+                   登录页仍然免除（无登录界面保证不变）。 */
+                if (!isRobotActivated()) {
+                    bindActivationButtons();
+                    // 完成/跳过后（completeActivation 派发 rc-firstrun-done）再进入主界面
+                    window.addEventListener('rc-firstrun-done', function onFirstRunSettled() {
+                        window.removeEventListener('rc-firstrun-done', onFirstRunSettled);
+                        initApp();
+                        switchMobilePage('command');
+                        appendToLogs('移动端用户已自动登录系统');
+                    });
+                    showActivationModal();
+                    return;
+                }
                 initApp();
                 switchMobilePage('command');
                 appendToLogs('移动端用户已自动登录系统');
@@ -1691,10 +1724,7 @@
 
             // 激活页按钮必须在此处绑定（早于登录）：initEventListeners 在登录成功后才执行，
             // 若绑定放那里，激活页显示期间点击无响应
-            const activationFinishBtn = document.getElementById('activation-finish-btn');
-            if (activationFinishBtn) activationFinishBtn.addEventListener('click', () => completeActivation(false));
-            const activationSkipBtn = document.getElementById('activation-skip-btn');
-            if (activationSkipBtn) activationSkipBtn.addEventListener('click', () => completeActivation(true));
+            bindActivationButtons();
 
             // 登录表单提交
             document.getElementById('login-form').addEventListener('submit', function(e) {
@@ -5678,6 +5708,12 @@
         function hideActivationModal() {
             const modal = document.getElementById('activation-modal');
             if (modal) modal.style.display = 'none';
+            // First Run 模式不回落登录页：宿主会在完成后关闭本窗口/进入主界面
+            if (_firstRunMode) {
+                const firstRunLogin = document.getElementById('login-modal');
+                if (firstRunLogin) firstRunLogin.style.display = 'none';
+                return;
+            }
             const loginModal = document.getElementById('login-modal');
             if (loginModal) loginModal.style.display = '';
         }
@@ -5822,7 +5858,46 @@
             } catch (e) { /* 激活页初始化失败不阻断流程 */ }
         }
 
+        /** 激活页两个按钮的绑定（必须早于登录成功：initEventListeners 登录后才执行）。 */
+        function bindActivationButtons() {
+            const finishBtn = document.getElementById('activation-finish-btn');
+            if (finishBtn) finishBtn.addEventListener('click', () => completeActivation(false));
+            const skipBtn = document.getElementById('activation-skip-btn');
+            if (skipBtn) skipBtn.addEventListener('click', () => completeActivation(true));
+        }
+
         /* 完成/跳过共用：skip=true 保持默认；否则按输入逐组落库（与设置页同一套存储键） */
+        /* ===== First Run 模式（v1.10.0）=====
+           `?firstrun=1`：只显示激活页，完成后回调原生并**不进入主界面**——
+           win-app 首启激活窗口（先于启动器）与 Android 首启共用同一套表单实现。
+           `?firstrun=1` 且已完成激活时立即回调，避免二次弹出。 */
+        var _firstRunMode = false;
+        var _firstRunDone = null;   // 完成/跳过后执行的回调（由各端注入）
+        try {
+            _firstRunMode = /(?:^|[?&])firstrun=1(?:&|$)/.test(window.location.search || '');
+        } catch (e) { /* ignore */ }
+
+        /** 供宿主注入 firstrun 完成回调（win-app 经 executeJavaScript 注入）。 */
+        window.rcSetFirstRunDone = function (fn) { _firstRunDone = fn; };
+        /** firstrun 模式下通知宿主已就绪（宿主据此决定窗口显隐）。 */
+        function notifyFirstRunReady() {
+            try { window.dispatchEvent(new CustomEvent('rc-firstrun-ready')); } catch (e) { /* ignore */ }
+            try { if (window.consoleAPI && window.consoleAPI.firstRunReady) window.consoleAPI.firstRunReady(); } catch (e) { /* ignore */ }
+        }
+        /** 激活完成后统一收尾：firstrun 模式回调宿主，否则回落登录页。 */
+        function finishFirstRun() {
+            notifyFirstRunDone();
+            if (_firstRunMode) {
+                setTimeout(function () { if (typeof _firstRunDone === 'function') _firstRunDone(); }, 420);
+                return true;
+            }
+            return false;
+        }
+        function notifyFirstRunDone() {
+            try { if (window.consoleAPI && window.consoleAPI.firstRunDone) window.consoleAPI.firstRunDone(); } catch (e) { /* ignore */ }
+            try { window.dispatchEvent(new CustomEvent('rc-firstrun-done')); } catch (e) { /* ignore */ }
+        }
+
         function completeActivation(skip) {
             if (!skip) {
                 // 3. 登录密码（admin 账号；两项均留空=保持默认 admin/admin）
@@ -5933,6 +6008,8 @@
             updateStatusDisplay();
             hideActivationModal();
             appendToLogs('[激活] 初始设置已完成');
+            // First Run 收尾：宿主回调优先（win-app 关窗回启动器）；否则返回由调用方继续
+            finishFirstRun();
         }
 
         /* ===== 设置导航（v1.6.0 起，v1.7.0 加图标与移动端一级/二级）=====

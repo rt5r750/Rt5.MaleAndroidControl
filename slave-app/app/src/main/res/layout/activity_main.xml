@@ -112,4 +112,14 @@
 
     </FrameLayout>
 
+    <!-- First Run 首启设置（v1.10.0）：未完成时覆盖全屏，完成后不再出现。
+         内容由 MainActivity.buildFirstRunView() 代码构建，与主界面风格一致。 -->
+    <FrameLayout
+        android:id="@+id/firstRunContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#FF05100A"
+        android:visibility="gone"
+        android:elevation="24dp" />
+
 </FrameLayout>

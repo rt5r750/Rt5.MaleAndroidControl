@@ -75,6 +75,12 @@ class MainActivity : ComponentActivity(), DataStoreListener {
     private lateinit var voiceContainer: LinearLayout
     private lateinit var tasksEmpty: TextView
     private lateinit var voiceEmpty: TextView
+    private var firstRunContainer: FrameLayout? = null
+
+    private companion object {
+        const val FIRST_RUN_PREFS = "first_run_prefs"
+        const val KEY_FIRST_RUN_DONE = "first_run_done"
+    }
 
     private val voiceTimeFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -222,6 +228,10 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         PhoneDataStore.addListener(this)
 
         initBle()
+
+        /* First Run（v1.10.0）：首次打开立即进入首启设置界面（覆盖主界面），
+           完成/跳过后不再出现。语言默认按设备检测（默认英文）。 */
+        showFirstRunIfNeeded()
 
         if (checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
@@ -430,13 +440,8 @@ class MainActivity : ComponentActivity(), DataStoreListener {
                 ordinal in 0..3 -> PhoneDataStore.setMode(Mode.values()[ordinal + 1])
             }
         }
-        // 显示语言跟随发送端（7507 UiLang）：语言变化时重建界面使全部文案切换
-        ConsoleBleClient.onLangReceived = { lang ->
-            if (PhoneI18n.getLang() != lang) {
-                PhoneI18n.setLang(this, lang)
-                recreate()
-            }
-        }
+        // 界面语言不再跟随控制端（v1.10.0 起取消 7507 UiLang 消费）：
+        // 语言只由本机设备检测 + 用户手选决定，控制端推送不影响本端显示。
         ConsoleBleClient.onEmotionReceived = { o, s, p, m ->
             val emotion = Emotion(o.coerceIn(0, 100), s.coerceIn(0, 100), p.coerceIn(0, 100), m.coerceIn(0, 100))
             PhoneDataStore.setEmotion(emotion)
@@ -1129,6 +1134,63 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         }
         container.addView(mimoCostHint)
 
+        /* 界面语言（v1.10.0）：默认英文、随设备语言自动检测，可在此手动覆盖；
+           不再跟随控制端 7507 推送。切换后 recreate 使全部文案即时生效。 */
+        val langRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding((20 * density).toInt(), (4 * density).toInt(), (20 * density).toInt(), 0)
+        }
+        val langLabel = TextView(this).apply {
+            text = PhoneI18n.t("语言")
+            setTextColor(GfxColor.parseColor("#888888"))
+            textSize = 12f
+            includeFontPadding = false
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val langSwitch = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+        }
+        fun styleLangBtn(btn: TextView, active: Boolean) {
+            btn.setTextColor(if (active) GfxColor.parseColor("#8FBC8F") else GfxColor.parseColor("#888888"))
+            btn.setBackgroundColor(if (active) GfxColor.parseColor("#1A8FBC8F") else GfxColor.parseColor("#00000000"))
+        }
+        val langZhBtn = TextView(this).apply {
+            text = "中文"
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setPadding((14 * density).toInt(), (6 * density).toInt(), (14 * density).toInt(), (6 * density).toInt())
+            includeFontPadding = false
+        }
+        val langEnBtn = TextView(this).apply {
+            text = "English"
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setPadding((14 * density).toInt(), (6 * density).toInt(), (14 * density).toInt(), (6 * density).toInt())
+            includeFontPadding = false
+        }
+        styleLangBtn(langZhBtn, PhoneI18n.getLang() == "zh")
+        styleLangBtn(langEnBtn, PhoneI18n.getLang() == "en")
+        langZhBtn.setOnClickListener {
+            if (PhoneI18n.getLang() != "zh") {
+                PhoneI18n.setLang(this, "zh")
+                bleControlDialog?.dismiss()
+                recreate()
+            }
+        }
+        langEnBtn.setOnClickListener {
+            if (PhoneI18n.getLang() != "en") {
+                PhoneI18n.setLang(this, "en")
+                bleControlDialog?.dismiss()
+                recreate()
+            }
+        }
+        langSwitch.addView(langZhBtn)
+        langSwitch.addView(langEnBtn)
+        langRow.addView(langLabel)
+        langRow.addView(langSwitch)
+        container.addView(langRow)
+
         val buttonsLayout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
@@ -1394,6 +1456,196 @@ class MainActivity : ComponentActivity(), DataStoreListener {
                 px
             )
         }
+    }
+
+    /* ===== First Run 首启设置（v1.10.0）=====
+       首次打开立即进入本界面（覆盖主界面），完成/跳过后不再出现。
+       内容：语言（默认英文、随设备检测、可手选）+ MiMo API Key + 云端识别开关。 */
+    private fun isFirstRunDone(): Boolean =
+        getSharedPreferences(FIRST_RUN_PREFS, MODE_PRIVATE).getBoolean(KEY_FIRST_RUN_DONE, false)
+
+    private fun markFirstRunDone() {
+        getSharedPreferences(FIRST_RUN_PREFS, MODE_PRIVATE).edit()
+            .putBoolean(KEY_FIRST_RUN_DONE, true).apply()
+    }
+
+    private fun showFirstRunIfNeeded() {
+        if (isFirstRunDone()) return
+        val host = findViewById<FrameLayout>(R.id.firstRunContainer) ?: return
+        firstRunContainer = host
+        host.removeAllViews()
+        host.addView(buildFirstRunView())
+        host.visibility = View.VISIBLE
+    }
+
+    private fun dismissFirstRun() {
+        markFirstRunDone()
+        firstRunContainer?.let { it.visibility = View.GONE; it.removeAllViews() }
+        firstRunContainer = null
+    }
+
+    private fun buildFirstRunView(): View {
+        val scroll = ScrollView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            isFillViewport = true
+            overScrollMode = View.OVER_SCROLL_NEVER
+        }
+        val col = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((24 * density).toInt(), (32 * density).toInt(), (24 * density).toInt(), (24 * density).toInt())
+        }
+        scroll.addView(col)
+
+        fun label(text: String): TextView = TextView(this).apply {
+            this.text = PhoneI18n.t(text)
+            setTextColor(GfxColor.parseColor("#888888"))
+            textSize = 12f
+            includeFontPadding = false
+        }
+        fun sectionTitle(text: String): TextView = TextView(this).apply {
+            this.text = PhoneI18n.t(text)
+            setTextColor(GfxColor.parseColor("#8FBC8F"))
+            textSize = 15f
+            setTypeface(typeface, Typeface.BOLD)
+            includeFontPadding = false
+        }
+
+        // 标题
+        col.addView(TextView(this).apply {
+            text = "Slave"
+            setTextColor(GfxColor.WHITE)
+            textSize = 26f
+            setTypeface(typeface, Typeface.BOLD)
+            includeFontPadding = false
+        })
+        col.addView(space((6 * density).toInt()))
+        col.addView(TextView(this).apply {
+            text = PhoneI18n.t("首次启动设置")
+            setTextColor(GfxColor.parseColor("#888888"))
+            textSize = 13f
+            includeFontPadding = false
+        })
+        col.addView(space((24 * density).toInt()))
+
+        // 1. 语言
+        col.addView(sectionTitle("语言"))
+        col.addView(space((8 * density).toInt()))
+        val langRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        fun langBtn(text: String, code: String): TextView = TextView(this).apply {
+            this.text = text
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setPadding((18 * density).toInt(), (10 * density).toInt(), (18 * density).toInt(), (10 * density).toInt())
+            includeFontPadding = false
+            isClickable = true
+            val active = PhoneI18n.getLang() == code
+            setTextColor(if (active) GfxColor.parseColor("#8FBC8F") else GfxColor.parseColor("#888888"))
+            setBackgroundColor(if (active) GfxColor.parseColor("#1A8FBC8F") else GfxColor.parseColor("#1AFFFFFF"))
+            setOnClickListener {
+                PhoneI18n.setLang(this@MainActivity, code)
+                // 重建整个首启界面：文案随新语言即时切换
+                firstRunContainer?.let { host ->
+                    host.removeAllViews()
+                    host.addView(buildFirstRunView())
+                }
+            }
+        }
+        langRow.addView(langBtn("中文", "zh"))
+        langRow.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams((8 * density).toInt(), 1)
+        })
+        langRow.addView(langBtn("English", "en"))
+        col.addView(langRow)
+        col.addView(space((6 * density).toInt()))
+        col.addView(label("默认按设备语言自动匹配，也可在此手动修改"))
+        col.addView(space((22 * density).toInt()))
+
+        // 2. MiMo API Key
+        col.addView(sectionTitle("MiMo API Key（可选）"))
+        col.addView(space((8 * density).toInt()))
+        val keyInput = EditText(this).apply {
+            setText(ApiKeyStore.getApiKey() ?: "")
+            hint = PhoneI18n.t("输入 API Key 用于语音播报")
+            setTextColor(GfxColor.WHITE)
+            setHintTextColor(GfxColor.parseColor("#555555"))
+            textSize = 13f
+            setSingleLine(true)
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
+            setPadding((16 * density).toInt(), (10 * density).toInt(), (16 * density).toInt(), (10 * density).toInt())
+            setBackgroundColor(GfxColor.parseColor("#1A000000"))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (44 * density).toInt()
+            )
+        }
+        col.addView(keyInput)
+        col.addView(space((6 * density).toInt()))
+        col.addView(label("用于高质量机械语音合成，连接时自动同步到控制台"))
+        col.addView(space((18 * density).toInt()))
+
+        // 3. 云端识别开关
+        val cloudRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        cloudRow.addView(TextView(this).apply {
+            text = PhoneI18n.t("识别引擎调用云端（MiMo ASR）")
+            setTextColor(GfxColor.parseColor("#888888"))
+            textSize = 12f
+            includeFontPadding = false
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        })
+        val cloudSwitch = Switch(this).apply {
+            isChecked = ApiKeyStore.isAsrCloudEnabled()
+            showText = false
+            setTrackDrawable(getDrawable(R.drawable.asr_switch_track))
+            setThumbDrawable(getDrawable(R.drawable.asr_switch_thumb))
+            setOnCheckedChangeListener { _, checked -> ApiKeyStore.setAsrCloudEnabled(checked) }
+        }
+        cloudRow.addView(cloudSwitch)
+        col.addView(cloudRow)
+        col.addView(space((6 * density).toInt()))
+        col.addView(label("关闭后仅使用本地离线识别"))
+        col.addView(space((26 * density).toInt()))
+
+        // 操作按钮：开始使用（落库 API Key）/ 跳过
+        val finishBtn = TextView(this).apply {
+            text = PhoneI18n.t("开始使用")
+            textSize = 15f
+            gravity = Gravity.CENTER
+            setTextColor(GfxColor.parseColor("#05100A"))
+            setBackgroundColor(GfxColor.parseColor("#8FBC8F"))
+            setPadding(0, (12 * density).toInt(), 0, (12 * density).toInt())
+            includeFontPadding = false
+            isClickable = true
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            setOnClickListener {
+                val key = keyInput.text?.toString()?.trim().orEmpty()
+                if (key.isNotEmpty()) ApiKeyStore.saveApiKey(key)
+                dismissFirstRun()
+            }
+        }
+        col.addView(finishBtn)
+        col.addView(space((10 * density).toInt()))
+        val skipBtn = TextView(this).apply {
+            text = PhoneI18n.t("跳过，保持默认")
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setTextColor(GfxColor.parseColor("#888888"))
+            setPadding(0, (10 * density).toInt(), 0, (10 * density).toInt())
+            includeFontPadding = false
+            isClickable = true
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            setOnClickListener { dismissFirstRun() }
+        }
+        col.addView(skipBtn)
+        return scroll
     }
 
     override fun onResume() {

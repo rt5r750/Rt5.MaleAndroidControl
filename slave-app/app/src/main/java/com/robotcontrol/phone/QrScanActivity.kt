@@ -87,7 +87,7 @@ class QrScanActivity : Activity() {
             camera.close()
             cameraDevice = null
             runOnUiThread {
-                Toast.makeText(this@QrScanActivity, "无法打开相机", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@QrScanActivity, PhoneI18n.t("无法打开相机"), Toast.LENGTH_SHORT).show()
                 finish()
             }
         }
@@ -497,7 +497,7 @@ class QrScanActivity : Activity() {
                 characteristics = manager.getCameraCharacteristics(cameraId!!)
             }
             if (cameraId == null) {
-                Toast.makeText(this, "未找到相机", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, PhoneI18n.t("未找到相机"), Toast.LENGTH_SHORT).show()
                 finish()
                 return
             }
@@ -532,7 +532,7 @@ class QrScanActivity : Activity() {
 
             val map = characteristics?.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
             if (map == null) {
-                Toast.makeText(this, "相机不支持", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, PhoneI18n.t("相机不支持"), Toast.LENGTH_SHORT).show()
                 finish()
                 return
             }
@@ -562,11 +562,11 @@ class QrScanActivity : Activity() {
             manager.openCamera(cameraId!!, stateCallback, backgroundHandler)
         } catch (e: CameraAccessException) {
             e.printStackTrace()
-            Toast.makeText(this, "相机访问失败", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, PhoneI18n.t("相机访问失败"), Toast.LENGTH_SHORT).show()
             finish()
         } catch (e: SecurityException) {
             e.printStackTrace()
-            Toast.makeText(this, "无相机权限", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, PhoneI18n.t("无相机权限"), Toast.LENGTH_SHORT).show()
             finish()
         }
     }

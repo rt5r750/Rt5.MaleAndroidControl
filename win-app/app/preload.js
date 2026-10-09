@@ -227,6 +227,9 @@ contextBridge.exposeInMainWorld('consoleAPI', {
   getUiLang: () => ipcRenderer.invoke('i18n-get-lang'),
   // 型号信息（v1.6.0）：控制台保存/启动时推送生效值给主进程（启动器经 model-info-get 读取）
   setModelInfo: (info) => ipcRenderer.send('model-info-set', info),
+  // First Run（v1.10.0）：激活页完成/跳过后通知主进程收尾（关激活窗口 → 回启动器）
+  firstRunDone: () => ipcRenderer.send('firstrun-done'),
+  firstRunReady: () => ipcRenderer.send('firstrun-ready'),
   bootLang: bootLang
 });
 

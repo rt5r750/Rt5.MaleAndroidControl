@@ -49,6 +49,8 @@ const LAUNCHER_USB_DEVICES_PATH = path.join(HUANCUN_DIR, 'launcher-usb-devices.j
 // 型号信息（v1.6.0）：www 控制台保存后推送生效值，启动器跨 origin（app://design vs app://bundle）
 // 读不到控制台 localStorage，经此文件 + IPC 中转
 const MODEL_INFO_PATH = path.join(HUANCUN_DIR, 'model-info.json');
+// First Run 完成标记（v1.10.0）：首次启动时先弹激活窗口，完成后回启动器走原流程
+const FIRST_RUN_PATH = path.join(HUANCUN_DIR, 'activated.json');
 const WIN_CONSOLE_NAME = 'RobotControl-Win';
 // 本次应用启动的唯一纪元：启动器测试模式等"仅本次启动生效"状态以它判定是否同一次启动
 const LAUNCH_EPOCH = `${Date.now().toString(36)}-${process.pid}`;
@@ -84,6 +86,7 @@ console.log('[huancun] userData =', NEW_USER_DATA_DIR);
 
 let launcherWindow = null;
 let mainWindow = null;
+let firstRunWindow = null;
 let launcherShown = false;
 let qrDataUrl = '';
 let usbWatcher = null;
@@ -134,6 +137,96 @@ protocol.registerSchemesAsPrivileged([
     }
   }
 ]);
+
+// ============ First Run 激活窗口（v1.10.0）============
+// 首次启动（huancun/activated.json 无 done 标记）时先弹激活窗口，完成后回到启动器继续原流程。
+// 内容复用 www 控制台的激活页（?firstrun=1），与主控制台同 origin（app://bundle）——
+// 表单实现只有一份，激活结果直接写控制台自身的 localStorage。
+function isFirstRunDone() {
+  try {
+    if (!nodeFs.existsSync(FIRST_RUN_PATH)) return false;
+    const j = JSON.parse(nodeFs.readFileSync(FIRST_RUN_PATH, 'utf8'));
+    return !!(j && j.done === true);
+  } catch (e) {
+    return false;
+  }
+}
+
+function markFirstRunDone() {
+  try {
+    nodeFs.mkdirSync(HUANCUN_DIR, { recursive: true });
+    nodeFs.writeFileSync(FIRST_RUN_PATH, JSON.stringify({ done: true, at: new Date().toISOString() }), 'utf8');
+  } catch (e) {
+    console.error('[firstrun] 写入激活标记失败:', e);
+  }
+}
+
+function createFirstRunWindow() {
+  if (firstRunWindow && !firstRunWindow.isDestroyed()) {
+    firstRunWindow.show();
+    firstRunWindow.focus();
+    return;
+  }
+  firstRunWindow = new BrowserWindow({
+    width: 1080,
+    height: 860,
+    minWidth: 900,
+    minHeight: 700,
+    center: true,
+    show: false,
+    frame: false,
+    transparent: false,
+    roundedCorners: true,
+    backgroundMaterial: 'acrylic',
+    backgroundColor: '#050d05',
+    resizable: true,
+    icon: APP_ICON,
+    autoHideMenuBar: true,
+    title: 'MACS',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false
+    }
+  });
+
+  firstRunWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:/i.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  firstRunWindow.webContents.on('will-navigate', (event, url) => {
+    if (/^https?:/i.test(String(url || ''))) {
+      event.preventDefault();
+      shell.openExternal(String(url));
+    }
+  });
+
+  // 页面就绪后再显示，避免先出现空白窗口；控制台页会通知 rc-firstrun-done 收尾
+  firstRunWindow.once('ready-to-show', () => {
+    if (firstRunWindow && !firstRunWindow.isDestroyed()) firstRunWindow.show();
+  });
+
+  // 用户直接关闭激活窗口 = 跳过 First Run（不写标记，控制台内激活页仍是兜底）→ 进启动器。
+  // 完成激活走 finishFirstRunAndOpenLauncher（先 destroy，closed 时 launcher 已存在，不重复建）。
+  firstRunWindow.once('closed', () => {
+    firstRunWindow = null;
+    if (!launcherWindow || launcherWindow.isDestroyed()) createLauncherWindow();
+  });
+
+  const FR_PAGE = 'www/' + encodeURIComponent('芮誊T系列仿人男性机器人控制台V1.1.html') + '?firstrun=1';
+  firstRunWindow.loadURL(`${APP_SCHEME}://${APP_HOST}/${FR_PAGE}`);
+}
+
+// 激活完成：写标记 → 关激活窗口 → 打开启动器（原流程）
+function finishFirstRunAndOpenLauncher() {
+  markFirstRunDone();
+  if (firstRunWindow && !firstRunWindow.isDestroyed()) {
+    firstRunWindow.destroy();
+  }
+  firstRunWindow = null;
+  createLauncherWindow();
+}
 
 function createLauncherWindow() {
   if (launcherWindow && !launcherWindow.isDestroyed()) {
@@ -615,6 +708,16 @@ function registerIpc() {
     event.returnValue = i18n.getLang();
   });
 
+  // First Run（v1.10.0）：激活窗口内的激活页完成/跳过后收尾（写标记 → 关窗 → 回启动器）；
+  // 控制台内完成激活时也经此回写标记，两处状态一致、不再重复弹激活窗口。
+  ipcMain.on('firstrun-done', () => {
+    if (firstRunWindow && !firstRunWindow.isDestroyed()) finishFirstRunAndOpenLauncher();
+    else markFirstRunDone();
+  });
+  ipcMain.on('firstrun-ready', () => {
+    if (firstRunWindow && !firstRunWindow.isDestroyed() && !firstRunWindow.isVisible()) firstRunWindow.show();
+  });
+
   // 型号信息（v1.6.0）：www 控制台保存/启动时推送生效值（zh 源串四键），
   // 启动器主标题经 model-info-get 读取；文件缺失时返回 null（启动器用默认值）
   ipcMain.handle('model-info-get', () => {
@@ -768,6 +871,12 @@ app.whenReady().then(() => {
   registerIpc();
   // app://design 启动器；app://bundle 主控制台（splash.html 位于 app 根，随后跳转 www/...）
   protocol.handle(APP_SCHEME, createProtocolHandler(APP_ROOT, { design: DESIGN_ROOT, bundle: APP_ROOT }));
+  // First Run（v1.10.0）：首次启动时激活窗口先于启动器出现，完成后回到启动器继续原流程；
+  // 用户直接关闭激活窗口视为跳过（未写标记，控制台内的激活页仍是兜底）→ 照常进启动器。
+  if (!isFirstRunDone()) {
+    createFirstRunWindow();
+    if (firstRunWindow && !firstRunWindow.isDestroyed()) return;
+  }
   // 先创建并显示启动器，QR/USB 等后台服务在窗口 ready-to-show 后再异步初始化，减少首屏等待
   createLauncherWindow();
 });

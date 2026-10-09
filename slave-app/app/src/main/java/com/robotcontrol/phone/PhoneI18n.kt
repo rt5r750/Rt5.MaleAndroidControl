@@ -2,27 +2,32 @@ package com.robotcontrol.phone
 
 import android.content.Context
 import android.content.SharedPreferences
+import java.util.Locale
 
 /**
- * 界面语言覆盖层（英语翻译测试）。
- * 默认中文；设置中可切英文。中文源字符串不改动，仅在取值时按表替换。
+ * 界面语言覆盖层。
+ * 语言决策（v1.10.0）：① 用户手选（SharedPreferences robot_ui_lang 且 manual=true）→
+ * ② 设备语言自动检测（Locale.getDefault()，zh* → 中文）→ ③ 兜底英文。
+ * 自动检测结果不落盘——每次启动重新检测，仅手选持久化。
+ * 不再跟随控制端 BLE 7507(UiLang) 推送（v1.10.0 起取消），语言只由本机决定。
+ * 中文源字符串不改动，仅在取值时按表替换。
  * 术语遵循 T31-750 说明书英文版。
  */
 object PhoneI18n {
     private const val PREFS = "robot_ui_lang"
     private const val KEY = "lang"
+    private const val KEY_MANUAL = "lang_manual"
 
     @Volatile
-    private var lang: String = "zh"
+    private var lang: String = detectDeviceLang()
 
     private val DICT = mapOf(
-        "750接收端" to "750 Receiver",
         "调试模式" to "Test Mode",
         "暂无任务" to "No tasks",
         "服从度" to "Obedience",
         "羞耻度" to "Shame",
         "愉悦度" to "Pleasure",
-        "机械度" to "Robotical",
+        "机械度" to "Robotic",
         "测试" to "Test",
         "任务列表" to "Task List",
         "语音播报" to "Voice Broadcast",
@@ -103,22 +108,43 @@ object PhoneI18n {
         "语音播报测试消息内容示例" to "Voice broadcast test message example",
         "第六次语音播报测试滚动效果" to "6th broadcast: test scrolling effect",
         "第七次播报，验证底部导航栏通透" to "7th broadcast: verify bottom navigation bar transparency",
-        "第八次播报，继续测试长列表" to "8th broadcast: continue testing the long list"
+        "第八次播报，继续测试长列表" to "8th broadcast: continue testing the long list",
+        // First Run 首启设置（v1.10.0）
+        "首次启动设置" to "First-run setup",
+        "默认按设备语言自动匹配，也可在此手动修改" to "Matched to the device language by default; you can change it here",
+        "开始使用" to "Get started",
+        "跳过，保持默认" to "Skip and keep defaults"
     )
+
+    /** 设备语言检测：zh* → 中文，其余/取不到 → 英文。 */
+    fun detectDeviceLang(): String {
+        return try {
+            if (Locale.getDefault().toLanguageTag().trim().startsWith("zh", ignoreCase = true)) "zh" else "en"
+        } catch (e: Exception) {
+            "en"
+        }
+    }
 
     fun init(context: Context) {
         val prefs: SharedPreferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        lang = prefs.getString(KEY, "zh") ?: "zh"
-        if (lang != "en") lang = "zh"
+        val manual = prefs.getBoolean(KEY_MANUAL, false)
+        val saved = prefs.getString(KEY, null)
+        lang = if (manual && (saved == "en" || saved == "zh")) saved else detectDeviceLang()
     }
+
+    /** 是否已由用户手选过语言（供首启页/设置页回显选中态）。 */
+    fun isManual(context: Context): Boolean =
+        context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_MANUAL, false)
 
     fun getLang(): String = lang
 
+    /** 用户手选语言：持久化并标记 manual。 */
     fun setLang(context: Context, next: String) {
         lang = if (next == "en") "en" else "zh"
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
             .edit()
             .putString(KEY, lang)
+            .putBoolean(KEY_MANUAL, true)
             .apply()
     }
 
