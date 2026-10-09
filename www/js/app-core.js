@@ -2401,7 +2401,12 @@
 
                 // 保存按钮文本设置：1-10 不可修改，只更新 11 及以上
                 const buttonInputs = document.querySelectorAll('#button-settings input');
-                const newTexts = Array.from(buttonInputs).map(input => input.value);
+                const newTexts = Array.from(buttonInputs).map((input, i) => {
+                    /* 第 11 号起的默认名（「按钮N」）在英文界面显示为 Button N：
+                       仍是默认译文时归一回源串，避免英文用户一应用设置就把它冻结成自定义名。 */
+                    const idx = 10 + i;
+                    return valueWithDefaultSource(input, storage.DEFAULT_BUTTON_TEXTS[idx]);
+                });
                 // 保留前10个（不可修改），加上用户编辑的
                 state.buttonTexts = [...state.buttonTexts.slice(0, 10), ...newTexts];
                 storage.setButtonTexts(state.buttonTexts);
@@ -2418,8 +2423,11 @@
                     }
                     const labelInput = statusInputs[(i - 2) * 2];
                     const valueInput = statusInputs[(i - 2) * 2 + 1];
-                    state.statusItems[i].label = labelInput.value;
-                    state.statusItems[i].value = valueInput.value;
+                    /* 输入框里是默认值的界面语言译文时归一回中文源串（v1.10.0）：
+                       否则英文用户应用一次设置，默认项就被当作用户自定义内容冻结成英文，
+                       「整组默认→随语言」的判定随之失效。 */
+                    state.statusItems[i].label = valueWithDefaultSource(labelInput, statusDefaults[i].label);
+                    state.statusItems[i].value = valueWithDefaultSource(valueInput, statusDefaults[i].value);
                 }
                 storage.setStatusItems(state.statusItems);
 
@@ -2443,7 +2451,11 @@
                 let linksValid = true;
                 linkRows.forEach(row => {
                     const id = row.getAttribute('data-link-id');
-                    const name = (row.querySelector('.info-link-name') || {}).value || '';
+                    const nameInput = row.querySelector('.info-link-name');
+                    const src0 = FILES.find(f => f.id === id) || {};
+                    /* 默认名按语言显示后，保存时归一化回源串（v1.10.0），
+                       否则「全部为默认 → 存 null」的判定会失效 */
+                    const name = valueWithDefaultSource(nameInput, src0.name) || '';
                     const url = (row.querySelector('.info-link-url') || {}).value || '';
                     if (url.trim() !== '' && !/^https?:\/\//i.test(url.trim())) linksValid = false;
                     linkSaved.push({ id, name: name.trim(), url: url.trim() });
@@ -2875,6 +2887,16 @@
             try { if (typeof buildSettingsNav === 'function') buildSettingsNav(); } catch (e) { /* ignore */ }
             // 信息面板文件列表：说明书条目名称与语言版本随界面语言切换（v1.10.0）
             try { if (typeof renderFileList === 'function') renderFileList(); } catch (e) { /* ignore */ }
+            /* 设置面板里直接显示默认值的输入框（按钮文本/信息链接/状态项）随界面语言重填
+               （v1.10.0）——它们的 value 是默认内容，不重填就会在切换语言后继续显示旧语言。
+               仅在设置面板已初始化时执行，避免未登录/未打开设置时误建 DOM。 */
+            try {
+                if (document.getElementById('settings-modal')) {
+                    updateButtonSettings();
+                    updateStatusSettings();
+                    updateInfoLinksSettings();
+                }
+            } catch (e) { /* ignore */ }
             /* 说明书阅读器正在打开时，随界面语言换到对应版本（否则读者会一直看着旧语言的
                文档——桌面菜单模式下设置面板仍可操作，切语言时阅读器通常是开着的）。
                仅处理说明书条目（openManualViewer 打的 inApp 标记），PDF 与其他文件不动。 */
@@ -5583,7 +5605,7 @@
 
                 settingItem.innerHTML = `
                     <label class="text-sm mr-2 w-8">${index + 1}:</label>
-                    <input type="text" class="setting-input flex-grow mr-2" value="${text}">
+                    <input type="text" class="setting-input flex-grow mr-2" value="${escapeHtmlAttr(displayWithDefault(text, storage.DEFAULT_BUTTON_TEXTS[index]))}">
                     <button class="btn-remove">
                         <i class="fa fa-trash"></i>
                     </button>
@@ -5604,6 +5626,32 @@
             return String(s == null ? '' : s)
                 .replace(/&/g, '&amp;').replace(/</g, '&lt;')
                 .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        /* ===== 默认值按界面语言显示（v1.10.0）=====
+           设置页与激活页的输入框此前直接显示「中文默认源串」。界面默认改为英文后，
+           英文用户一进设置就看到一屏中文（实测全新环境 34 个输入框）。
+           设计口径（v1.6.0「整组匹配」）本就要求默认内容随界面语言，故这里：
+             · 显示：值恰好等于默认源串时，换成当前界面语言的译文；
+             · 保存：仍是「默认的译文」时归一化回中文源串——保证「全默认→存 null /
+               跟随语言」的判定不被破坏（否则应用一次设置就把默认冻结成英文自定义）。
+           用户自定义内容一律原样保留。 */
+        function defaultDisplayValue(zhSource) {
+            if (!zhSource) return zhSource;
+            if (!(window.I18N && I18N.getLang && I18N.getLang() === 'en')) return zhSource;
+            var en = window.I18N.t ? I18N.t(zhSource) : zhSource;
+            return en === zhSource ? zhSource : en;   // 无词条则仍显示源串
+        }
+        /** 显示值：effectiveValue 等于默认源串时按语言显示，否则原样。 */
+        function displayWithDefault(effectiveValue, zhSource) {
+            if (zhSource && effectiveValue === zhSource) return defaultDisplayValue(zhSource);
+            return effectiveValue;
+        }
+        /** 归一化：输入框仍是默认译文（或就是源串）时返回源串，供落库与「是否默认」判定。 */
+        function valueWithDefaultSource(inputEl, zhSource) {
+            var shown = (inputEl && inputEl.value != null ? String(inputEl.value) : '').trim();
+            if (shown === defaultDisplayValue(zhSource) || shown === zhSource) return zhSource;
+            return shown;
         }
 
         /* 生效链接（信息面板用）：存储 null=全部默认（取 FILES 默认名/URL）；否则按 id 合并保存值。
@@ -5641,7 +5689,7 @@
                 row.className = 'info-link-row flex items-center gap-2 mb-2';
                 row.setAttribute('data-link-id', lk.id);
                 row.innerHTML = `
-                    <input type="text" class="setting-input info-link-name" style="flex:0 0 35%;min-width:0;" value="${escapeHtmlAttr(lk.name)}" placeholder="名称">
+                    <input type="text" class="setting-input info-link-name" style="flex:0 0 35%;min-width:0;" value="${escapeHtmlAttr(displayWithDefault(lk.name, (FILES.find(f => f.id === lk.id) || {}).name))}" placeholder="名称">
                     <input type="text" class="setting-input info-link-url" style="flex:1 1 65%;min-width:0;" value="${escapeHtmlAttr(lk.url)}" placeholder="${escapeHtmlAttr(src.url || 'https://')}">
                 `;
                 container.appendChild(row);
@@ -5872,7 +5920,7 @@
                         var row = document.createElement('div');
                         row.className = 'activation-row';
                         row.setAttribute('data-link-id', lk.id);
-                        row.innerHTML = '<input type="text" class="login-input act-link-name" style="flex:0 0 35%;min-width:0;" value="' + escapeHtmlAttr(lk.name) + '" placeholder="名称">' +
+                        row.innerHTML = '<input type="text" class="login-input act-link-name" style="flex:0 0 35%;min-width:0;" value="' + escapeHtmlAttr(displayWithDefault(lk.name, (FILES.find(function (f) { return f.id === lk.id; }) || {}).name)) + '" placeholder="名称">' +
                             '<input type="text" class="login-input act-link-url" style="flex:1 1 65%;min-width:0;" value="' + escapeHtmlAttr(lk.url) + '" placeholder="https://">';
                         linkWrap.appendChild(row);
                     });
@@ -5882,13 +5930,15 @@
                 if (statusWrap) {
                     statusWrap.innerHTML = '';
                     var items = storage.getStatusItems();
+                    var actDefaults = storage.getDefaultStatusItems();
                     items.forEach(function (item, index) {
                         if (index < 2) return;
                         var row = document.createElement('div');
                         row.className = 'activation-row';
+                        var dflt = actDefaults[index] || {};
                         row.innerHTML = '<label class="act-no">' + (index - 1) + ':</label>' +
-                            '<input type="text" class="login-input act-status-label" style="flex:0 0 35%;min-width:0;" value="' + escapeHtmlAttr(item.label) + '" placeholder="标签">' +
-                            '<input type="text" class="login-input act-status-value" style="flex:1 1 65%;min-width:0;" value="' + escapeHtmlAttr(item.value) + '" placeholder="值">';
+                            '<input type="text" class="login-input act-status-label" style="flex:0 0 35%;min-width:0;" value="' + escapeHtmlAttr(displayWithDefault(item.label, dflt.label)) + '" placeholder="标签">' +
+                            '<input type="text" class="login-input act-status-value" style="flex:1 1 65%;min-width:0;" value="' + escapeHtmlAttr(displayWithDefault(item.value, dflt.value)) + '" placeholder="值">';
                         statusWrap.appendChild(row);
                     });
                 }
@@ -5918,7 +5968,7 @@
                         row.className = 'activation-row';
                         var editable = i >= 10;
                         row.innerHTML = '<label class="act-no">' + (i + 1) + ':</label>' +
-                            '<input type="text" class="login-input" data-act-btn-index="' + i + '" value="' + escapeHtmlAttr(text) + '"' + (editable ? '' : ' disabled style="opacity:0.55;"') + '>';
+                            '<input type="text" class="login-input" data-act-btn-index="' + i + '" value="' + escapeHtmlAttr(displayWithDefault(text, storage.DEFAULT_BUTTON_TEXTS[i])) + '"' + (editable ? '' : ' disabled style="opacity:0.55;"') + '>';
                         btnWrap.appendChild(row);
                     });
                 }
@@ -6034,8 +6084,9 @@
                     }
                     const row = statusRows[rowIdx]; rowIdx++;
                     if (!row) break;
-                    items[i].label = ((row.querySelector('.act-status-label') || {}).value || '').trim();
-                    items[i].value = ((row.querySelector('.act-status-value') || {}).value || '').trim();
+                    var actLabels = storage.getDefaultStatusItems();
+                    items[i].label = valueWithDefaultSource(row.querySelector('.act-status-label'), actLabels[i].label);
+                    items[i].value = valueWithDefaultSource(row.querySelector('.act-status-value'), actLabels[i].value);
                 }
                 storage.setStatusItems(items);
                 state.statusItems = items;
@@ -6057,7 +6108,7 @@
                 let btnChanged = false;
                 document.querySelectorAll('#activation-button-texts input[data-act-btn-index]').forEach(function (input) {
                     const idx = parseInt(input.getAttribute('data-act-btn-index'), 10);
-                    btnTexts[idx] = input.value;
+                    btnTexts[idx] = valueWithDefaultSource(input, storage.DEFAULT_BUTTON_TEXTS[idx]);
                     if (idx >= 10 && input.value !== storage.DEFAULT_BUTTON_TEXTS[idx]) btnChanged = true;
                 });
                 if (btnChanged) {
@@ -6210,9 +6261,18 @@
             if (modal && modal.classList.contains('settings-mobile-detail') && isDesktopChrome()) exitSettingsDetail();
         });
 
+        /* 默认状态项（中文源串）按索引缓存：设置行按语言显示默认值时要拿它做基准比较。
+           随语言切换重建（默认组本身不含语言，但 t() 结果会变）。 */
+        var _statusDefaultsCache = null;
+        function statusDefaults() {
+            _statusDefaultsCache = storage.getDefaultStatusItems();
+            return _statusDefaultsCache;
+        }
+
         function updateStatusSettings() {
             const container = document.getElementById('status-settings');
             container.innerHTML = '';
+            statusDefaults();
 
             /* v1.6.0：主人/制造公司两行由「型号信息」设置驱动且不可改——设置组内不再渲染
                （信息参数面板/关于窗口等显示区仍正常输出，见 resolveStatusItems）。
@@ -6223,10 +6283,14 @@
                 settingItem.className = 'flex items-center gap-2 mb-2';
                 const displayNo = index - 1;   // 去掉前两行后从 1 连续编号
 
+                /* 默认状态项的标签与值按界面语言显示（v1.10.0）：默认源串与当前语言
+                   译文一一对应，用户改过的那一项仍是原文。落库时由 valueWithDefaultSource
+                   归一回源串，保证「整组默认」判定与 EN 显示同时成立。 */
+                const def = _statusDefaultsCache[index] || {};
                 settingItem.innerHTML = `
                     <label class="text-sm w-8 shrink-0 text-right">${displayNo}:</label>
-                    <input type="text" class="setting-input" style="flex:0 0 35%;min-width:0;" value="${escapeHtmlAttr(item.label)}" placeholder="标签">
-                    <input type="text" class="setting-input" style="flex:1 1 65%;min-width:0;" value="${escapeHtmlAttr(item.value)}" placeholder="值">
+                    <input type="text" class="setting-input" style="flex:0 0 35%;min-width:0;" value="${escapeHtmlAttr(displayWithDefault(item.label, def.label))}" placeholder="标签">
+                    <input type="text" class="setting-input" style="flex:1 1 65%;min-width:0;" value="${escapeHtmlAttr(displayWithDefault(item.value, def.value))}" placeholder="值">
                     <button class="btn-remove shrink-0">
                         <i class="fa fa-trash"></i>
                     </button>

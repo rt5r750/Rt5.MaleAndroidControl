@@ -46,5 +46,27 @@
     }
   });
 
-  return { textNodes: out, attributes: attrs, total: out.length + attrs.length };
+  /* 输入框的 value 不在文本节点里，单独扫一遍：设置页/激活页的输入框显示的是
+     默认内容（按钮文本、信息链接名、状态项标签与值），英文界面下不应再是中文源串。 */
+  const inputValues = [];
+  document.querySelectorAll('input, textarea').forEach((el) => {
+    if (isExempt(el)) return;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return;
+    const v = el.value || '';
+    if (v && CJK.test(v)) {
+      inputValues.push({
+        tag: el.tagName,
+        kind: String(el.className || el.id || el.type).slice(0, 40),
+        value: v.slice(0, 60)
+      });
+    }
+  });
+
+  return {
+    textNodes: out,
+    attributes: attrs,
+    inputValues,
+    total: out.length + attrs.length + inputValues.length
+  };
 })()

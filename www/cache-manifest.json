@@ -1,7 +1,7 @@
 {
-  "version": "45a85f5b0a2c",
-  "generatedAt": "2026-10-09T11:47:40.456Z",
-  "totalSize": 15565283,
+  "version": "77d3eb630739",
+  "generatedAt": "2026-10-09T12:11:20.898Z",
+  "totalSize": 15570403,
   "files": [
     {
       "path": "MimoTTSClient.js",
@@ -125,8 +125,8 @@
     },
     {
       "path": "js/app-core.js",
-      "size": 396045,
-      "hash": "1db25655ab21"
+      "size": 401165,
+      "hash": "374ce82de109"
     },
     {
       "path": "js/app-desktop.js",
