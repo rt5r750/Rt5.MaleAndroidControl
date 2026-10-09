@@ -37,7 +37,7 @@ try {
     $payloadFile = Join-Path $TmpDir 'release-create.json'
     $obj = [ordered]@{
         tag_name         = $Tag
-        name             = 'v1.10.0 — 语言自动检测 / 首次启动统一 / 客户端改名（MACS · Slave）'
+        name             = 'v1.10.0 — Language auto-detection, unified first-run flow, client rename (MACS / Slave)'
         body             = $body
         draft            = $false
         prerelease       = $false
