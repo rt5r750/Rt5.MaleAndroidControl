@@ -1183,6 +1183,130 @@
             backdrop-filter: blur(8px);
             border-top: 1px solid rgba(143, 188, 143, 0.15);
         }
+        /* ===== 首次激活页布局重构（v1.10.0 同会话二轮）=====
+           移动端（≤749px）：去卡片整屏平铺 + 状态栏安全区避让；三列行改两行堆叠（行号+名称 / 值整行）。
+           桌面（≥1100px）：容器加宽 + 报纸式双列（column-count），顺序仍 1→10。
+           节间距改由 section 的 margin 提供——.activation-form 是 block 容器，历史 gap:1.1rem 从未生效
+           （十组实际贴在一起），本次一并修正。 */
+        #activation-modal .activation-container {
+            width: min(1180px, 92vw);
+            max-width: min(1180px, 92vw);
+            max-height: calc(100vh - 64px);
+            overflow-y: auto;
+            padding: calc(1.5rem + var(--safe-area-top, 0px)) 2rem 0;
+            /* 禁收缩：本容器是 .login-modal（flex + justify-content:center）的 flex item，
+               宽度必须由自身 width/max-width 决定，不参与按内容的后备收缩 */
+            flex: 0 0 auto;
+        }
+        #activation-modal .activation-head {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            margin-bottom: 1.1rem;
+        }
+        #activation-modal .activation-head-icon {
+            flex: 0 0 auto;
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 999px;
+            background: rgba(45, 74, 45, 0.2);
+            color: #8fbc8f;
+            font-size: 1.35rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #activation-modal .activation-head-text { min-width: 0; }
+        #activation-modal .activation-head-text .login-title {
+            color: #8fbc8f;
+            font-size: 1.5rem;
+            font-weight: bold;
+            line-height: 1.2;
+        }
+        #activation-modal .activation-head-sub {
+            color: rgba(143, 188, 143, 0.7);
+            font-size: 0.8rem;
+            margin-top: 0.15rem;
+        }
+        #activation-modal .activation-section {
+            break-inside: avoid;
+            -webkit-column-break-inside: avoid;
+            margin-bottom: 1.05rem;
+        }
+        /* 行标签自适应宽度（不再固定 6.5rem 白占左侧空间，输入框拿到更多宽度） */
+        #activation-modal .activation-row > label {
+            flex: 0 0 auto;
+            width: auto;
+            max-width: 8.5rem;
+            min-width: 0;
+        }
+        /* 行号列：1~2 位数字，2.4rem 足够（原继承 6.5rem 是左侧浪费的主要来源） */
+        #activation-modal .activation-row > label.act-no {
+            flex: 0 0 auto;
+            width: 2.4rem;
+            max-width: 2.4rem;
+            text-align: right;
+            color: rgba(143, 188, 143, 0.6);
+        }
+        #activation-modal .act-status-label { flex: 0 0 35%; min-width: 0; }
+        #activation-modal .act-status-value { flex: 1 1 65%; min-width: 0; }
+        /* 链接行：名称默认值 12 个汉字、URL 常 40+ 字符，单行无论怎么分都放不下
+           （实测 35/65 下名称差 1px、URL 差 23px，内容被截）——改两行堆叠，各占整行宽度。 */
+        #activation-modal .activation-row[data-link-id] { flex-wrap: wrap; row-gap: 0.3rem; }
+        #activation-modal .activation-row[data-link-id] .act-link-name,
+        #activation-modal .activation-row[data-link-id] .act-link-url { flex: 1 1 100%; width: auto; min-width: 0; }
+        /* 长内容用多行文本框：宽度不足时换行显示，而非省略号截断（高度由 JS 自动跟随内容） */
+        #activation-modal textarea.act-status-value,
+        #activation-modal textarea.act-status-label,
+        #activation-modal textarea.act-link-name,
+        #activation-modal textarea.act-link-url {
+            resize: none;
+            overflow: hidden;
+            box-sizing: border-box;
+            line-height: 1.45;
+        }
+        @media (min-width: 1100px) {
+            #activation-modal .activation-grid {
+                column-count: 2;
+                column-gap: 2.25rem;
+            }
+        }
+        @media (max-width: 749px) {
+            /* 平铺：去卡片、整屏、状态栏避让（--safe-area-* 由 android.js / win-app 写入 documentElement） */
+            #activation-modal .activation-container {
+                width: 100%;
+                max-width: none;
+                height: 100%;
+                max-height: none;
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+                background: transparent;
+                backdrop-filter: none;
+                -webkit-backdrop-filter: none;
+                padding: calc(var(--safe-area-top, 0px) + 0.85rem) 0 0;
+                overflow-y: auto;
+            }
+            #activation-modal .activation-head { padding: 0 1rem; margin-bottom: 0.9rem; }
+            #activation-modal .activation-head-icon { width: 2.35rem; height: 2.35rem; font-size: 1.1rem; }
+            #activation-modal .activation-head-text .login-title { font-size: 1.25rem; }
+            #activation-modal .activation-head-sub { font-size: 0.72rem; }
+            #activation-modal .activation-form { padding: 0 1rem; }
+            #activation-modal .activation-actions {
+                /* 不用负外边距铺满：负边距会撑大父级 scrollWidth，而 .login-modal 是
+                   flex + justify-content:center，父级一超宽就把容器推到负 x（实测 -19.2，左侧标签被切）；
+                   而在父级加 overflow 截断又会破坏 sticky 参照。与表单同宽即可。 */
+                margin: 0;
+                padding: 0.75rem 0 calc(0.85rem + var(--safe-area-bottom, 0px));
+            }
+            #activation-modal .activation-row > label { max-width: 7.5rem; }
+            /* 信息参数三列行（行号+标签+值）在该断点也改两行堆叠：值整行宽，长内容不再被截。
+               注意必须显式 width:auto：.login-input 自带 width:100%，会让 flex-basis:auto 解析成全行宽，
+               标签输入会被挤到自己独占一行（实测每行变三行）。链接行由基础块的 [data-link-id] 规则堆叠。 */
+            #activation-modal .activation-row.act-3col { flex-wrap: wrap; row-gap: 0.3rem; }
+            #activation-modal .act-3col .act-status-label { flex: 1 1 0%; width: auto; min-width: 0; }
+            #activation-modal .act-3col .act-status-value { flex: 1 1 100%; width: auto; min-width: 0; }
+        }
         /* 登录页版权水印（v1.6.0 R10）：登录卡片下方固定真公司归属 */
         .login-copyright {
             position: absolute;

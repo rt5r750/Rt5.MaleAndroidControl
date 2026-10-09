@@ -45,6 +45,8 @@ AGENTS.md
 design/HANDOFF.md
 docs/release-ledger.md
 docs/plans/
+# 一次性布局探针与截图（无头 Chrome 测量用，用完即删，不入库）
+tmp-act-shots/
 
 # ── PV 宣传片（另线开发，不入本仓库；本机文件保留）────────────
 /video/

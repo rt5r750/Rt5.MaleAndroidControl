@@ -110,23 +110,23 @@
          层级与登录层一致（950），浏览器首访强制缓存窗口（952/955）高于本层：先缓存后激活 -->
     <div id="activation-modal" class="login-modal" style="display:none;">
         <div id="activation-bg" class="login-bg"></div>
-        <div class="login-lang-switch" role="group" aria-label="界面语言">
-            <button type="button" class="login-lang-btn" data-lang="zh" title="中文">ZH</button>
-            <button type="button" class="login-lang-btn" data-lang="en" title="English">EN</button>
-        </div>
+        <!-- 右上角语言胶囊已移除：第 1 组「语言 / Language」即同一入口，重复按钮在移动端会压住值输入框 -->
         <div class="login-container activation-container">
-            <div class="text-center mb-5">
-                <div class="mx-auto w-20 h-20 rounded-full bg-[#2d4a2d]/20 flex items-center justify-center mb-3">
-                    <i class="fa fa-rocket text-[#8fbc8f] text-3xl"></i>
+            <div class="activation-head">
+                <div class="activation-head-icon">
+                    <i class="fa fa-rocket"></i>
                 </div>
-                <h2 class="login-title text-[#8fbc8f] text-2xl font-bold">激活设置</h2>
-                <p class="text-[#8fbc8f]/70 mt-2">首次使用，按顺序完成以下全部设置（可留空保持默认）</p>
+                <div class="activation-head-text">
+                    <h2 class="login-title">激活设置</h2>
+                    <p class="activation-head-sub">首次使用，按顺序完成以下全部设置（可留空保持默认）</p>
+                </div>
             </div>
 
             <div class="activation-form activation-scroll" id="activation-form">
-                <!-- 1. 界面语言 -->
-                <div class="activation-section">
-                    <div class="activation-section-title">1. <span data-act-label>语言 / Language</span></div>
+                <div class="activation-grid">
+                    <!-- 1. 界面语言 -->
+                    <div class="activation-section">
+                        <div class="activation-section-title">1. <span data-act-label>语言 / Language</span></div>
                     <div class="flex flex-wrap gap-2">
                         <button type="button" class="btn-add" data-lang="zh">中文</button>
                         <button type="button" class="btn-add" data-lang="en">English</button>
@@ -220,10 +220,10 @@
                         <span data-act-label>跳过，保持默认</span>
                     </button>
                 </div>
+                </div><!-- /.activation-grid -->
             </div>
         </div>
     </div>
-
     <!-- 主界面内容 - 默认隐藏直到登录成功 -->
     <div id="main-content" class="main-content">
         <!-- 设置窗口 -->

@@ -5918,14 +5918,16 @@
                         var src = FILES.find(f => f.id === lk.id) || {};
                         if (src.type === 'pdf') return;
                         var row = document.createElement('div');
-                        row.className = 'activation-row';
+                        row.className = 'activation-row act-3col';
                         row.setAttribute('data-link-id', lk.id);
-                        row.innerHTML = '<input type="text" class="login-input act-link-name" style="flex:0 0 35%;min-width:0;" value="' + escapeHtmlAttr(displayWithDefault(lk.name, (FILES.find(function (f) { return f.id === lk.id; }) || {}).name)) + '" placeholder="名称">' +
-                            '<input type="text" class="login-input act-link-url" style="flex:1 1 65%;min-width:0;" value="' + escapeHtmlAttr(lk.url) + '" placeholder="https://">';
+                        /* 名称与 URL 都用自适应高度文本框：EN 下默认名可达 430px（如
+                           「Rt5 A.I. Fictional Liability Company」），窄屏单行输入框必然截断 */
+                        row.innerHTML = '<textarea class="login-input act-link-name" rows="1" placeholder="名称">' + escapeHtmlAttr(displayWithDefault(lk.name, (FILES.find(function (f) { return f.id === lk.id; }) || {}).name)) + '</textarea>' +
+                            '<textarea class="login-input act-link-url" rows="1" placeholder="https://">' + escapeHtmlAttr(lk.url) + '</textarea>';
                         linkWrap.appendChild(row);
                     });
                 }
-                // 信息参数（跳过前两行锁定项，其余一行式）
+                // 信息参数（跳过前两行锁定项，其余一行式；长值用自适应高度 textarea，窄屏换行不截断）
                 var statusWrap = document.getElementById('activation-status-items');
                 if (statusWrap) {
                     statusWrap.innerHTML = '';
@@ -5934,11 +5936,20 @@
                     items.forEach(function (item, index) {
                         if (index < 2) return;
                         var row = document.createElement('div');
-                        row.className = 'activation-row';
+                        row.className = 'activation-row act-3col';
                         var dflt = actDefaults[index] || {};
+                        var showLabel = displayWithDefault(item.label, dflt.label);
+                        var showValue = displayWithDefault(item.value, dflt.value);
+                        // 标签与值都用多行文本框承载长内容（EN 下「Simulated Genital Number」这类标签
+                        // 在窄列里必然被截）；短内容仍用单行 input，保持原有观感
+                        var labelTag = showLabel.length > 8
+                            ? '<textarea class="login-input act-status-label" rows="1" placeholder="标签">' + escapeHtmlAttr(showLabel) + '</textarea>'
+                            : '<input type="text" class="login-input act-status-label" value="' + escapeHtmlAttr(showLabel) + '" placeholder="标签">';
+                        var valueTag = showValue.length > 12
+                            ? '<textarea class="login-input act-status-value" rows="1" placeholder="值">' + escapeHtmlAttr(showValue) + '</textarea>'
+                            : '<input type="text" class="login-input act-status-value" value="' + escapeHtmlAttr(showValue) + '" placeholder="值">';
                         row.innerHTML = '<label class="act-no">' + (index - 1) + ':</label>' +
-                            '<input type="text" class="login-input act-status-label" style="flex:0 0 35%;min-width:0;" value="' + escapeHtmlAttr(displayWithDefault(item.label, dflt.label)) + '" placeholder="标签">' +
-                            '<input type="text" class="login-input act-status-value" style="flex:1 1 65%;min-width:0;" value="' + escapeHtmlAttr(displayWithDefault(item.value, dflt.value)) + '" placeholder="值">';
+                            labelTag + valueTag;
                         statusWrap.appendChild(row);
                     });
                 }
@@ -5972,8 +5983,64 @@
                         btnWrap.appendChild(row);
                     });
                 }
+                autoGrowActivationTextareas();
             } catch (e) { /* 激活页初始化失败不阻断流程 */ }
         }
+
+        /** 值文本框自动增高：内容换行后高度跟随（height=scrollHeight），避免出现内部滚动条。
+            信息参数的长值在中英任意宽度下都能整段看到，不再被省略。
+
+            三次测量缺一不可（每一层都对应一个实测到的失败）：
+            ① rAF——DOM 刚插入时列宽尚未按最终布局结算，量出的高度偏小；
+            ② 显式 font load——字体是首次绘制时才触发的异步加载，`document.fonts.ready`
+              在「尚无字体请求」时会立刻兑现，等于没等；必须主动触发再测。
+              用回退字体量出的行数偏少（实测「仿真性唤起条件」在 MiSans 就绪前 55px、就绪后需 75px）；
+            ③ fonts.ready——兜底等所有已触发字体收尾。 */
+        var ACT_TEXTAREA_SEL = '#activation-form textarea.act-status-value, #activation-form textarea.act-status-label, #activation-form textarea.act-link-name, #activation-form textarea.act-link-url';
+
+        function autoGrowActivationTextareas() {
+            document.querySelectorAll(ACT_TEXTAREA_SEL).forEach(function (ta) {
+                if (ta.__actGrowBound !== true) {
+                    ta.__actGrowBound = true;
+                    ta.addEventListener('input', function () { growOneActivationTextarea(ta); });
+                }
+            });
+            var remeasure = function () {
+                document.querySelectorAll(ACT_TEXTAREA_SEL).forEach(growOneActivationTextarea);
+            };
+            requestAnimationFrame(remeasure);
+            try {
+                if (document.fonts && document.fonts.load) {
+                    // 触发本页用到的两族字体，加载完成后重测；text 传入实际长值确保命中所用子集
+                    var probeText = '仿真性唤起条件 OS_750_729.01 Rt5 A.I. Fictional Liability Company';
+                    Promise.all([
+                        document.fonts.load('13.6px "JetBrains Mono"', probeText),
+                        document.fonts.load('13.6px "MiSans"', probeText)
+                    ]).then(function () { requestAnimationFrame(remeasure); }).catch(function () { /* 忽略，仍有 ③ 与兜底 */ });
+                }
+                if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
+            } catch (e) { /* 老浏览器无 Font Loading API，保持 rAF 结果 */ }
+        }
+
+        function growOneActivationTextarea(ta) {
+            // 差值 = 上下边框：scrollHeight 只含 padding 不含 border，而本元素是 border-box，
+            // 直接把 scrollHeight 写进 height 会少掉边框那几像素（实测长值第二行被切 2px）
+            var cs = getComputedStyle(ta);
+            var border = (parseFloat(cs.borderTopWidth) || 0) + (parseFloat(cs.borderBottomWidth) || 0);
+            ta.style.height = 'auto';
+            ta.style.height = (ta.scrollHeight + border) + 'px';
+        }
+
+        /* 列宽/字号变化后重算高度，否则文本框会停留在旧断点的高度：
+           窗口缩放（跨 750/1100 断点、旋转）与界面语言切换（EN 拟合会缩放字号） */
+        window.addEventListener('resize', function () {
+            var modal = document.getElementById('activation-modal');
+            if (modal && modal.style.display !== 'none') autoGrowActivationTextareas();
+        });
+        window.addEventListener('rc-lang-changed', function () {
+            var modal = document.getElementById('activation-modal');
+            if (modal && modal.style.display !== 'none') autoGrowActivationTextareas();
+        });
 
         /** 激活页两个按钮的绑定（必须早于登录成功：initEventListeners 登录后才执行）。 */
         function bindActivationButtons() {
