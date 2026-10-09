@@ -4,7 +4,8 @@
         var isAndroid = typeof window.Android !== 'undefined' && !!window.Android;
         var isPureBrowser = !isWin && !isAndroid;
         // Android WebView 真判（排除 win-app preload 同名暴露的 window.Android）：
-        // 供登录/激活门控使用——Android App 无登录界面，任何宽度直接进主界面（v1.6.0）
+        // 供登录门控使用——Android App 无登录界面，任何宽度直接进主界面（v1.6.0）；
+        // 激活页自 v1.10.0 起不再免除（未激活时先显示激活页，见 app-core.js 门控分支）
         window.__rcIsAndroidWebview = isAndroid && !isWin;
         if (isWin) document.documentElement.classList.add('win-desktop');
         // 桌面菜单模式（macOS 菜单风格窗口 + 底部程序坞）：win-app 与浏览器启用，Android WebView 不启用

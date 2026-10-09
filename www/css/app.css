@@ -1222,6 +1222,14 @@
         .login-btn:hover {
             background: rgba(143, 188, 143, 0.8);
         }
+        /* Android App 按平台保证无登录界面（任何宽度，含平板/横屏 ≥750px）。
+           该平台此前只靠 JS 在 DOMContentLoaded 隐藏登录层——平板/横屏宽度下会先画出
+           登录页再被隐藏（实测 1~2 帧），与「无登录页」的保证相矛盾。
+           android-webview 类由 head 里的 platform-bootstrap.js 在正文解析前加上，
+           故这条规则自首帧起即生效，不依赖任何后续脚本。 */
+        html.android-webview #login-modal {
+            display: none !important;
+        }
         @media (max-width: 749px) {
             #login-modal {
                 display: none !important;

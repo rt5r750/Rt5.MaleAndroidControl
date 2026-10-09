@@ -1674,9 +1674,10 @@
                 }
                 return;
             }
-            // 单栏模式（移动端）与 Android WebView 直接跳过登录进入主界面。
-            // v1.6.0 起 Android 按平台保证无登录/激活页（不再依赖 <750 宽度的巧合——
-            // 平板或横屏 WebView 同样直进；历史版本纯宽度判断在 Android ≥750 时会误出登录页）。
+            // 单栏模式（移动端）与 Android WebView 跳过登录直接进主界面。
+            // Android 按平台保证**无登录界面**（不再依赖 <750 宽度的巧合——平板或横屏 WebView
+            // 同样直进；历史版本纯宽度判断在 Android ≥750 时会误出登录页）。
+            // 激活页自 v1.10.0 起不再免除：未激活时先显示激活页（见下方分支）。
             // 注意 win-app preload 同名暴露 window.Android，platform-bootstrap 已排除（consoleAPI 优先）
             if (window.innerWidth < 750 || window.__rcIsAndroidWebview) {
                 const loginModal = document.getElementById('login-modal');
@@ -2874,6 +2875,20 @@
             try { if (typeof buildSettingsNav === 'function') buildSettingsNav(); } catch (e) { /* ignore */ }
             // 信息面板文件列表：说明书条目名称与语言版本随界面语言切换（v1.10.0）
             try { if (typeof renderFileList === 'function') renderFileList(); } catch (e) { /* ignore */ }
+            /* 说明书阅读器正在打开时，随界面语言换到对应版本（否则读者会一直看着旧语言的
+               文档——桌面菜单模式下设置面板仍可操作，切语言时阅读器通常是开着的）。
+               仅处理说明书条目（openManualViewer 打的 inApp 标记），PDF 与其他文件不动。 */
+            try {
+                if (currentPdfFile && currentPdfFile.inApp) {
+                    const frame = document.getElementById('pdf-viewer-frame');
+                    const wantPath = manualPath();
+                    const titleText = document.getElementById('pdf-viewer-title-text');
+                    if (titleText) titleText.textContent = manualName();
+                    if (frame && frame.getAttribute('src') !== wantPath + '#toolbar=1&view=FitH') {
+                        frame.src = wantPath + '#toolbar=1&view=FitH';
+                    }
+                }
+            } catch (e) { /* ignore */ }
         });
 
         /* ===== 模式名称自定义与信息参数中英文解析 =====
@@ -4232,7 +4247,18 @@
                 finishText: '自检完成',
                 showAlert: true,
                 onLine: handleMale2SelfCheckLine,
-                alertMessage: () => applyModelInfoToLine(`T31-750型仿人男性机器人自检程序已成功运行，未发现错误。<br><br>总用时：${formatElapsed(Date.now() - (_processInstances['self-check'] ? _processInstances['self-check'].startTime : Date.now()))}`),
+                alertMessage: () => {
+                    /* 含 <br> 的富文本不走 applyModelInfoToLine（该函数遇标签直接返回原文），
+                       故按语言整句直出：中文沿用原句，英文给出对应句与 Elapsed 前缀。
+                       耗时数字不参与翻译。 */
+                    const elapsed = formatElapsed(Date.now() - (_processInstances['self-check'] ? _processInstances['self-check'].startTime : Date.now()));
+                    const en = (window.I18N && I18N.getLang && I18N.getLang() === 'en');
+                    const body = en
+                        ? 'The T31-750 Male Android ran the self-check program successfully; no errors found.'
+                        : 'T31-750型仿人男性机器人自检程序已成功运行，未发现错误。';
+                    const elapsedLabel = (window.I18N && I18N.t) ? I18N.t('总用时：') : '总用时：';
+                    return applyModelInfoToLine(body) + '<br><br>' + elapsedLabel + elapsed;
+                },
                 onComplete: () => {
                     speak(modelSentenceSpeech('已成功运行自检程序，未发现错误', 'has completed the self-check program successfully; no errors found'));
                     appendToLogs('[自检] 已成功完成，未发现错误');
@@ -5907,11 +5933,11 @@
             if (skipBtn) skipBtn.addEventListener('click', () => completeActivation(true));
         }
 
-        /* 完成/跳过共用：skip=true 保持默认；否则按输入逐组落库（与设置页同一套存储键） */
         /* ===== First Run 模式（v1.10.0）=====
            `?firstrun=1`：只显示激活页，完成后回调原生并**不进入主界面**——
            win-app 首启激活窗口（先于启动器）与 Android 首启共用同一套表单实现。
-           `?firstrun=1` 且已完成激活时立即回调，避免二次弹出。 */
+           表单为全量十组（语言/型号/账号/TTS/图片/模式名/链接/状态/运行参数/按钮文本），
+           与设置页同一套存储键；`?firstrun=1` 且已完成激活时立即回调，避免二次弹出。 */
         var _firstRunMode = false;
         var _firstRunDone = null;   // 完成/跳过后执行的回调（由各端注入）
         try {
@@ -6071,6 +6097,20 @@
             '机器人状态设置': 'fa-robot',
             '配置导入导出': 'fa-right-left'
         };
+        function settingsNavIcon(text) {
+            /* 导航图标按中文组名映射。EN 模式下 label.textContent 已被词典译成英文，
+               直接查表会全部落到默认齿轮（v1.10.0 英文默认后实测：13 项全部 fa-gear），
+               故这里先把节点文本还原回中文源串再查表。 */
+            if (SETTINGS_NAV_ICONS[text]) return SETTINGS_NAV_ICONS[text];
+            var dict = (window.I18N && I18N.DICT) ? I18N.DICT : null;
+            if (dict) {
+                for (var zh in SETTINGS_NAV_ICONS) {
+                    if (dict[zh] === text) return SETTINGS_NAV_ICONS[zh];
+                }
+            }
+            /* 还原失败（词典缺失/自定义）时不显示图标，而不是全部退化成同一个齿轮 */
+            return 'fa-gear';
+        }
         function buildSettingsNav() {
             var nav = document.getElementById('settings-nav');
             var body = document.querySelector('#settings-modal .settings-body');
@@ -6088,7 +6128,7 @@
                 btn.type = 'button';
                 btn.className = 'settings-nav-item';
                 var icon = document.createElement('i');
-                icon.className = 'fa-solid ' + (SETTINGS_NAV_ICONS[text] || 'fa-gear') + ' nav-icon';
+                icon.className = 'fa-solid ' + settingsNavIcon(text) + ' nav-icon';
                 icon.setAttribute('aria-hidden', 'true');
                 btn.appendChild(icon);
                 btn.appendChild(document.createTextNode(text));   // 中文文本节点，EN 模式经 Observer 词典翻译
@@ -6203,6 +6243,10 @@
 
         // 恢复默认设置
         function resetSettings() {
+            /* 恢复「个性化显示内容」为默认。落地口径（与对话框措辞一致）：
+               按钮文本 / 状态项 / 模式名称 / 型号信息 / 信息链接 / 运行参数 / 情绪 / 机器人图片。
+               不涉及（对话框已注明）：界面语言、账号密码、MiMo Key 与 TTS 引擎、任务与计时器。 */
+
             // 恢复按钮文本默认值
             state.buttonTexts = [...storage.DEFAULT_BUTTON_TEXTS];
 
@@ -6217,6 +6261,13 @@
                 if (input) input.value = '';
             });
             applyModeNameLabels();
+
+            // 机器人图片：此前只重置预览、不删存储，应用更改后图片会「复活」
+            // （用户口径：点了恢复默认，图片没变回去）。这里真删存储并同步内存态。
+            try { storage.removeRobotImage1(); } catch (e) { /* ignore */ }
+            try { storage.removeRobotImage2(); } catch (e) { /* ignore */ }
+            state.tempRobotImage1 = null;
+            state.tempRobotImage2 = null;
 
             // v1.6.0：恢复型号信息与信息面板链接默认值（应用更改后落库生效）
             state.modelInfo = {};
@@ -6370,19 +6421,27 @@
                         e.stopPropagation();
                         const id = e.currentTarget.getAttribute('data-file-new-id');
                         const file = FILES.find(f => f.id === id);
-                        if (file) {
-                            const target = file.path || urlOf(file);
-                            if (isSingleColumn() && isAndroidApp() && file.type !== 'doc') {
-                                if (file.type === 'pdf') {
-                                    window.Android.openPdfFile(target);
-                                } else {
-                                    window.Android.openExternalUrl(target);
-                                }
-                            } else {
-                                window.open(target, '_blank', 'noopener,noreferrer');
-                            }
-                            appendToLogs(`在新窗口打开了：${nameOf(file)}`);
+                        if (!file) return;
+                        const target = file.path || urlOf(file);
+                        /* 说明书为本地 HTML：Android WebView 未开多窗口、win-app 主进程拒绝
+                           非 http(s) 的 window.open — 两边都打不开新窗口，故不做静默无效调用，
+                           统一在应用内阅读器里打开（点条目主体的行为）。 */
+                        if (file.type === 'doc') {
+                            openManualViewer();
+                            if (typeof isDesktopChrome === 'function' && isDesktopChrome() && typeof closeInfoModal === 'function') closeInfoModal();
+                            appendToLogs(`打开了文件：${nameOf(file)}`);
+                            return;
                         }
+                        if (isSingleColumn() && isAndroidApp()) {
+                            if (file.type === 'pdf') {
+                                window.Android.openPdfFile(target);
+                            } else {
+                                window.Android.openExternalUrl(target);
+                            }
+                        } else {
+                            window.open(target, '_blank', 'noopener,noreferrer');
+                        }
+                        appendToLogs(`在新窗口打开了：${nameOf(file)}`);
                     });
                 });
             });
@@ -6437,6 +6496,10 @@
             frame.onerror = function() {
                 frame.style.display = 'none';
                 fallback.style.display = 'block';
+                /* 说明书为本地 HTML（inApp）：Android 侧不能走 openPdfFile（会按 PDF
+                   MIME 交给外部应用打开 .html），win-app 侧 window.open 被主进程拒绝。
+                   两边都没有可用的外抛通道，故只显示兜底提示，由用户自行处理。 */
+                if (file.inApp) return;
                 if (isAndroidApp()) {
                     window.Android.openPdfFile(file.path);
                 } else {

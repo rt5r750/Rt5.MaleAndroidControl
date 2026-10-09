@@ -1,7 +1,7 @@
 {
-  "version": "705dc9f3c765",
-  "generatedAt": "2026-10-09T05:39:00.974Z",
-  "totalSize": 15551369,
+  "version": "45a85f5b0a2c",
+  "generatedAt": "2026-10-09T11:47:40.456Z",
+  "totalSize": 15565283,
   "files": [
     {
       "path": "MimoTTSClient.js",
@@ -30,8 +30,8 @@
     },
     {
       "path": "css/app.css",
-      "size": 188981,
-      "hash": "513acd028824"
+      "size": 189575,
+      "hash": "bf60b694f5e6"
     },
     {
       "path": "css/desktop-chrome.css",
@@ -85,13 +85,13 @@
     },
     {
       "path": "doc/manual/manual.en.html",
-      "size": 34330,
-      "hash": "a3eb67512719"
+      "size": 37775,
+      "hash": "b21bd63c6ca7"
     },
     {
       "path": "doc/manual/manual.zh-CN.html",
-      "size": 31001,
-      "hash": "614d6b2bb30b"
+      "size": 34190,
+      "hash": "09099d6012dc"
     },
     {
       "path": "doc/robot_code.txt",
@@ -125,8 +125,8 @@
     },
     {
       "path": "js/app-core.js",
-      "size": 391524,
-      "hash": "15b88c46e747"
+      "size": 396045,
+      "hash": "1db25655ab21"
     },
     {
       "path": "js/app-desktop.js",
@@ -145,13 +145,13 @@
     },
     {
       "path": "js/i18n.js",
-      "size": 129338,
-      "hash": "75c3f9f861a5"
+      "size": 131375,
+      "hash": "38e53429b0e8"
     },
     {
       "path": "js/platform-bootstrap.js",
-      "size": 13988,
-      "hash": "1a335cd2b040"
+      "size": 13864,
+      "hash": "5982b79affcc"
     },
     {
       "path": "js/win.js",
@@ -310,8 +310,8 @@
     },
     {
       "path": "芮誊T系列仿人男性机器人控制台V1.1.html",
-      "size": 131760,
-      "hash": "73c14d027796"
+      "size": 132012,
+      "hash": "ffe05ac54b9a"
     }
   ]
 }

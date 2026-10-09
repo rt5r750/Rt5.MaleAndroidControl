@@ -55,12 +55,12 @@ Every client now opens in **English on first launch**, matches the device langua
 
 ## 2.3 MACS on Windows
 
-1. Unpack the release archive somewhere you can write to, then run `MACS.exe`.
+1. Unpack the release archive somewhere you can write to, then run `RobotControl-Console.exe`.
 2. On the **first** launch the activation window opens **before the launcher**. Complete it, or close the window to skip.
 3. The launcher appears. It waits for the robot's USB device — see section 4.3.
 4. Click the device button to enter the console. The launcher shows **Waiting for device** until a match is found.
 
-On later launches the activation window stays away and the launcher opens directly. To see the first-run flow again, close the app, delete the `huancun` folder next to `MACS.exe`, and start it again.
+On later launches the activation window stays away and the launcher opens directly. To see the first-run flow again, close the app, delete the `huancun` folder next to `RobotControl-Console.exe`, and start it again.
 
 ## 2.4 Slave
 
@@ -135,7 +135,7 @@ The clients talk over Bluetooth Low Energy. The Master advertises, the Slave and
 2. On the Slave, tap the round **B** button to open **Console Connection**, then **Scan Again**. Nearby consoles appear in the list.
 3. Tap a device to connect.
 
-The Slave scans for ten seconds per attempt and retries on its own while it stays unbound. Once connected it subscribes to mode, emotion, tasks, voice, heartbeat, API key and language notifications. If the link drops, both sides retry automatically; a deliberate disconnect from either side is respected and does not trigger a reconnect loop.
+The Slave scans for ten seconds per attempt and retries on its own while it stays unbound. Once connected it subscribes to mode, emotion, tasks, voice, heartbeat and API-key notifications. (It no longer subscribes to the console's language — see 3.3.) If the link drops, both sides retry automatically; a deliberate disconnect from either side is respected and does not trigger a reconnect loop.
 
 ## 4.2 QR pairing
 
@@ -261,6 +261,35 @@ A third panel streams the android's source code, scrolling faster as simulated C
 
 ---
 
+## 5.10 Task command system
+
+The task panel lists the android's tasks, each tagged on the left by origin — cognitive (orange ◈), terminal (cyan ◇), button (mode colour ◆) or ordinary (●); finished ones are struck through with ✓. The panel header shows a count, e.g. "3 tasks (1 pending)".
+
+Tasks produced locally — pressing button 11 or later, sending a command with `*` in the terminal, adding a cognitive offset — enter this list immediately and are synchronised to any connected Slave and watch.
+
+## 5.11 Timer
+
+The timer panel has **Start** and **Reset** for a countdown; it announces when the countdown finishes. The duration and running state persist for the session.
+
+## 5.12 Debug log
+
+The debug log records system activity in order — initialisation, login, connections, mode changes, function runs, opened files, saved settings. When something seems unresponsive, read this first: most "I clicked and nothing happened" cases leave a record here.
+
+## 5.13 Header and system menu
+
+In desktop menu mode the header contains:
+
+| Element | What it does |
+|---|---|
+| Battery indicator | Opens the battery menu (charging state and schedule) |
+| Network indicator | Opens the network/Bluetooth services menu |
+| Mode indicator | Opens the mode menu to switch between the four modes |
+| Bluetooth button | Opens the connection dialog (start / QR / disconnect) |
+| **?** | Information panel |
+| Cog | Settings panel |
+
+Clicking the Rt5 logo at top left opens the system menu with **About**, **Restart the android...**, **Shut down the android...** and **Log out**; the About window shows the model, company, status list and CPU/GPU/NPU charts. The dock (revealed when the pointer reaches the bottom edge) manages and minimises windows.
+
 # 6. Console settings
 
 Open Settings from the cog in the header, the Rt5 menu, the dock, or the capsule on mobile. On desktop the groups are listed down the left; on mobile you pick a group and get a back arrow.
@@ -313,7 +342,7 @@ The **?** button opens the information panel in two blocks.
 | **App User Manual** | This manual, in whichever language the console is currently using |
 | Get the app (open / download) | The browser app-launch guide |
 
-Link names and addresses are editable in Settings; the PDF entry keeps its fixed filename.
+Link names and addresses are editable in Settings. Two entries are fixed and cannot be renamed: the PDF keeps its filename, and the app manual follows the interface language.
 
 ---
 
@@ -379,9 +408,11 @@ The watch keeps its connection alive with a foreground service and reconnects au
 
 The same console runs in a browser. Two things differ from the native clients.
 
-**Caching.** A first visit offers to cache the whole console so it opens instantly and works offline. Following that link downloads every asset once. Afterwards the console runs from local storage, and if the site is updated you are offered a re-cache through a notification or a banner.
+**The first visit is a forced caching flow.** A first visit opens the "get the full experience" window, and that window **cannot be closed or ignored** — you must press the cache button first, which downloads every asset once (the window re-opens itself if bypassed), and only then does the console open. Afterwards the console runs locally and works offline. Caching uses the browser's Cache Storage, so the page must be served over `http://`/`https://` and allowed to store site data. When the site is updated you are offered a re-cache through a notification or a banner.
 
-**App launching.** The browser cannot use Bluetooth; to connect to hardware you need the Android or Windows app. The guide that appears offers to open the installed app, download it, or continue in the browser.
+After caching, the activation screen still appears (the browser edition has the same first-run setup), followed by the app-launch guide.
+
+**App launching.** The browser cannot use Bluetooth; to connect to hardware you need the Android or Windows app. The guide offers **Open App**, **Download App**, **Cache page**, and a "don't ask again" checkbox; if the app is not installed, pressing Open App switches to the download prompt after about two seconds.
 
 The **Settings → Web Cache & App** group repeats the cache, launch and download actions at any time.
 

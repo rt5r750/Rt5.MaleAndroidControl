@@ -9,10 +9,13 @@
      (MiSans for Chinese, JetBrains Mono for digits/latin). This page may be opened
      via file:// (Android assets), app:// (win-app) or straight from the repository,
      so fonts are referenced relatively and fall back to system faces when absent —
-     nothing here depends on the network. */
-  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
-  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Demibold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
-  @font-face { font-family: 'JetBrains Mono'; src: url('../../webfonts/JetBrainsMono-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+     nothing here depends on the network.
+     File names and the MiSans unicode-range mirror www/css/fonts-face.css: the repo
+     ships JetBrains Mono only in the Bold weight, and MiSans must be limited to the
+     CJK ranges so Latin/digits keep using the mono face. */
+  @font-face { font-family: 'JetBrains Mono'; src: url('../../webfonts/JetBrainsMono-Bold.woff2') format('woff2'); font-weight: 400 700; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+2E80-2FFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF, U+20000-2FA1F; }
+  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Demibold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; unicode-range: U+2E80-2FFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF, U+20000-2FA1F; }
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
   body {
@@ -118,7 +121,7 @@
 <blockquote>宣传片会完整播放后才出现首启界面；点按屏幕可提前结束播放。</blockquote>
 <h2>2.3 Windows 版 MACS</h2>
 <ol>
-<li>将发布包解压到可写目录，运行 <code>MACS.exe</code>。</li>
+<li>将发布包解压到可写目录，运行 <code>RobotControl-Console.exe</code>。</li>
 </ol>
 <ol>
 <li><strong>首次</strong>启动时，激活窗口会在启动器<strong>之前</strong>弹出。完成设置，或直接关闭窗口跳过。</li>
@@ -129,7 +132,7 @@
 <ol>
 <li>点击设备按钮进入控制台。</li>
 </ol>
-<p>此后启动不再弹激活窗口，直接进入启动器。若想重新体验首次启动流程：关闭应用，删除 <code>MACS.exe</code> 同级的 <code>huancun</code> 文件夹，再启动即可。</p>
+<p>此后启动不再弹激活窗口，直接进入启动器。若想重新体验首次启动流程：关闭应用，删除 <code>RobotControl-Console.exe</code> 同级的 <code>huancun</code> 文件夹，再启动即可。</p>
 <h2>2.4 Slave</h2>
 <ol>
 <li>安装 APK 并打开。</li>
@@ -206,7 +209,7 @@
 <ol>
 <li>点选设备即可连接。</li>
 </ol>
-<p>Slave 每次扫描十秒，未绑定时会自动重试。连接成功后订阅模式、情绪、任务、语音、心跳、API Key 与语言通知。链路断开时两端都会自动重连；由任一侧主动断开则会被尊重，不会陷入重连循环。</p>
+<p>Slave 每次扫描十秒，未绑定时会自动重试。连接成功后订阅模式、情绪、任务、语音、心跳与 API Key 通知（不再订阅控制台的语言，见 3.3）。链路断开时两端都会自动重连；由任一侧主动断开则会被尊重，不会陷入重连循环。</p>
 <h2>4.2 二维码配对</h2>
 <p>无需扫描列表即可完成配对：</p>
 <ol>
@@ -313,6 +316,26 @@
 <h2>5.9 自检</h2>
 <p>点「自检」打开进度窗口，逐项走过诊断清单——型号、面部、机体、底盘、性功能配置与软件子系统——并报告已用时间与行数。桌面宽度下会在性功能测试环节出现文件传输窗口。成功结束时报出总用时并播报结果。运行中关闭窗口会先请求确认。</p>
 <hr>
+<h2>5.10 任务指令系统</h2>
+<p>任务面板列出机器人的任务，每条左侧标记来源：认知（橙色 ◈）、终端（青色 ◇）、按钮（模式色 ◆）、普通（●），已完成的划去并显示 ✓。面板标题右侧显示计数，例如「3 项任务（1 待完成）」。</p>
+<p>本机产生的任务（如按下 11 号及以后的按钮、终端里用 <code>*</code> 下发指令、添加认知偏移）会即时进入该列表，并同步给已连接的 Slave 与手表端。</p>
+<h2>5.11 计时器</h2>
+<p>计时器面板提供「开始」与「重置」两个按钮，用于倒计时；倒计时结束会播报提示。时长与倒计时状态在会话内保留。</p>
+<h2>5.12 调试日志</h2>
+<p>调试日志面板按时间顺序记录系统动作：初始化、登录、连接、模式切换、功能执行、文件打开、设置保存等。排查问题时先看这里——多数「点了没反应」的情况在日志里都有对应记录。</p>
+<h2>5.13 顶栏与系统菜单</h2>
+<p>桌面菜单模式下，顶栏包含：</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>元素</th><th>作用</th></tr></thead>
+<tbody>
+<tr><td>电池指示</td><td>打开电池菜单（充电状态与计划说明）</td></tr>
+<tr><td>网络指示</td><td>打开网络/蓝牙服务菜单</td></tr>
+<tr><td>机器人模式指示</td><td>打开模式菜单，直接切换四大模式</td></tr>
+<tr><td>蓝牙按钮</td><td>打开连接对话框（开始连接 / 二维码 / 断开）</td></tr>
+<tr><td><strong>?</strong></td><td>信息面板</td></tr>
+<tr><td>齿轮</td><td>设置面板</td></tr>
+</tbody></table></div>
+<p>点左上角 Rt5 标志打开系统菜单，含 <strong>关于本机</strong>、<strong>重新启动机器人…</strong>、<strong>关闭机器人…</strong>、<strong>退出登录</strong> 四项；「关于本机」窗口显示型号、公司、状态清单与 CPU/GPU/NPU 图表。程序坞（鼠标触底缘浮出）提供窗口管理与最小化入口。</p>
 <h2>6. 控制台设置</h2>
 <p>设置可从顶栏齿轮、Rt5 菜单、程序坞，或手机上的胶囊进入。桌面端左侧列出分组，手机端点选分组后带返回箭头。</p>
 <div class="tbl-wrap"><table>
@@ -354,7 +377,7 @@
 <tr><td><strong>App 使用说明书</strong></td><td>本说明书，按控制台当前语言显示对应版本</td></tr>
 <tr><td>获取 App（打开 / 下载）</td><td>浏览器 App 拉起引导</td></tr>
 </tbody></table></div>
-<p>链接名称与地址可在设置中编辑；PDF 条目保持固定文件名。</p>
+<p>链接名称与地址可在设置中编辑。有两个条目固定不可改名：PDF 保持固定文件名，App 说明书随界面语言显示。</p>
 <hr>
 <h2>8. Slave 应用</h2>
 <p>Slave 是随机器人携带的客户端。</p>
@@ -408,8 +431,9 @@
 <hr>
 <h2>10. 浏览器版本</h2>
 <p>同一套控制台也能在浏览器中运行，与原生端主要有两点不同。</p>
-<p><strong>缓存。</strong> 首次访问会提示缓存整套控制台，使其打开更快并支持离线。确认后会把全部资源下载一次；此后控制台从本地运行。站点更新时会通过通知或横幅提示重新缓存。</p>
-<p><strong>App 拉起。</strong> 浏览器无法使用蓝牙；要连接硬件需使用 Android 或 Windows 应用。弹出的引导窗口提供打开已安装应用、下载应用，或继续在浏览器中使用三个选项。</p>
+<p><strong>首次访问是强制缓存流程。</strong> 网页端首访会弹出「获取完整体验」窗口，且该窗口<strong>不可关闭、不可忽略</strong>——必须先点「缓存网页」把全部资源下载一次（窗口会自动重新弹回，防止绕过），完成后才进入控制台；此后控制台从本地运行、支持离线。缓存通过浏览器缓存存储（Cache Storage）实现，故需以 <code>http://</code>/<code>https://</code> 打开并允许站点存储数据。站点更新后会通过通知或横幅提示重新缓存。</p>
+<p>缓存完成后，界面上仍会出现激活页（浏览器端同样有首次激活设置），以及 App 拉起引导。</p>
+<p><strong>App 拉起。</strong> 浏览器无法使用蓝牙；要连接硬件需使用 Android 或 Windows 应用。引导窗口提供「打开 App」「下载 App」「缓存网页」以及「不再提示」复选框；未安装应用时，点「打开 App」约两秒后会提示转为下载。</p>
 <p><strong>设置 → 网页缓存与 App</strong> 分组可随时重复缓存、拉起与下载操作。</p>
 <hr>
 <h2>11. 故障排查</h2>

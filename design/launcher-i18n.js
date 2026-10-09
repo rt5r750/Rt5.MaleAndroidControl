@@ -32,6 +32,7 @@
         '正在进入控制系统': 'Entering the control system',
         '设备名称': 'Device Name',
         '例: RT-5 主控': 'e.g. RT-5 Main Controller',
+        '例: \\.\PHYSICALDRIVE1': 'e.g. \\.\PHYSICALDRIVE1',
         '设备/磁盘 ID (存储设备自动填充)': 'Device/Disk ID (auto-filled for storage devices)',
         'VID (十六进制)': 'VID (hex)',
         'PID (十六进制)': 'PID (hex)',

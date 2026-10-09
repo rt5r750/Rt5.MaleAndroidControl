@@ -108,15 +108,19 @@ class MainActivity : AppCompatActivity() {
     @Volatile private var videoEnded = false
     @Volatile private var webReady = false
     @Volatile private var splashDismissed = false
+    /** 是否已提前结束播放（触摸跳过/错误/超时）：帧仍保留在屏幕上等待页面就绪 */
+    @Volatile private var skipRequested = false
     private var splashSurface: android.view.Surface? = null
     @Volatile private var splashPlayerPrepared = false
     private val splashTimeoutRunnable = Runnable {
         if (!splashDismissed) {
-            android.util.Log.w(TAG, "Splash video timeout, dismissing splash")
-            dismissSplashVideo()
+            android.util.Log.w(TAG, "Splash video timeout")
+            endSplashPlayback("timeout")
         }
     }
     private val SPLASH_TIMEOUT_MS = 8000L
+    /** 提前结束播放后等待页面就绪的上限：到点强制揭开，避免卡在最后一帧 */
+    private val FORCE_REVEAL_MS = 4000L
 
     private val pickMedia = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) {
@@ -311,7 +315,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             // 界面语言同步：www 设置里切换中文/English 时写入 robot_ui_lang，原生 Toast 随动；
-            // 同时经 7507(UiLang) 推给已连接的 phone/watch 客户端（phone 依此切换显示语言）
+            // 同时经 7507(UiLang) 推给已连接的 phone/watch 客户端（slave 旧版依此切换显示语言（1.10.0 起当前版 slave 语言本机决定））
             @JavascriptInterface
             fun setUiLang(lang: String?) {
                 val next = lang ?: "zh"
@@ -949,7 +953,7 @@ class MainActivity : AppCompatActivity() {
         textureView.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_DOWN && !splashDismissed) {
                 android.util.Log.d(TAG, "User touched to skip splash")
-                dismissSplashVideo()
+                endSplashPlayback("touch")
             }
             true
         }
@@ -1000,7 +1004,7 @@ class MainActivity : AppCompatActivity() {
                     android.util.Log.e(TAG, "Splash MediaPlayer error: what=$what extra=$extra")
                     mp.release()
                     splashMediaPlayer = null
-                    dismissSplashVideo()
+                    endSplashPlayback("media error")
                     true
                 }
                 prepareAsync()
@@ -1008,7 +1012,7 @@ class MainActivity : AppCompatActivity() {
             android.util.Log.d(TAG, "Splash: prepareSplashPlayer started (surface=${if (splashSurface != null) "set" else "not yet"})")
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Failed to prepare splash player", e)
-            dismissSplashVideo()
+            endSplashPlayback("prepare exception")
         }
     }
 
@@ -1028,10 +1032,47 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 提前结束播放（触摸跳过 / 播放错误 / 超时）：**不立刻揭开**，而是停播并保留最后一帧，
+     * 等 WebView 就绪后再由 checkSplashDismiss() 揭开。
+     * 直接 dismiss 会在页面尚未绘制时露出黑底（实测：触摸跳过约 0.25s 时 98.9% 像素为黑），
+     * 而品牌 PV 的意义正是遮住这段加载过程。
+     * 强制兜底 FORCE_REVEAL_MS：页面异常时也不能一直停在最后一帧。
+     */
+    private fun endSplashPlayback(reason: String) {
+        if (splashDismissed) return
+        if (!skipRequested) {
+            skipRequested = true
+            android.util.Log.d(TAG, "Splash playback ended early: $reason")
+        }
+        try {
+            splashMediaPlayer?.let {
+                if (it.isPlaying) it.stop()
+                it.release()
+            }
+            splashMediaPlayer = null
+        } catch (e: Exception) {
+            android.util.Log.w(TAG, "Error releasing splash MediaPlayer", e)
+        }
+        // 停播即视为「不再有视频在播」，但帧仍在屏幕上；页面就绪后 checkSplashDismiss() 会揭开
+        videoEnded = true
+        checkSplashDismiss()
+        // 页面迟迟不就绪时的兜底：到点无条件揭开，避免卡在最后一帧
+        mainHandler.postDelayed(forceRevealRunnable, FORCE_REVEAL_MS)
+    }
+
+    private val forceRevealRunnable = Runnable {
+        if (!splashDismissed) {
+            android.util.Log.w(TAG, "Splash force reveal (web page still not ready)")
+            dismissSplashVideo()
+        }
+    }
+
     private fun dismissSplashVideo() {
         if (splashDismissed) return
         splashDismissed = true
         mainHandler.removeCallbacks(splashTimeoutRunnable)
+        mainHandler.removeCallbacks(forceRevealRunnable)
         try {
             splashMediaPlayer?.let {
                 it.stop()

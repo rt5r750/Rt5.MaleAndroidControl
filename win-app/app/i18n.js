@@ -21,7 +21,7 @@ const STORE_FILE = () => {
 const DICT = {
   '已连接至T31-750型仿人男性机器人的内部系统': 'Connected to the internal system of T31-750 Male Android',
   'BLE 宿主未就绪，请稍后重试': 'BLE host is not ready, please try again later',
-  '未找到 BLE 宿主程序（AndroidControl-BleHost.exe），请重新打包': 'BLE host program (AndroidControl-BleHost.exe) not found; please repackage',
+  '未找到 BLE 宿主程序（RobotControl-BleHost.exe），请重新打包': 'BLE host program (RobotControl-BleHost.exe) not found; please repackage',
   'BLE 宿主连续启动失败，请重启应用后重试': 'BLE host failed to start repeatedly; restart the app and try again',
   'BLE 宿主启动失败：': 'BLE host failed to start: ',
   'BLE 宿主启动异常：': 'BLE host failed to start (exception): ',

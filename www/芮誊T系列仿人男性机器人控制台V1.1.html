@@ -526,7 +526,7 @@
                          名称整组匹配默认时随界面语言，自定义名原文显示；应用更改后生效 -->
                     <div class="setting-group" id="info-links-setting">
                         <label class="setting-label">信息面板链接</label>
-                        <p class="text-xs text-[#8fbc8f]/70 mb-2">自定义信息面板中各链接的名称与地址；地址需以 http:// 或 https:// 开头，PDF 条目文件名固定不提供修改。名称全部与默认一致时随界面语言显示默认名，任意一项自定义则按填写原文显示。改完点击「应用更改」生效。</p>
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">自定义信息面板中各链接的名称与地址；地址需以 http:// 或 https:// 开头。有两条目固定不可配置：PDF 说明书（文件名固定）与 App 使用说明书（名称与版本随界面语言）。名称全部与默认一致时随界面语言显示默认名，任意一项自定义则按填写原文显示。改完点击「应用更改」生效。</p>
                         <div id="info-links-settings" class="space-y-2">
                             <!-- 链接设置行将通过JavaScript动态生成 -->
                         </div>
@@ -552,7 +552,7 @@
                          导入校验后逐键写入并刷新页面 -->
                     <div class="setting-group" id="config-io-setting">
                         <label class="setting-label">配置导入导出</label>
-                        <p class="text-xs text-[#8fbc8f]/70 mb-2">导出本机全部个性化设置（按钮文本/信息参数/模式名称/型号信息/链接/运行参数/账号/图片/情绪/语言/MiMo Key）为 JSON 文件；文件含登录密码与 API Key 等敏感信息以及可能较大的图片数据，请妥善保管勿外传。导入会覆盖当前设置并自动刷新页面。</p>
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">导出本机全部个性化设置（按钮文本/信息参数/模式名称/型号信息/链接/运行参数/账号/图片/情绪/语言/MiMo Key/TTS 引擎）为 JSON 文件；文件含登录密码与 API Key 等敏感信息以及可能较大的图片数据，请妥善保管勿外传。导入会覆盖当前设置并自动刷新页面。</p>
                         <div class="flex flex-wrap gap-2">
                             <button type="button" id="export-config-btn" class="btn-add">
                                 <i class="fa fa-download mr-1"></i>导出配置
@@ -1385,7 +1385,7 @@
                     <h2>提示</h2>
                 </div>
                 <div class="self-check-alert-body">
-                    <p id="reset-defaults-text" class="text-[#8fbc8f] mb-4 leading-relaxed">确定要恢复所有设置为默认值吗？</p>
+                    <p id="reset-defaults-text" class="text-[#8fbc8f] mb-4 leading-relaxed">把按钮文本、状态项、模式名称、型号信息、信息链接、运行参数、情绪与机器人图片恢复为默认？界面语言、账号密码、MiMo Key 与 TTS 引擎不受影响。</p>
                     <div class="flex gap-3 justify-center">
                         <button id="reset-defaults-confirm" class="bg-[#8fbc8f] text-[#2d4a2d] font-bold px-5 py-2 rounded transition-all duration-300 active:scale-95 btn-active">确定</button>
                         <button id="reset-defaults-cancel" class="bg-[#2d4a2d]/50 text-[#8fbc8f] font-bold px-5 py-2 rounded transition-all duration-300 active:scale-95 btn-active hover:bg-[#2d4a2d]/70">取消</button>

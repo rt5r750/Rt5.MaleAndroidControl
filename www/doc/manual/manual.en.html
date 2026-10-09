@@ -9,10 +9,13 @@
      (MiSans for Chinese, JetBrains Mono for digits/latin). This page may be opened
      via file:// (Android assets), app:// (win-app) or straight from the repository,
      so fonts are referenced relatively and fall back to system faces when absent —
-     nothing here depends on the network. */
-  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
-  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Demibold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
-  @font-face { font-family: 'JetBrains Mono'; src: url('../../webfonts/JetBrainsMono-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+     nothing here depends on the network.
+     File names and the MiSans unicode-range mirror www/css/fonts-face.css: the repo
+     ships JetBrains Mono only in the Bold weight, and MiSans must be limited to the
+     CJK ranges so Latin/digits keep using the mono face. */
+  @font-face { font-family: 'JetBrains Mono'; src: url('../../webfonts/JetBrainsMono-Bold.woff2') format('woff2'); font-weight: 400 700; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+2E80-2FFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF, U+20000-2FA1F; }
+  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Demibold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; unicode-range: U+2E80-2FFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF, U+20000-2FA1F; }
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
   body {
@@ -118,7 +121,7 @@
 <blockquote>The film plays to the end before the setup screen appears. Tapping the screen skips the film early.</blockquote>
 <h2>2.3 MACS on Windows</h2>
 <ol>
-<li>Unpack the release archive somewhere you can write to, then run <code>MACS.exe</code>.</li>
+<li>Unpack the release archive somewhere you can write to, then run <code>RobotControl-Console.exe</code>.</li>
 </ol>
 <ol>
 <li>On the <strong>first</strong> launch the activation window opens <strong>before the launcher</strong>. Complete it, or close the window to skip.</li>
@@ -129,7 +132,7 @@
 <ol>
 <li>Click the device button to enter the console. The launcher shows <strong>Waiting for device</strong> until a match is found.</li>
 </ol>
-<p>On later launches the activation window stays away and the launcher opens directly. To see the first-run flow again, close the app, delete the <code>huancun</code> folder next to <code>MACS.exe</code>, and start it again.</p>
+<p>On later launches the activation window stays away and the launcher opens directly. To see the first-run flow again, close the app, delete the <code>huancun</code> folder next to <code>RobotControl-Console.exe</code>, and start it again.</p>
 <h2>2.4 Slave</h2>
 <ol>
 <li>Install the APK and open it.</li>
@@ -206,7 +209,7 @@
 <ol>
 <li>Tap a device to connect.</li>
 </ol>
-<p>The Slave scans for ten seconds per attempt and retries on its own while it stays unbound. Once connected it subscribes to mode, emotion, tasks, voice, heartbeat, API key and language notifications. If the link drops, both sides retry automatically; a deliberate disconnect from either side is respected and does not trigger a reconnect loop.</p>
+<p>The Slave scans for ten seconds per attempt and retries on its own while it stays unbound. Once connected it subscribes to mode, emotion, tasks, voice, heartbeat and API-key notifications. (It no longer subscribes to the console's language — see 3.3.) If the link drops, both sides retry automatically; a deliberate disconnect from either side is respected and does not trigger a reconnect loop.</p>
 <h2>4.2 QR pairing</h2>
 <p>Pairs the two devices without a scan list:</p>
 <ol>
@@ -313,6 +316,26 @@
 <h2>5.9 Self-check</h2>
 <p><strong>Self-check</strong> opens a progress window and walks through the diagnostic list — model, face, body, chassis, sex-function configuration and software subsystems — reporting elapsed time and line count. On desktop widths a file-transfer window appears during the sex-function test. When it finishes successfully it reports the total time and speaks the result. Closing a running window asks for confirmation first.</p>
 <hr>
+<h2>5.10 Task command system</h2>
+<p>The task panel lists the android's tasks, each tagged on the left by origin — cognitive (orange ◈), terminal (cyan ◇), button (mode colour ◆) or ordinary (●); finished ones are struck through with ✓. The panel header shows a count, e.g. &quot;3 tasks (1 pending)&quot;.</p>
+<p>Tasks produced locally — pressing button 11 or later, sending a command with <code>*</code> in the terminal, adding a cognitive offset — enter this list immediately and are synchronised to any connected Slave and watch.</p>
+<h2>5.11 Timer</h2>
+<p>The timer panel has <strong>Start</strong> and <strong>Reset</strong> for a countdown; it announces when the countdown finishes. The duration and running state persist for the session.</p>
+<h2>5.12 Debug log</h2>
+<p>The debug log records system activity in order — initialisation, login, connections, mode changes, function runs, opened files, saved settings. When something seems unresponsive, read this first: most &quot;I clicked and nothing happened&quot; cases leave a record here.</p>
+<h2>5.13 Header and system menu</h2>
+<p>In desktop menu mode the header contains:</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Element</th><th>What it does</th></tr></thead>
+<tbody>
+<tr><td>Battery indicator</td><td>Opens the battery menu (charging state and schedule)</td></tr>
+<tr><td>Network indicator</td><td>Opens the network/Bluetooth services menu</td></tr>
+<tr><td>Mode indicator</td><td>Opens the mode menu to switch between the four modes</td></tr>
+<tr><td>Bluetooth button</td><td>Opens the connection dialog (start / QR / disconnect)</td></tr>
+<tr><td><strong>?</strong></td><td>Information panel</td></tr>
+<tr><td>Cog</td><td>Settings panel</td></tr>
+</tbody></table></div>
+<p>Clicking the Rt5 logo at top left opens the system menu with <strong>About</strong>, <strong>Restart the android...</strong>, <strong>Shut down the android...</strong> and <strong>Log out</strong>; the About window shows the model, company, status list and CPU/GPU/NPU charts. The dock (revealed when the pointer reaches the bottom edge) manages and minimises windows.</p>
 <h2>6. Console settings</h2>
 <p>Open Settings from the cog in the header, the Rt5 menu, the dock, or the capsule on mobile. On desktop the groups are listed down the left; on mobile you pick a group and get a back arrow.</p>
 <div class="tbl-wrap"><table>
@@ -354,7 +377,7 @@
 <tr><td><strong>App User Manual</strong></td><td>This manual, in whichever language the console is currently using</td></tr>
 <tr><td>Get the app (open / download)</td><td>The browser app-launch guide</td></tr>
 </tbody></table></div>
-<p>Link names and addresses are editable in Settings; the PDF entry keeps its fixed filename.</p>
+<p>Link names and addresses are editable in Settings. Two entries are fixed and cannot be renamed: the PDF keeps its filename, and the app manual follows the interface language.</p>
 <hr>
 <h2>8. Slave app</h2>
 <p>The Slave is the client that travels with the android.</p>
@@ -408,8 +431,9 @@
 <hr>
 <h2>10. Browser edition</h2>
 <p>The same console runs in a browser. Two things differ from the native clients.</p>
-<p><strong>Caching.</strong> A first visit offers to cache the whole console so it opens instantly and works offline. Following that link downloads every asset once. Afterwards the console runs from local storage, and if the site is updated you are offered a re-cache through a notification or a banner.</p>
-<p><strong>App launching.</strong> The browser cannot use Bluetooth; to connect to hardware you need the Android or Windows app. The guide that appears offers to open the installed app, download it, or continue in the browser.</p>
+<p><strong>The first visit is a forced caching flow.</strong> A first visit opens the &quot;get the full experience&quot; window, and that window <strong>cannot be closed or ignored</strong> — you must press the cache button first, which downloads every asset once (the window re-opens itself if bypassed), and only then does the console open. Afterwards the console runs locally and works offline. Caching uses the browser's Cache Storage, so the page must be served over <code>http://</code>/<code>https://</code> and allowed to store site data. When the site is updated you are offered a re-cache through a notification or a banner.</p>
+<p>After caching, the activation screen still appears (the browser edition has the same first-run setup), followed by the app-launch guide.</p>
+<p><strong>App launching.</strong> The browser cannot use Bluetooth; to connect to hardware you need the Android or Windows app. The guide offers <strong>Open App</strong>, <strong>Download App</strong>, <strong>Cache page</strong>, and a &quot;don't ask again&quot; checkbox; if the app is not installed, pressing Open App switches to the download prompt after about two seconds.</p>
 <p>The <strong>Settings → Web Cache &amp; App</strong> group repeats the cache, launch and download actions at any time.</p>
 <hr>
 <h2>11. Troubleshooting</h2>

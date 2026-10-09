@@ -87,6 +87,8 @@ console.log('[huancun] userData =', NEW_USER_DATA_DIR);
 let launcherWindow = null;
 let mainWindow = null;
 let firstRunWindow = null;
+// First Run 相位：pending=窗口已建待页面表态 | form=正在填表 | done/timeout/closed=已收尾
+let firstRunPhase = 'none';
 let launcherShown = false;
 let qrDataUrl = '';
 let usbWatcher = null;
@@ -202,21 +204,39 @@ function createFirstRunWindow() {
     }
   });
 
-  // 用户直接关闭激活窗口 = 跳过 First Run（不写标记，控制台内激活页仍是兜底）→ 进启动器。
-  // 完成激活走 finishFirstRunAndOpenLauncher（先 destroy，closed 时 launcher 已存在，不重复建）。
+  // 用户直接关闭激活窗口 = 跳过 First Run：与 www/Android、slave 同一语义——跳过即置完成，
+  // 否则每次启动都会再弹（用户按 Alt+F4 也永远甩不掉）。完成激活走
+  // finishFirstRunAndOpenLauncher（已先写标记，此处重复写为幂等）。
   firstRunWindow.once('closed', () => {
+    const wasForm = firstRunPhase === 'form';
     firstRunWindow = null;
+    firstRunPhase = 'closed';
+    if (wasForm) markFirstRunDone();
     if (!launcherWindow || launcherWindow.isDestroyed()) createLauncherWindow();
   });
 
-  // 窗口保持隐藏直到页面判定是否需要填表：已激活用户（如从旧版本升级、或标记丢失）
-  // 由 firstRunReady(false) 直接收尾，不闪出激活窗口。兜底 3s 防止信号异常时窗口不出现。
+  // 窗口保持隐藏直到页面报出「是否需要填表」：已激活用户（旧版升级、宿主标记丢失）
+  // 由 firstRunReady(false) 直接收尾，不闪窗。
+  // 兜底：3s 内没有任何信号说明页面自身出错（缺文件/脚本异常）——此时不得把用户
+  // 卡在一个显示控制台登录页的窗口里，直接关窗进启动器，且**不写标记**，
+  // 让控制台内置的激活页继续兜底。
   const firstRunShowFallback = setTimeout(() => {
-    if (firstRunWindow && !firstRunWindow.isDestroyed() && !firstRunWindow.isVisible()) firstRunWindow.show();
+    if (!firstRunWindow || firstRunWindow.isDestroyed()) return;
+    if (firstRunPhase === 'pending') {
+      console.error('[firstrun] 页面未在 3s 内就绪，跳过激活窗口转由控制台内置激活页兜底');
+      const w = firstRunWindow;
+      firstRunWindow = null;
+      firstRunPhase = 'timeout';
+      w.destroy();
+      if (!launcherWindow || launcherWindow.isDestroyed()) createLauncherWindow();
+      return;
+    }
+    if (firstRunPhase === 'form' && !firstRunWindow.isVisible()) firstRunWindow.show();
   }, 3000);
   firstRunWindow.once('closed', () => clearTimeout(firstRunShowFallback));
 
   const FR_PAGE = 'www/' + encodeURIComponent('芮誊T系列仿人男性机器人控制台V1.1.html') + '?firstrun=1';
+  firstRunPhase = 'pending';
   firstRunWindow.loadURL(`${APP_SCHEME}://${APP_HOST}/${FR_PAGE}`);
 }
 
@@ -698,7 +718,7 @@ function registerIpc() {
   });
 
   // 界面语言同步：www 设置里切换中文/English 时写入 huancun，主进程原生文案随动；
-  // 同时推到 7507(UiLang)，已连接的 phone 显示语言跟随控制台
+  // 同时推到 7507(UiLang)：服务端照常广播，供旧版 slave 客户端订阅（1.10.0 起当前版 slave 不再消费）
   ipcMain.on('i18n-set-lang', (_event, lang) => {
     try { i18n.setLang(lang); } catch (e) { /* ignore */ }
     try { pushBleUiLang(String(lang || 'zh')); } catch (e) { /* ignore */ }
@@ -713,13 +733,22 @@ function registerIpc() {
   // First Run（v1.10.0）：激活窗口内的激活页完成/跳过后收尾（写标记 → 关窗 → 回启动器）；
   // 控制台内完成激活时也经此回写标记，两处状态一致、不再重复弹激活窗口。
   ipcMain.on('firstrun-done', () => {
-    if (firstRunWindow && !firstRunWindow.isDestroyed()) finishFirstRunAndOpenLauncher();
-    else markFirstRunDone();
+    if (firstRunWindow && !firstRunWindow.isDestroyed() && firstRunPhase !== 'done') {
+      firstRunPhase = 'done';
+      finishFirstRunAndOpenLauncher();
+    } else {
+      markFirstRunDone();
+    }
   });
   ipcMain.on('firstrun-ready', (_event, needsForm) => {
-    if (!firstRunWindow || firstRunWindow.isDestroyed()) return;
+    if (!firstRunWindow || firstRunWindow.isDestroyed() || firstRunPhase === 'done') return;
     // 无需填表（已激活）：不显示窗口，直接走完成路径（写标记 → 回启动器），避免闪窗
-    if (needsForm === false) { finishFirstRunAndOpenLauncher(); return; }
+    if (needsForm === false) {
+      firstRunPhase = 'done';
+      finishFirstRunAndOpenLauncher();
+      return;
+    }
+    firstRunPhase = 'form';
     if (!firstRunWindow.isVisible()) firstRunWindow.show();
   });
 
@@ -809,23 +838,34 @@ function registerIpc() {
     present: consoleUsbEntry.present
   }));
 
-  // 主控制台窗口控制（自绘仿 Win11 按钮）
+  // 自绘窗口控制（仿 Win11 按钮）：主控制台与 First Run 激活窗口都是 frame:false，
+  // 目标统一解析为「当前活动的无边框窗口」——激活窗口阶段 mainWindow 尚未创建，
+  // 若只认 mainWindow，激活窗口标题栏的按钮会全部失效（无处可关）。
+  const framelessTarget = () => {
+    for (const w of [mainWindow, firstRunWindow, launcherWindow]) {
+      if (w && !w.isDestroyed()) return w;
+    }
+    return null;
+  };
   ipcMain.on('win-minimize', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.minimize();
+    const w = framelessTarget();
+    if (w) w.minimize();
   });
   ipcMain.on('win-maximize-toggle', () => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    if (mainWindow.isMaximized()) mainWindow.unmaximize();
-    else mainWindow.maximize();
+    const w = framelessTarget();
+    if (!w || w === launcherWindow) return;   // 启动器不可最大化
+    if (w.isMaximized()) w.unmaximize();
+    else w.maximize();
   });
   ipcMain.on('win-close', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
+    const w = framelessTarget();
+    if (w) w.close();
   });
 
   ipcMain.on('win-fullscreen-toggle', () => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    const target = !mainWindow.isFullScreen();
-    mainWindow.setFullScreen(target);
+    const w = framelessTarget();
+    if (!w || w === launcherWindow) return;
+    w.setFullScreen(!w.isFullScreen());
   });
 
   ipcMain.on('win-back-to-launcher', () => {

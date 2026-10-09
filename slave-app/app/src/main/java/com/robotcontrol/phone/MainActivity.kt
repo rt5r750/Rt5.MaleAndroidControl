@@ -228,11 +228,14 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         PhoneDataStore.setNotificationContext(this)
         PhoneDataStore.addListener(this)
 
-        initBle()
+        /* First Run（v1.10.0）：首次打开立即进入首启设置界面（覆盖主界面），完成/跳过后不再出现。
+           必须早于 BLE 初始化与权限申请：否则系统蓝牙/相机授权弹窗会先盖在首启界面之上，
+           用户还没看到设置项就先被连问两三个权限。 */
+        val firstRunShowing = showFirstRunIfNeeded()
 
-        /* First Run（v1.10.0）：首次打开立即进入首启设置界面（覆盖主界面），
-           完成/跳过后不再出现。语言默认按设备检测（默认英文）。 */
-        showFirstRunIfNeeded()
+        if (!firstRunShowing) {
+            initBle()
+        }
 
         if (checkSelfPermission(android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
@@ -1470,19 +1473,37 @@ class MainActivity : ComponentActivity(), DataStoreListener {
             .putBoolean(KEY_FIRST_RUN_DONE, true).apply()
     }
 
-    private fun showFirstRunIfNeeded() {
-        if (isFirstRunDone()) return
-        val host = findViewById<FrameLayout>(R.id.firstRunContainer) ?: return
+    /** 首启界面里的 API Key 输入框（切语言/重建前取回已输入内容，避免丢失）。 */
+    private fun findFirstRunKeyInput(root: android.view.ViewGroup): EditText? {
+        val stack = ArrayDeque<android.view.View>()
+        stack.addLast(root)
+        while (stack.isNotEmpty()) {
+            val v = stack.removeLast()
+            if (v is EditText) return v
+            if (v is android.view.ViewGroup) {
+                for (i in 0 until v.childCount) stack.addLast(v.getChildAt(i))
+            }
+        }
+        return null
+    }
+
+    /** 返回 true 表示首启界面已显示（调用方据此推迟 BLE 初始化与权限申请）。 */
+    private fun showFirstRunIfNeeded(): Boolean {
+        if (isFirstRunDone()) return false
+        val host = findViewById<FrameLayout>(R.id.firstRunContainer) ?: return false
         firstRunContainer = host
         host.removeAllViews()
         host.addView(buildFirstRunView())
         host.visibility = View.VISIBLE
+        return true
     }
 
     private fun dismissFirstRun() {
         markFirstRunDone()
         firstRunContainer?.let { it.visibility = View.GONE; it.removeAllViews() }
         firstRunContainer = null
+        // 首启期间推迟的 BLE 初始化在此补上（正常首启路径 onCreate 不会重复调用）
+        initBle()
     }
 
     private fun buildFirstRunView(): View {
@@ -1546,12 +1567,18 @@ class MainActivity : ComponentActivity(), DataStoreListener {
             setTextColor(if (active) GfxColor.parseColor("#8FBC8F") else GfxColor.parseColor("#888888"))
             setBackgroundColor(if (active) GfxColor.parseColor("#1A8FBC8F") else GfxColor.parseColor("#1AFFFFFF"))
             setOnClickListener {
-                PhoneI18n.setLang(this@MainActivity, code)
-                // 重建整个首启界面：文案随新语言即时切换
+                if (PhoneI18n.getLang() == code) return@setOnClickListener
+                // 切语言前先落库当前已输入的 API Key：本界面随语言整块重建，
+                // 不这么做会丢掉用户刚输入、尚未保存的内容。
                 firstRunContainer?.let { host ->
-                    host.removeAllViews()
-                    host.addView(buildFirstRunView())
+                    val typed = findFirstRunKeyInput(host)?.text?.toString()?.trim().orEmpty()
+                    if (typed.isNotEmpty()) ApiKeyStore.saveApiKey(typed)
                 }
+                PhoneI18n.setLang(this@MainActivity, code)
+                // recreate：onCreate 里 buildContent() 会按新语言重建主界面，
+                // 否则首启界面切了语言、主界面仍是旧语言（要重启才生效）。
+                // 首启标记尚未写入，重建后仍显示首启界面（已带上刚才保存的 Key）。
+                recreate()
             }
         }
         langRow.addView(langBtn("中文", "zh"))

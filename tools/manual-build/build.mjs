@@ -222,10 +222,13 @@ const PAGE = (lang, title, body, otherHref, otherLabel) => `<!DOCTYPE html>
      (MiSans for Chinese, JetBrains Mono for digits/latin). This page may be opened
      via file:// (Android assets), app:// (win-app) or straight from the repository,
      so fonts are referenced relatively and fall back to system faces when absent —
-     nothing here depends on the network. */
-  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
-  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Demibold.woff2') format('woff2'); font-weight: 600; font-display: swap; }
-  @font-face { font-family: 'JetBrains Mono'; src: url('../../webfonts/JetBrainsMono-Regular.woff2') format('woff2'); font-weight: 400; font-display: swap; }
+     nothing here depends on the network.
+     File names and the MiSans unicode-range mirror www/css/fonts-face.css: the repo
+     ships JetBrains Mono only in the Bold weight, and MiSans must be limited to the
+     CJK ranges so Latin/digits keep using the mono face. */
+  @font-face { font-family: 'JetBrains Mono'; src: url('../../webfonts/JetBrainsMono-Bold.woff2') format('woff2'); font-weight: 400 700; font-style: normal; font-display: swap; }
+  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; unicode-range: U+2E80-2FFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF, U+20000-2FA1F; }
+  @font-face { font-family: 'MiSans'; src: url('../../webfonts/MiSans-Demibold.woff2') format('woff2'); font-weight: 600; font-style: normal; font-display: swap; unicode-range: U+2E80-2FFF, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF, U+20000-2FA1F; }
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
   body {

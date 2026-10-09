@@ -292,6 +292,11 @@ class QrScanActivity : Activity() {
         cancelBtn = findViewById(R.id.cancelBtn)
         cancelIcon = findViewById(R.id.cancelIcon)
 
+        // 两条扫描提示写在布局里，此前只取视图未回写文案（英文模式下恒显示中文）；
+        // 渲染点统一走词典，与其余界面口径一致。
+        hintText.text = PhoneI18n.t("将二维码放入框内自动扫描")
+        bottomHint.text = PhoneI18n.t("请对准二维码")
+
         // Add layout listener to call configureTransform whenever view size changes
         previewView.addOnLayoutChangeListener { _, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
             val newW = right - left
