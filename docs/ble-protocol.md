@@ -100,6 +100,7 @@ Mode/Heartbeat/ApiKey Characteristic 属性：`PROPERTY_READ | PROPERTY_WRITE | 
 - **长度**：1 字节
 - **属性**：`PROPERTY_READ | PROPERTY_NOTIFY`（单向 Server→Client 推送）
 - **权限**：`PERMISSION_READ`
+- **状态（v1.10.0）**：特征本身**保留不变**（字节布局与语义冻结，服务端继续推送/补发），仅新版 slave-app 不再消费——其界面语言由本机设备检测 + 用户手选决定，旧版 slave-app 仍按本节语义跟随发送端
 - **字节布局**：
 
 | 偏移 | 字段 | 类型 | 值 | 说明 |
@@ -109,10 +110,10 @@ Mode/Heartbeat/ApiKey Characteristic 属性：`PROPERTY_READ | PROPERTY_WRITE | 
 - **发送时机**：
   - 控制台界面语言变化（www 设置页切换 → master-app JS 桥 `setUiLang` / win-app IPC `i18n-set-lang`）时立即 Notify
   - 客户端订阅 CCCD 后由服务端自动补发当前值（master-app `sendCurrentValueFor`；win-app 在广播启动与宿主就绪时补推）
-- **消费方**：
-  - slave-app：订阅 + 初读该特征，收到后 `PhoneI18n.setLang` 并重建界面——**slave-app 无语言设置，显示语言完全跟随发送端**；`0xFF` 保持当前语言。上一次收到的语言经 SharedPreferences 持久化，作为未连接时的初始语言
+- **消费方（自 v1.10.0 起）**：
+  - **slave-app（新版）不消费**：界面语言改由本机决定（用户手选 → 设备语言检测 → 英文），已删除该特征的订阅、初读与 `onLangReceived` 回调；`BleConstants.CHAR_UI_LANG_UUID` 常量保留但本端不再读写。**服务端行为不变**（master-app `sendUiLang()` 与 win-app C# 宿主/主进程仍照常「语言变化即推 + 订阅后补发」），因此旧版 slave-app（≤ v1.9.x）的订阅与跟随链路仍完全可用，本特征保持向后兼容。
   - watch-app：不订阅（手表端保持中文界面）
-- **初值**：服务端启动时取控制台当前语言（master-app `ConsoleI18n.getLang()`；win-app 由 Electron 主进程在宿主就绪/广播启动时推送）
+- **初值**：服务端启动时取控制台当前语言（master-app `ConsoleI18n.getLang()`；win-app 由 Electron 主进程在宿主就绪/广播启动时推送）；不影响新版 slave-app
 
 ## 反向模式推送（Client → Server）
 

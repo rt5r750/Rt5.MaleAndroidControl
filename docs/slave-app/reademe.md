@@ -1,9 +1,10 @@
-# slave-app（手机端）
+# slave-app（手机端 / Slave）
 
 ## 概述
 
 - **目录**：[slave-app](../../slave-app)
-- **包名**：`com.robotcontrol.phone`
+- **显示名（1.10.0）**：**Slave**（`app_name`，中英 `values`/`values-en` 同值；原「750接收端」随改名统一；Gradle `rootProject.name` 亦改为 `Slave`；图标按 master 同族色相偏移（深绿→深蓝）以区分两端）
+- **包名**：`com.robotcontrol.phone`（1.10.0 刻意不改：改包名会让已装用户数据丢失且需卸载重装）
 - **技术栈**：Kotlin 原生 Android，纯代码构建 UI（无 XML 布局编写、无 Compose）
 - **BLE 角色**：GATT Client（连接 Console）；代码中存在 WatchGattServer 但未在 MainActivity 中启动
 - **配对方式**：BLE 扫描、QR 码扫描（NFC 已移除）
@@ -16,7 +17,8 @@ slave-app/
 ├── app/
 │   ├── src/main/
 │   │   ├── java/com/robotcontrol/phone/
-│   │   │   ├── MainActivity.kt              # 主界面，BLE 连接管理 + UI 构建
+│   │   │   ├── MainActivity.kt              # 主界面，BLE 连接管理 + UI 构建 + 首启设置界面
+│   │   │   ├── PhoneI18n.kt                 # 界面语言覆盖层（设备检测 + 手选，v1.10.0）
 │   │   │   ├── QrScanActivity.kt            # QR 码扫描 Activity（ZXing）
 │   │   │   ├── RobotPhoneApplication.kt     # Application 类，通知渠道创建
 │   │   │   ├── ble/
@@ -50,7 +52,7 @@ slave-app/
 │   │   │   │   ├── asr_switch_track.xml     # 设置页云端开关轨道（开=模式绿/关=深灰）
 │   │   │   │   └── asr_switch_thumb.xml     # 设置页云端开关滑块（开=白/关=灰）
 │   │   │   ├── layout/
-│   │   │   │   ├── activity_main.xml        # 主布局（容器，UI 内容代码动态添加）
+│   │   │   │   ├── activity_main.xml        # 主布局（容器，UI 内容代码动态添加；含 firstRunContainer 首启覆盖层）
 │   │   │   │   └── activity_qr_scan.xml     # 扫码界面布局
 │   │   │   └── values/
 │   │   │       ├── styles.xml               # 主题样式（含 BleDialogTheme、DialogAnimation）
@@ -65,7 +67,18 @@ slave-app/
 
 [PhoneI18n.kt](../../slave-app/app/src/main/java/com/robotcontrol/phone/PhoneI18n.kt)
 
-界面语言覆盖层（1.3.0 新增）：默认中文，`t(中文)` 按表返回英文、中文原文一字不改，覆盖情绪面板/任务名/语音消息/模式名/连接面板/权限与扫描提示等全部原生文案。`values-en/strings.xml` 仅承载随系统语言的启动器标签与胶囊初始文案。**1.5.0 起无手动语言设置（长按胶囊切换已移除），显示语言完全跟随发送端**：ConsoleBleClient 订阅+初读 BLE `7507(UiLang)`（`0x00`=zh/`0x01`=en/`0xFF` 保持当前语言），MainActivity 收到 `onLangReceived` 后 `PhoneI18n.setLang` 并 recreate；最近一次收到的语言经 SharedPreferences `robot_ui_lang` 持久化，作为未连接时的初始语言。
+界面语言覆盖层（1.3.0 新增，1.10.0 重做决策链路）：`t(中文)` 在英文模式按表返回英文、中文原文一字不改，覆盖情绪面板/任务名/语音消息/模式名/连接面板与蓝牙对话框/首启界面/权限与扫描提示等全部原生文案。`values-en/strings.xml` 仅承载随系统语言的启动器标签与胶囊初始文案。**1.10.0 起语言完全由本机决定**（不再跟随控制端 7507 推送，见下），决策顺序与三端统一：
+
+1. **用户手选**：SharedPreferences `robot_ui_lang` 中 `lang` 非空**且** `lang_manual=true`
+2. **设备语言自动检测**：`Locale.getDefault().toLanguageTag()` —— 主语言标签 `zh*` → 中文，其余（含 en 在内的所有其他语言）/取不到 → 英文
+3. **兜底英文**（**界面默认语言由中文改为英文**，1.10.0）
+
+- **自动检测结果不落盘**——每次启动重新检测，仅手选值持久化（`setLang()` 同时写 `lang` 与 `lang_manual=true`），故「设备是中文」与「用户改回英文」不会互相覆盖；`init(context)` 只在 `manual && (lang=="en"||"zh")` 时采用手选值。
+- `isManual(context)` 返回是否已被手选（供首启页/蓝牙对话框回显选中态）。
+- **手选入口两处**：首启界面（1.10.0 新增）与蓝牙对话框的「语言」行（中文 / English）。两处点击手选后均 `recreate()` 使全部文案即时生效。
+- **初始化顺序**：`PhoneI18n.init(this)` 必须早于 `buildContent()` 与首启界面渲染，否则界面会按默认语言渲染、手选语言当轮不生效（1.10.0 修复项）。
+- **不再跟随控制端**：`ConsoleBleClient` 已移除 7507(UiLang) 的订阅、初读与 `onLangReceived` 回调，`MainActivity` 中对应的语言跟随链路一并删除；服务端（master-app / win-app 宿主）仍照常推送，供旧版客户端使用。`BleConstants.CHAR_UI_LANG_UUID` 常量保留但本端不再读写。
+- 术语订正（1.10.0）：`机械度` 英文由 `Robotical` 改为项目规范用词 **`Robotic`**。
 
 ### MainActivity
 
@@ -75,13 +88,14 @@ slave-app/
 1. 全屏 EdgeToEdge 沉浸式显示，状态栏/导航栏透明，不设置 FLAG_KEEP_SCREEN_ON（按系统默认息屏时间）
 2. 代码动态构建全部 UI（顶栏胶囊、情绪面板、双列任务/语音列表）
 3. 管理 Console BLE 连接生命周期
-4. 提供 BLE 对话框（Dialog + BleDialogTheme 淡入/淡出动画，180ms）：扫描设备、扫码、断开（同时清除绑定）、MiMo API Key 与 ASR 云端开关（即手机端设置页）
+4. 提供 BLE 对话框（Dialog + BleDialogTheme 淡入/淡出动画，180ms）：扫描设备、扫码、断开（同时清除绑定）、MiMo API Key、ASR 云端开关与**界面语言行（中文/English，1.10.0 新增）**（即手机端设置页）
 5. 通过 `styleDialog()` 统一设置对话框背景（圆角+半透明边框）和窗口属性
 6. 监听 PhoneDataStore 变化并更新 UI
 7. 长按蓝牙按钮注入模拟测试数据
 8. **长按模式胶囊弹出模式菜单**（1.7.0）：4 项模式（各用模式色）+ 关闭，选中后经 `ConsoleBleClient.writeMode()` 反向推送到控制台；未连接时提示「未连接控制面板」
 9. **语音识别圆钮**（1.7.0）：右上角 `asrBtn` 单击开/关语音识别（常态保持、SharedPreferences 持久、前台恢复/后台停止），识别命中模式读音走与手动推送相同的链路
 10. **连接链路加固（1.8.0）**：新增 `connectToConsole(address, autoConnect)` 统一包装**所有**连接入口（对话框点设备、扫码两条路径），BLE 层异常只回退连接状态并 Toast「连接失败」；`startBleServices()` 的自动连接/自动扫描段同样 try/catch
+11. **首次启动设置界面**（1.10.0）：`firstRunContainer`（`activity_main.xml`，全屏 `#FF05100A`、`elevation=24dp`、初始 `gone`）覆盖主界面，内容由 `buildFirstRunView()` 代码构建；`showFirstRunIfNeeded()` 在 `onCreate` 末尾（语言初始化之后）判定，未完成则显示。详见下文「首次启动（First Run）」。
 
 关键 UI 成员：
 - `capsule: TextView` - 顶部模式显示胶囊（**长按弹模式菜单**）
@@ -92,6 +106,7 @@ slave-app/
 - `scrollView: ScrollView` - 下部滚动容器
 - `tasksContainer / voiceContainer: LinearLayout` - 任务/语音列表容器
 - `topFixedContainer: FrameLayout` - 固定在顶部不滚动的容器
+- `firstRunContainer: FrameLayout?` - 首启设置覆盖层宿主（1.10.0；完成后置 `GONE` 并清空子视图）
 
 关键数据处理：
 - `onTasksReceived`：解析任务 JSON 时，id 先尝试 `getLong` 再 `getString` 兼容数字/字符串类型；name 使用 `optString` 安全处理
@@ -105,8 +120,8 @@ slave-app/
 BLE GATT Client 单例，连接 Console 端：
 1. 扫描：`ScanFilter` 按服务 UUID 7500 过滤，回调同时接受“名称以 `RobotControl-` 开头”或“广告含服务 UUID 7500”的设备（兼容 master-app `RobotControl-Console` 与 win-app `RobotControl-Win`）
 2. 连接后请求 MTU=512，发现服务
-3. 订阅 7 个 Characteristic（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey/UiLang）的 Notification
-4. 连接成功后立即读取 Mode/Emotion/UiLang 当前值（READ_CHAR）；Voice 使用 READ_LONG_CHAR 读取历史
+3. 订阅 6 个 Characteristic（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey）的 Notification（**1.10.0 起不再订阅 UiLang(7507)**，见下）
+4. 连接成功后立即读取 Mode/Emotion 当前值（READ_CHAR）；Voice 使用 READ_LONG_CHAR 读取历史（**1.10.0 起不再初读 UiLang**）
 5. **Tasks 不执行 READ_LONG_CHAR**，完全依赖 BLE Notification 推送 + 3000ms 延迟 READ_CHAR 兜底
 6. 支持 GATT 操作队列（`currentGattAction` 追踪当前操作），避免并发操作
 7. 支持长读（Long Read）通过反射调用隐藏 API（仅用于 Voice）
@@ -124,7 +139,7 @@ var onEmotionReceived: ((obedience, shame, pleasure, mechanical: Int) -> Unit)?
 var onTasksReceived: ((tasksJson: String) -> Unit)?
 var onVoiceReceived: ((voiceJson: String) -> Unit)?
 var onVoiceHistoryReceived: ((historyJson: String) -> Unit)?
-var onLangReceived: ((lang: String) -> Unit)?   // 1.5.0 新增：UiLang(7507)，"zh"/"en"，0xFF 不回调
+// 1.10.0 移除：onLangReceived（原 1.5.0 新增的 7507(UiLang) 回调）——界面语言不再跟随控制端
 ```
 
 Voice 数据分发规则：
@@ -135,6 +150,7 @@ Voice 数据分发规则：
 **连接可靠性规则**：
 
 - 心跳兜底以服务端 Notification 为准；写入成功后 15s 内未收到服务端心跳则调用统一的断连恢复流程。
+- **7507(UiLang) 不再消费（1.10.0）**：`onCharacteristicChanged` 中已无该分支、连接时也不订阅/初读——语言只由本机 `PhoneI18n` 决定；服务端特征与推送保留（旧版客户端仍订阅），`BleConstants.CHAR_UI_LANG_UUID` 常量保留备查。
 - 恢复流程只允许 `userDisconnected=true` 阻止自动重连；否则同时执行限次重连和周期扫描。
 - 清理 GATT 时重置 `currentGattAction`，防止上一轮操作残留导致新连接的 GATT 队列不推进。
 - Activity 销毁先断开并清空 `ConsoleBleClient` 全部回调引用，避免旧 Activity 监听器在重建后重复触发。
@@ -328,6 +344,7 @@ matrix.postScale(scale, scale, centerX, centerY)
 - 使用 ZXing `MultiFormatReader`，仅识别 QR_CODE 格式
 - `ImageReader.OnImageAvailableListener` 中获取 YUV 帧，通过 `cropAndRotate` 按 `getRotation()` 角度旋转 YUV 数据后解码
 - 解码成功后通过 `setResult(RESULT_OK)` 返回，`finish()` 关闭
+- **提示文案全部走词典（1.10.0）**：五条原本硬编码的中文 Toast（无法打开相机 / 未找到相机 / 相机不支持 / 相机访问失败 / 无相机权限）改为 `PhoneI18n.t(...)`，英文模式下不再露中文
 
 #### 生命周期
 
@@ -433,13 +450,14 @@ FrameLayout (root, 全屏黑底)
    - 设备列表中显示的设备状态：正常（白色）、连接中（黄色）、连接失败（红色）
    - 点击设备项发起连接，连接超时 10s 后显示连接失败
    - 状态文字区分：`isActiveDisconnect()` 为 true 时显示"连接已手动断开"，否则显示"连接失败"
+   - **界面语言行（1.10.0）**：API Key 区下方「语言」标签 + 「中文 / English」两个按钮（选中态用模式绿 `#8FBC8F` 高亮），点击手选 → `PhoneI18n.setLang()` → 关闭对话框并 `recreate()` 使全部文案即时生效；回显选中态按 `PhoneI18n.getLang()`（无手选时即设备检测结果）
 
 3. **扫码连接**：
    - 启动 QrScanActivity 扫码
    - 解析 JSON 中的 mac 字段直接连接
 
 4. **数据接收**：
- - 连接成功后自动启用 7 个 Characteristic（含 Heartbeat/ApiKey/UiLang）的 Notification
+ - 连接成功后自动启用 6 个 Characteristic（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey）的 Notification（UiLang 自 1.10.0 起不订阅）
    - 立即读取 Mode/Emotion 当前值（READ_CHAR），Voice 使用 READ_LONG_CHAR
    - **Tasks 不主动读取**，完全依赖 master-app 的 BLE Notification 推送（1500ms + 3000ms 两次发送）
    - 3000ms 后执行 READ_CHAR 作为 Tasks 兜底
@@ -459,7 +477,7 @@ FrameLayout (root, 全屏黑底)
 
 ## 语音识别（MiMo ASR，1.7.0）
 
-新包 `com.robotcontrol.phone.speech`，仅 slave-app 具备；识别语言跟随 `PhoneI18n.getLang()`（BLE 7507 下发）——中文设置只识别中文、英文设置只识别英文。
+新包 `com.robotcontrol.phone.speech`，仅 slave-app 具备；识别语言跟随 `PhoneI18n.getLang()`（本机设备检测 + 用户手选；1.10.0 前曾为 BLE 7507 下发）——中文界面只识别中文、英文界面只识别英文。
 
 ### 圆钮与生命周期（MainActivity）
 
@@ -496,6 +514,22 @@ FrameLayout (root, 全屏黑底)
 1. 开关行：标签「识别引擎调用云端（MiMo ASR）」+ `Switch`（即时落库 `ApiKeyStore.setAsrCloudEnabled()`）；**框架 `Switch` 在 `Theme.Black` 下轨道/滑块尺寸塌缩不可见，故显式指定 `asr_switch_track.xml` / `asr_switch_thumb.xml`**（开=模式绿轨+白钮，关=深灰轨+灰钮，`showText=false`）。
 2. 副提示「关闭后仅使用本地离线识别」。
 3. 收费提示「Xiaomi MiMo TTS和ASR可能需要收费，请阅读官网相关文档。」（与控制端 www 同句，词条在 `PhoneI18n`）。
+4. **界面语言行（1.10.0）**：「语言」标签 + 中文 / English 两枚按钮（见「蓝牙对话框」条目说明）。
+
+---
+
+## 首次启动（First Run，1.10.0）
+
+首次打开 App（SharedPreferences `first_run_prefs` 中 `first_run_done` 未置位）时，主界面上直接覆盖一层原生首启设置界面，把此前只藏在蓝牙对话框里的两项关键设置前置：
+
+- **宿主与可见性**：`activity_main.xml` 末尾的 `firstRunContainer`（`FrameLayout`，`match_parent`，背景 `#FF05100A`，`elevation=24dp`，初始 `visibility=gone`）；`showFirstRunIfNeeded()` 在 `onCreate` 末尾调用（**排在 `PhoneI18n.init()` 之后**，否则会按默认语言渲染），未完成时 `addView(buildFirstRunView())` 并置 `VISIBLE`。
+- **界面内容**（`buildFirstRunView()`，代码构建，风格与主界面一致：黑底 + 模式绿标题 + 灰副文案）：
+  1. 标题 `Slave` + 副标题「首次启动设置」
+  2. **语言**：「中文 / English」两枚按钮（选中态模式绿高亮），默认按设备语言自动匹配（检测不到即英文），点击手选即 `PhoneI18n.setLang()` 并按新语言重建整个首启界面
+  3. **MiMo API Key（可选）**：密码型单行输入 + 说明「用于高质量机械语音合成，连接时自动同步到控制台」
+  4. **「识别引擎调用云端（MiMo ASR）」开关**（`ApiKeyStore.isAsrCloudEnabled()/setAsrCloudEnabled()`）+ 副提示
+- **按钮**：`开始使用`（非空 Key 时 `ApiKeyStore.saveApiKey()` 落库）与 `跳过，保持默认`，两者都调 `dismissFirstRun()`。
+- **完成标记**：`markFirstRunDone()` 写 SharedPreferences `first_run_prefs.first_run_done=true`；`dismissFirstRun()` 同时把容器置 `GONE` 并清空子视图，此后不再出现（实测重启不复现）。语言手选另存 `robot_ui_lang`（含 `lang_manual=true`），与首启完成标记相互独立。
 
 ---
 

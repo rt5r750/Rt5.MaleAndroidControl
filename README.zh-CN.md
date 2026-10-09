@@ -16,10 +16,32 @@
 
 > 本项目是虚构产品，**ASFR 向**：面向实体仿人男性机器人的本地私有控制链路。产品设定与文案含成人向内容，公开仓库仅供技术参考。
 
+## 各客户端与作用
+
+系统分为**控制端（Master）**与**接收端（Slave）**：控制端负责控制与状态分发，接收端负责接收展示，其中机器人端还可反向下发指令。
+
+| 客户端 | 应用名 | 运行环境 | 作用 |
+|---|---|---|---|
+| 控制台（控制端） | **MACS** | Android 手机/平板（12+）、Windows 10/11 | 完整控制台：模式切换、控制按钮、情绪滑杆、运行参数、终端与全部设置；对外广播蓝牙供其余端连接 |
+| 机器人端（接收端） | **Slave** | Android 手机（7.0+） | 随机器人携带：显示模式、情绪、任务与语音消息，并可反向推送模式或语音指令；图标为蓝色调以与 MACS 区分 |
+| 手表端 | 750接收端 | Wear OS | 腕上状态速览：情绪、任务、最近语音；自行保持 BLE 连接 |
+| 浏览器版 | — | 任意现代浏览器 | 同一套控制台的网页版：可一键缓存整站以实现秒开与离线，并带 App 拉起/下载引导；无蓝牙，适合查看或未安装 App 时使用 |
+
+命名说明：**控制台**在各平台都叫 MACS（Android 控制台 App 与 Windows 桌面端是同一套控制台），**机器人端手机 App** 叫 Slave。两者的 Android 包名与 BLE 设备名（`RobotControl-*`）均保持不变，升级与既有配对不受影响。
+
 ## 演示
 
 - **宣传片** —— <https://x.com/rt5_750/status/2107868637948440956>
-- **下载** —— [Releases](https://github.com/rt5r750/Rt5.MaleAndroidControl/releases)：控制台 APK（Android）、机器人端 APK、Windows 便携版（`.zip`）
+- **下载** —— [Releases](https://github.com/rt5r750/Rt5.MaleAndroidControl/releases)：`MACS-Android-*.apk`（控制台）、`Slave-Android-*.apk`（机器人端）、`MACS-Windows-*.zip`（Windows 便携版）
+
+## 使用说明书
+
+覆盖全部客户端与全部功能的完整说明（中英双语）：
+
+- [使用说明书（简体中文）](www/doc/manual/manual.zh-CN.md)
+- [User manual (English)](www/doc/manual/manual.en.md)
+
+同一份说明书已内置进控制台（HTML 版），可在 **信息面板 → 文件与链接 → App 使用说明书** 中打开，按界面语言显示对应版本。
 
 ## 界面
 
@@ -46,12 +68,12 @@
 | 目录 | 说明 | 技术栈 |
 |---|---|---|
 | `www/` | **三端共用的唯一前端主线**（控制台页面、样式、字体、词典、素材）；所有同步副本一律由它生成 | 原生 HTML/CSS/JS（Tailwind 已静态化，运行时零外链） |
-| `master-app/` | 控制台 App：WebView 壳 + BLE GATT Server + 外链处理 | Kotlin，compileSdk/targetSdk 34，minSdk 31 |
-| `slave-app/` | 机器人端 App：模式 / 情绪 / 任务 / 连接面板，本地语音识别按读音匹配四大模式 | Kotlin，minSdk 24 |
+| `master-app/` | **MACS** 控制台 App：WebView 壳 + BLE GATT Server + 外链处理 | Kotlin，compileSdk/targetSdk 34，minSdk 31 |
+| `slave-app/` | **Slave** 机器人端 App：模式 / 情绪 / 任务 / 连接面板，本地语音识别按读音匹配四大模式 | Kotlin，minSdk 24 |
 | `watch-app/` | WearOS 手表端：保活前台服务、模式切换震动、连接状态 | Kotlin，minSdk 31 |
-| `win-app/` | Windows 桌面端：Electron 主程序 + C# BLE 宿主 + 启动器窗口 + 闪屏入口 | Electron 43 + Node + .NET 8 |
+| `win-app/` | **MACS** Windows 桌面端：Electron 主程序 + C# BLE 宿主 + 启动器窗口 + 闪屏入口 | Electron 43 + Node + .NET 8 |
 | `design/` | 启动器 UI 设计稿与精灵图素材 | 原生 HTML/CSS/Canvas |
-| `tools/` | 构建辅助：`gen-mono-narrow.py`（英文窄体字体生成）、`web-build`（Tailwind 静态化 + 缓存清单） | Python / Node |
+| `tools/` | 构建辅助：`gen-mono-narrow.py`（英文窄体字体生成）、`web-build`（Tailwind 静态化 + 缓存清单）、`manual-build`（说明书 Markdown → 站内 HTML）、`i18n-check`（翻译覆盖检查） | Python / Node |
 | `docs/` | 开发文档群，入口 [`docs/reademe.md`](docs/reademe.md) | Markdown |
 
 ## 快速开始
@@ -65,7 +87,8 @@
 ```bash
 cd tools/web-build
 npm install
-npm run build        # 重新生成 www/css/tailwind.css 与 www/cache-manifest.json
+npm run build        # 依次重生成 tailwind.css、doc/manual/*.html、cache-manifest.json
+npm run check:i18n   # 翻译覆盖检查：界面文案无缺项、英文资料不含中文
 ```
 
 ### 控制台 / 机器人端 / 手表端
@@ -110,7 +133,7 @@ Rt5.MaleAndroidControl/
 │   ├── build/icon.ico                ✔（electron-builder 资源）
 │   └── huancun/                      ⚙ 运行期用户数据，从不发布
 ├── design/                           ✔ 启动器设计稿与素材
-├── tools/                            ✔ 构建辅助
+├── tools/                            ✔ 构建辅助（web-build / manual-build / i18n-check）
 └── docs/                             ✔ 开发文档群
 ```
 

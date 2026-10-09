@@ -1,12 +1,13 @@
-# master-app（控制台端）
+# master-app（控制台端 / MACS）
 
 ## 概述
 
 - **目录**：[master-app](../../master-app)
-- **包名**：`com.robotcontrol.console`
+- **显示名（1.10.0）**：**MACS**（`app_name`；master 侧统一口径——win-app 的 `productName` 与启动器标题同用 MACS，Gradle `rootProject.name` 亦改为 `MACS`）
+- **包名**：`com.robotcontrol.console`（1.10.0 刻意不改：改包名会让已装用户数据丢失且需卸载重装）
 - **技术栈**：Kotlin + WebView + HTML/JS/CSS 混合架构
 - **BLE 角色**：GATT Server（中心广播端）
-- **设备名**：`RobotControl-Console`
+- **设备名**：`RobotControl-Console`（协议冻结，1.10.0 未随显示名改动，扫描前缀仍为 `RobotControl-`）
 - **入口 HTML**：`app/src/main/assets/www/芮誊T系列仿人男性机器人控制台V1.1.html`（构建期由仓库根 `www/` 经 Gradle `syncWww` 同步，勿手改）
 
 ## 目录结构
@@ -34,7 +35,10 @@ master-app/
 │   │   │   │   ├── system_update_data.json  # 系统更新阶段/代码片段/内容
 │   │   │   │   ├── database_update_data.json # 数据库更新数据
 │   │   │   │   ├── boot_data.json           # 开机启动阶段数据
-│   │   │   │   └── robot_code.txt           # 代码窗口滚动文本
+│   │   │   │   ├── robot_code.txt           # 代码窗口滚动文本
+│   │   │   │   └── manual/                  # App 使用说明书（1.10.0）
+│   │   │   │       ├── manual.zh-CN.md / manual.en.md      # 单一源（GitHub 可直读）
+│   │   │   │       └── manual.zh-CN.html / manual.en.html  # 构建产物（应用内阅读用，随包入库）
 │   │   │   └── ...
 │   │   ├── res/
 │   │   │   ├── drawable/splash_icon.xml     # 透明drawable，系统SplashScreen图标
@@ -67,7 +71,9 @@ master-app/
 
 Manifest 要点（2026-09 架构优化）：`MainActivity` 设 `launchMode=singleTask`（浏览器经 `robotcontrol://console` 深链拉起时 intent 经 onNewIntent 送达现有实例，不堆叠多实例），并在 LAUNCHER 之外新增 VIEW+DEFAULT+BROWSABLE intent-filter（`scheme=robotcontrol, host=console`）——与 www 浏览器端拉起引导（`js/app-launch.js`）及 win-app 的同名协议注册配套；应用已在前台/后台时拉起仅聚焦现有实例，不改变任何运行逻辑。**1.6.0 起 `MainActivity` 补 `android:screenOrientation="portrait"` 竖屏锁定**（历史清单从未锁定，此前"无横屏"仅是窄屏宽度巧合）。
 
-**无登录/激活页平台保证（1.6.0）**：Android App 不存在登录界面与激活引导页，与窗口宽度解耦——`js/platform-bootstrap.js` 暴露 `__rcIsAndroidWebview`（`window.Android && !window.consoleAPI`，排除 win-app preload 的同名 `window.Android` 暴露），app-core 登录门控为 `innerWidth < 750 || __rcIsAndroidWebview`：Android WebView 任意宽度直接进主界面。历史版本门控为纯 `innerWidth < 750` 宽度判断，竖屏 CSS 宽 ≈411px 从未触发 ≥750 分支，属"宽度巧合"而非设计保证。
+**无登录页平台保证（1.6.0）**：Android App 不存在登录界面，与窗口宽度解耦——`js/platform-bootstrap.js` 暴露 `__rcIsAndroidWebview`（`window.Android && !window.consoleAPI`，排除 win-app preload 的同名 `window.Android` 暴露），app-core 登录门控为 `innerWidth < 750 || __rcIsAndroidWebview`：Android WebView 任意宽度直接进主界面。历史版本门控为纯 `innerWidth < 750` 宽度判断，竖屏 CSS 宽 ≈411px 从未触发 ≥750 分支，属"宽度巧合"而非设计保证。
+
+**激活页不再免除（1.10.0）**：Android WebView / 窄屏移动端此前连带免除 First Run 激活页，现改为**只免除登录页**——未激活（localStorage `robotActivated`）时先显示激活页，完成/跳过（`rc-firstrun-done`）后再 `initApp()` 进主界面。原生品牌 PV 与激活页的顺序无冲突：闪屏只在 `videoEnded && webReady` 后才 dismiss（见「闪屏页」），故 PV 播完时激活页必已就绪，不会出现先闪主界面或 PV 遮住激活页。完整 First Run 说明见下文「First Run（首次启动）与 App 使用说明书」。
 
 关键成员：
 - `webView: WebView` - WebView 实例
@@ -81,6 +87,22 @@ Manifest 要点（2026-09 架构优化）：`MainActivity` 设 `launchMode=singl
 - `networkExecutor: ExecutorService` - 后台线程池（2线程），用于 `mimoFetchAsync` 异步 HTTP 请求和闪屏视频缓存复制
 - `mimoFetchResults: ConcurrentHashMap<String, String>` - MiMo Fetch 异步响应存储（通知+拉取模式）
 - `ttsMediaPlayer: MediaPlayer?` - TTS 原生音频播放器（解决 WebView Blob URL 静默失败）
+
+### ConsoleI18n
+
+[ConsoleI18n.kt](../../master-app/app/src/main/java/com/robotcontrol/console/ConsoleI18n.kt)
+
+原生界面语言覆盖层（Toast / PDF 提示等原生文案），语言决策（1.10.0 重做）为三级：
+
+1. **用户手选**：SharedPreferences `robot_ui_lang` 中 `lang` 非空**且** `lang_manual=true` 时采用
+2. **设备语言自动检测**：`Locale.getDefault().toLanguageTag()` —— 主语言标签 `zh*` → 中文，其余（含 en 在内的所有其他语言）/取不到 → 英文
+3. **兜底英文**
+
+> **自动检测结果不落盘**——每次启动重新检测，只有手选才写盘（`setLang()` 同时写 `lang` 与 `lang_manual=true`），故「设备是中文」与「用户改回英文」不会互相覆盖；`init(context)` 只在 `manual && (lang=="en"||"zh")` 时用手选值，否则重新检测。
+> **界面默认语言由中文改为英文**（1.10.0，需求口径「所有端默认打开均为英文」）。
+> 中文源串一字不改：`t(中文)` 在 `lang != "en"` 时原样返回，仅在英文模式按 `DICT` 替换。
+> 手选入口是 www 设置页的语言切换：`js/i18n.js` 的 `saveLang()` 调 `Android.setUiLang(lang)` → `ConsoleI18n.setLang()`（见 JS Bridge 表）。
+> www 侧（本端 WebView 内加载的控制台页）的初始语言另有自己的三级链：手选 localStorage `robot_ui_lang` → 原生桥 `consoleAPI.bootLang`（仅 win-app 有；Android 无此桥，落到下一步）→ `navigator.languages/language` 检测 → 兜底 en；页内手选后经 `setUiLang` 同步到 `ConsoleI18n`，两端口径一致。
 
 ### RobotGattServer
 
@@ -107,7 +129,7 @@ fun sendMode(modeOrdinal: Int)
 fun sendEmotion(obedience: Int, shame: Int, pleasure: Int, mechanical: Int)
 fun sendTasks(tasksJson: String)
 fun sendVoice(voiceJson: String)
-fun sendUiLang(lang: String)       // 1.5.0 新增：UiLang(7507) 通知（0x00=zh/0x01=en），语言变化即推，订阅后自动补发
+fun sendUiLang(lang: String)       // 1.5.0 新增：UiLang(7507) 通知（0x00=zh/0x01=en），语言变化即推，订阅后自动补发；1.10.0 起 slave-app 不再消费该特征（界面语言本机决定），服务端保留照推，供旧版客户端使用
 fun sendDisconnectNotification()   // 发送 0xFF 心跳通知所有设备，停止心跳定时器
 fun setManualDisconnectReceived()  // 标记收到对端0xFF手动断开信号
 fun consumeManualDisconnect(): Boolean  // 消费并返回是否为手动断开，用于 onConnectionStateChanged 区分状态
@@ -127,7 +149,7 @@ var onModeReceived: ((modeOrdinal: Int) -> Unit)?  // 1.7.0 新增：客户端�
 - Tasks: 空
 - Voice: 空
 - Heartbeat: `[0x01]`（服务端心跳信号）
-- UiLang (7507，1.5.0 新增): `[0x00]` 默认中文，`setupGattService` 时按 `lastUiLang`（最近一次 `sendUiLang` 的值）写入初值
+- UiLang (7507，1.5.0 新增): `setupGattService` 时按 `lastUiLang` 写入初值（`0x00`=zh/`0x01`=en），`lastUiLang` 仅由 `sendUiLang()` 更新（默认 `zh`）——**1.10.0 起该特征只服务旧版客户端**，新 slave-app 不再读写（其界面语言由本机检测 + 手选决定）
 
 > **注意**：初始特征值仅在 GATT Server 启动时写入。HTML 页面加载后通过 `setInitialNaState()` 同步 mode=255 + emotion + tasks + voice-history 到 GATT 特征值，确保 Phone 端连接时能读到正确的初始数据。
 
@@ -196,7 +218,7 @@ SharedPreferences 存储已配对的 Phone 端 MAC 地址，启动时自动重�
 | `stopAudio()` | - | - | 停止当前原生音频播放，释放 MediaPlayer |
 | `getRotationVideoBgColor()` | - | `String` | 桥接兼容保留：固定返回 `"29,62,29"`（原视频边缘色提取已删除；前端已不再调用，`--bt-video-bg-rgb` 变量已移除） |
 | `btHasClientBond()` | - | `Boolean` | 查询是否已配对客户端设备（`BondStore.hasClientBond()`），页面加载时用于初始化连接记忆 |
-| `setUiLang(lang: String?)` | lang: String? | - | 同步界面语言（`zh`/`en`，www 设置页切换时调用）：写入 `ConsoleI18n`（SharedPreferences `robot_ui_lang`），原生 Toast/PDF 提示文案随动，并调用 `RobotGattServer.sendUiLang()` 经 7507(UiLang) 推给已连接的 phone（显示语言跟随发送端，1.5.0）；原生默认中文，`ConsoleI18n.t()` 按表替换，中文原文一字不改 |
+| `setUiLang(lang: String?)` | lang: String? | - | 同步界面语言（`zh`/`en`，www `js/i18n.js` 的 `saveLang()` 手选时调用）：写入 `ConsoleI18n`（SharedPreferences `robot_ui_lang`，同时置 `lang_manual=true`），原生 Toast/PDF 提示文案随动，并调用 `RobotGattServer.sendUiLang()` 经 7507(UiLang) 推给已连接的客户端；**1.10.0 起 7507 只服务旧版 slave-app**（新版语言本机决定，不再跟随发送端），服务端推送/补发行为不变；原生语言默认英文（1.10.0 起，无手选时按设备语言检测），`ConsoleI18n.t()` 按表替换，中文原文一字不改 |
 
 **onDataChanged type 参数说明**：
 - `"mode"`: json  mode ordinal 数字字符串（0-3, 255=NA），调用 `RobotGattServer.sendMode()`
@@ -580,7 +602,7 @@ App 启动时遮住 HTML 加载初期，播放品牌视频（`assets/www/pic/Rt5
 5. `MEDIA_INFO_VIDEO_RENDERING_START`——首帧渲染回调，设 `videoFirstFrameRendered=true`
 6. `onCompletion`——视频结束，设 `videoEnded=true`，调 `checkSplashDismiss()`
 7. `WebView.onPageFinished`——HTML 加载完成，设 `webReady=true`，调 `checkSplashDismiss()`
-8. `checkSplashDismiss()`——视频结束**且**WebView 就绪时才 `dismissSplashVideo()`；若视频先结束则停在最后一帧等待 WebView，若 WebView 先就绪则等待视频播放完成
+8. `checkSplashDismiss()`——视频结束**且**WebView 就绪时才 `dismissSplashVideo()`；若视频先结束则停在最后一帧等待 WebView，若 WebView 先就绪则等待视频播放完成。**该时序同时保证 First Run（1.10.0）：未激活时激活页在 WebView 侧已就绪，PV 播完揭开时先见激活页，而非主界面。**
 
 **Toast 抑制**：`showToastSafely()` 方法检查 `splashDismissed` 标志，闪屏期间（`splashDismissed==false`）抑制所有 Toast 弹出，避免遮挡品牌启动动画；闪屏结束后恢复正常。
 
@@ -593,6 +615,34 @@ App 启动时遮住 HTML 加载初期，播放品牌视频（`assets/www/pic/Rt5
 ### 关键陷阱：setKeepOnScreenCondition 导致闪屏失效
 
 **禁止使用** `splashScreen.setKeepOnScreenCondition { !videoFirstFrameRendered }`。Android 12+的系统SplashScreen是独立全屏窗口覆盖在Activity之上，保持显示时会遮挡Activity窗口，导致TextureView的SurfaceTexture无法及时创建（模拟器上约20秒，真机也可能延迟），造成：超长闪屏→视频不播放→超时dismiss→状态错乱白屏。正确做法是让SplashScreen在Activity首帧后自然dismiss，靠全链路黑色保障无缝衔接。
+
+---
+
+## First Run（首次启动）与 App 使用说明书（1.10.0）
+
+### `?firstrun=1` 模式（www，master-app 与 win-app 共用）
+
+控制台页支持 URL 参数 `?firstrun=1`（[app-core.js](../../www/js/app-core.js)）：只渲染激活卡片 `#activation-modal`，**不显示登录层、不进入主界面**，表单实现与「控制台内激活页」共用同一份（同一 DOM 与同一批设置项，无第二套实现）。
+
+- 页面就绪即通知宿主是否需要填表：`notifyFirstRunReady(needsForm)` → `consoleAPI.firstRunReady(needsForm)`（并派发 `rc-firstrun-ready` 事件）。已激活（localStorage `robotActivated=true`）时以 `needsForm=false` 收尾，宿主可直接关窗/进主界面不闪表单。
+- 完成或跳过激活后统一走 `completeActivation()`：派发 `rc-firstrun-done`、调 `consoleAPI.firstRunDone()`，并经 `window.rcSetFirstRunDone(fn)`（宿主注入的回调）回调宿主。
+- `hideActivationModal()` 只在「确有登录界面（宽度 ≥750 且非 `__rcIsAndroidWebview`）**且非 firstrun 模式**」时回落登录层——窄屏浏览器与 Android WebView 本无登录界面，不得被露出。
+
+### master-app（Android）侧路径
+
+- **未激活即先显示激活页**（不再豁免）：`DOMContentLoaded` 的「窄屏 / Android WebView」分支在隐藏登录层后判定 `isRobotActivated()`——未激活则绑定激活页按钮、监听 `rc-firstrun-done`（完成后才 `initApp()` + `switchMobilePage('command')` + 记日志）并 `return`；已激活直接 `initApp()`。
+- **与品牌 PV 的顺序**：无需额外协调——闪屏只在 `videoEnded && webReady` 时 dismiss，所以 PV 播完时激活页已渲染，用户先看到 First Run；激活完成前不会进入主界面。
+- **登录页免除保证不变**：本平台仍无登录界面（见上文「无登录页平台保证」）。
+
+### 信息面板：App 使用说明书条目
+
+信息面板文件列表（`www/js/app-core.js` 的 `FILES`）新增 `id: 'app-manual'`、**`type: 'doc'`** 条目：
+
+- **不进「信息面板链接」可配置列表**（与 `type:'action'` 同口径，`getEffectiveInfoLinks()` 过滤 `action` 与 `doc`），名称与路径固定由代码给出。
+- 名称随界面语言：`App 使用说明书` / `App User Manual`；路径按语言取 `./doc/manual/manual.zh-CN.html` 或 `./doc/manual/manual.en.html`（见 `manualPath()` / `manualName()`）。
+- **始终在应用内阅读**：`openManualViewer()` 走 `openPdfViewer({inApp:true})` 复用 PDF 阅读器弹窗的 iframe 与「新窗口」按钮——Android 也不外抛给系统（`file.inApp` 为真时跳过 `Android.openPdfFile`），保证任何端都读得到对应语言版本。
+- 语言切换（`rc-lang-changed`）时重跑 `renderFileList()` 刷新条目名与语言版本。
+- 单一源为 `www/doc/manual/manual.en.md` / `manual.zh-CN.md`，构建产物 `manual.{en,zh-CN}.html` 随包入库（详见仓库根文档「使用说明书」）。
 
 ---
 

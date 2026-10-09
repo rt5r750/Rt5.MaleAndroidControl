@@ -32,9 +32,9 @@
 
 **型号信息（1.6.0 起，www `robotModelInfo`）**：`{fullName, shortName, company, master, ttsReading}` 五键全量对象，`''` = 用默认值；与模式名同规则**整组**判定（五项整体等于中文默认组或英文默认组才随界面语言，任意一项自定义全组按原文，留空恢复该默认值）。`ttsReading` 为**全型号语音读法**（默认 zh「踢三一七五零型仿人男性机器人」/ en「T-Three-One-seven-five-0 Male Android」，照 EN 翻译标签念），`normalizeForSpeech()` 按当前界面语言把句中完整型号与简称统一替换为该读法。驱动界面各处型号/公司/主人显示（`data-model-info` + 模板句）、信息参数锁定两行、win-app 启动器标题。
 
-**信息面板链接（1.6.0 起，www `robotInfoLinks`）**：4 条可配置链接 `{id, name, url}` 数组（PDF 条目文件名含公司名固定不可配）；`null` = 全默认（默认名随界面语言），任意名称自定义则按原文显示（保护集豁免）。作用于信息面板文件列表（与内置 FILES 按 id 合并生效）。
+**信息面板链接（1.6.0 起，www `robotInfoLinks`）**：4 条可配置链接 `{id, name, url}` 数组（PDF 条目文件名含公司名固定不可配）；`null` = 全默认（默认名随界面语言），任意名称自定义则按原文显示（保护集豁免）。作用于信息面板文件列表（与内置 FILES 按 id 合并生效）。**1.10.0 起 `type:'doc'`（App 使用说明书）与 `type:'action'`（获取 App）是固定条目，不进本列表**——`getEffectiveInfoLinks()` 过滤二者，其名称/路径由 `manualName()` / `manualPath()` 按界面语言直出。
 
-**激活标记（1.6.0 起，www `robotActivated`）**：浏览器/win 首次启动激活引导页完成标记（`true` 后不再出现）；Android WebView 因无登录/激活页（平台级保证）不涉及。
+**激活标记（1.6.0 起，www `robotActivated`）**：首次启动激活引导页完成标记（`true` 后不再出现）。**1.10.0 起覆盖到全部客户端**：Android WebView / 窄屏不再免除激活页（未激活时先显示激活页、完成/跳过后再进主界面），win-app 首次启动以独立激活窗口（`?firstrun=1`）承载并回写本标记；登录页的免除保证仍只与登录界面有关，两回事。
 
 ---
 
@@ -47,7 +47,24 @@
 | `0xFF` | 未设置（接收方保持当前语言） |
 
 - 传输：CHAR_UI_LANG (7507)，1 字节 `READ|NOTIFY`，单向 Server→Client
-- 消费方：slave-app（`PhoneI18n.setLang` + recreate，无手动语言设置、完全跟随发送端）；watch-app 不订阅（保持中文）
+- 消费方（v1.10.0 起）：**新版 slave-app 不再消费**——其界面语言由本机决定（用户手选 → 设备语言检测 → 英文），已删除订阅/初读/`onLangReceived` 链路；特征与服务端推送/补发行为均保留，旧版 slave-app 仍可跟随。watch-app 不订阅（保持中文）
+- **手机端语言的来源已改**：v1.10.0 前 slave-app 的语言来自控制端 7507 推送（`PhoneI18n` 由 `onLangReceived` 写入）；现该来源已移除，两端各自独立决策（master-app `ConsoleI18n` / slave-app `PhoneI18n` 同用一套三级顺序，见下）
+
+### 语言决策顺序（三端统一，v1.10.0 起）
+
+1. **用户手选**（持久化值 + 手选标记）
+2. **设备语言自动检测**：主语言标签 `zh*` → 中文；其余（含 en 在内的所有其他语言）/检测不到 → 英文
+3. **兜底英文**（**默认语言由中文改为英文**）
+
+| 端 | 检测依据 | 手选存储 |
+|---|---|---|
+| www 控制台 | `navigator.languages` / `navigator.language` | localStorage `robot_ui_lang`（仅 `setLang` 写入）；win-app 另由原生桥 `consoleAPI.bootLang` 覆盖 |
+| master-app | `Locale.getDefault().toLanguageTag()` | SharedPreferences `robot_ui_lang`：`lang` + `lang_manual` |
+| slave-app | 同 master-app | SharedPreferences `robot_ui_lang`：`lang` + `lang_manual` |
+| win-app | `app.getLocale()`（未就绪时 Intl / 环境变量兜底） | `huancun/i18n-lang.json`：`{lang, manual}` |
+
+- **自动检测结果一律不落盘**：每次启动重新检测，仅手选值持久化（Android 端手选时同写 `lang_manual=true`），故「设备是中文」与「用户改回英文」不会互相覆盖。
+- **win-app 旧文件兼容**：v1.10.0 前的 `i18n-lang.json` 只有 `lang` 而无 `manual`，而旧实现仅在用户手动切换时写入，故一律视为手选（`manual` 缺省即 `true`）。
 
 ---
 
@@ -197,3 +214,18 @@ interface DataStoreListener {
 
 - Phone：[PhoneDataStore.kt](../slave-app/app/src/main/java/com/robotcontrol/phone/data/PhoneDataStore.kt) — 使用 SharedPreferences 持久化 mode + emotion（20 天过期），tasks 不持久化
 - Watch：[WatchDataStore.kt](../watch-app/app/src/main/java/com/robotcontrol/watch/data/WatchDataStore.kt) — 1.5.0 起新增 `connectionState` 状态与 `onBleStateChanged(state)`（默认空实现）监听方法：BLE 连接状态由保活前台服务 `BleKeepAliveService` 驱动写入，Activity 仅观察渲染
+
+---
+
+## 首启与语言：存储键（v1.10.0）
+
+| 端 | 存储 | 键 / 文件 | 内容 | 说明 |
+|---|---|---|---|---|
+| 各端 | localStorage / SharedPreferences / 文件 | `robot_ui_lang` | `zh` / `en` | **仅用户手选时写入**；自动检测结果不落盘 |
+| master-app / slave-app | SharedPreferences（同文件 `robot_ui_lang`） | `lang_manual` | `boolean` | 1.10.0 新增：手选标记。仅 `manual=true` 时 `lang` 才被采信，否则按 `Locale.getDefault()` 重新检测 |
+| win-app | 文件 | `huancun/i18n-lang.json` | `{lang, manual}` | 1.10.0 前只有 `lang`（视为手选）；检测结果不写入本文件 |
+| win-app | 文件 | `huancun/activated.json` | `{done:true, at:ISO}` | 1.10.0 新增：**First Run 完成标记**。无文件（或 `done` 非真）视为未激活 → 启动时先弹激活窗口（`?firstrun=1`）；IPC `firstrun-done` 或页面 `firstRunReady(false)` 时写入 |
+| slave-app | SharedPreferences | `first_run_prefs` → `first_run_done` | `boolean` | 1.10.0 新增：**首启设置界面完成标记**。「开始使用」与「跳过，保持默认」都置位，此后不再显示 |
+| www（控制台内 / `?firstrun=1`） | localStorage | `robotActivated` | `boolean` | 既有键（1.6.0），1.10.0 起 Android WebView 同样生效；win-app 以它 + 宿主 `activated.json` 双条件判定 |
+
+- **标记互相独立**：语言手选（`robot_ui_lang` / `lang_manual`）与首启完成标记互不耦合；win-app 的 `activated.json`（宿主侧）与 localStorage `robotActivated`（页面侧）保持同源同值（控制台内完成激活也回写宿主标记）。
