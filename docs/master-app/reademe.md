@@ -622,11 +622,21 @@ App 启动时遮住 HTML 加载初期，播放品牌视频（`assets/www/pic/Rt5
 
 ### `?firstrun=1` 模式（www，master-app 与 win-app 共用）
 
-控制台页支持 URL 参数 `?firstrun=1`（[app-core.js](../../www/js/app-core.js)）：只渲染激活卡片 `#activation-modal`，**不显示登录层、不进入主界面**，表单实现与「控制台内激活页」共用同一份（同一 DOM 与同一批设置项，无第二套实现）。
+控制台页支持 URL 参数 `?firstrun=1`（[app-core.js](../../www/js/app-core.js)）：只渲染激活页 `#activation-modal`，**不显示登录层、不进入主界面**，表单实现与「控制台内激活页」共用同一份（同一 DOM 与同一批设置项，无第二套实现）。
 
 - 页面就绪即通知宿主是否需要填表：`notifyFirstRunReady(needsForm)` → `consoleAPI.firstRunReady(needsForm)`（并派发 `rc-firstrun-ready` 事件）。已激活（localStorage `robotActivated=true`）时以 `needsForm=false` 收尾，宿主可直接关窗/进主界面不闪表单。
 - 完成或跳过激活后统一走 `completeActivation()`：派发 `rc-firstrun-done`、调 `consoleAPI.firstRunDone()`，并经 `window.rcSetFirstRunDone(fn)`（宿主注入的回调）回调宿主。
 - `hideActivationModal()` 只在「确有登录界面（宽度 ≥750 且非 `__rcIsAndroidWebview`）**且非 firstrun 模式**」时回落登录层——窄屏浏览器与 Android WebView 本无登录界面，不得被露出。
+
+### 激活页版面（同版本二轮重构）
+
+十组表单的 DOM 与存储键不变，只改版面（[app.css](../../www/css/app.css) `#activation-modal` 段 + [app-core.js](../../www/js/app-core.js) 行渲染）：
+
+- **移动端（≤749px）整屏平铺**：容器去卡片（无边框/圆角/阴影/磨砂、背景透明、满宽满高），顶距 `calc(var(--safe-area-top) + 0.85rem)`、底栏 `padding-bottom` 加 `--safe-area-bottom`，避开系统状态栏（安全区变量由 `android.js` 在 DOMContentLoaded 写入，早于激活页显示）。底栏仍 sticky。
+- **右上角语言胶囊删除**：第 1 组「语言」即入口，重复按钮在移动端会压住值输入框（原缺陷）。
+- **三列行改两行堆叠**（信息参数、信息面板链接）：第一行「行号 + 标签输入」，第二行值输入整行；行号列由 6.5rem 固定宽收到 2.4rem。长内容用自适应高度 `textarea`（`autoGrowActivationTextareas`：rAF + 显式 `document.fonts.load` + `fonts.ready` 三次重测，高度补 `border` 差值；窗口 resize 与 `rc-lang-changed` 时重算）。中文「仿真性唤起条件」整句、英文 `Simulated Genital Number` 等长标签在任意宽度下完整可见。
+- **桌面（≥1100px）两列**：容器 `min(1180px, 92vw)`、高 `calc(100vh - 64px)`，`.activation-grid` 用 `column-count:2`（阅读顺序仍 1→10），标题区压缩为单行（图标 + 标题 + 副标题）。
+- 容器声明 `flex: 0 0 auto`：`.login-modal` 是 flex 容器，不禁收缩会被按内容压缩宽度。
 
 ### master-app（Android）侧路径
 
@@ -636,10 +646,11 @@ App 启动时遮住 HTML 加载初期，播放品牌视频（`assets/www/pic/Rt5
 
 ### 信息面板：App 使用说明书条目
 
-信息面板文件列表（`www/js/app-core.js` 的 `FILES`）新增 `id: 'app-manual'`、**`type: 'doc'`** 条目：
+信息面板文件列表（`www/js/app-core.js` 的 `FILES`）新增 `id: 'app-manual'`、**`type: 'doc'`** 条目，**列在数组首位（同版本二轮调整）**：
 
 - **不进「信息面板链接」可配置列表**（与 `type:'action'` 同口径，`getEffectiveInfoLinks()` 过滤 `action` 与 `doc`），名称与路径固定由代码给出。
 - 名称随界面语言：`App 使用说明书` / `App User Manual`；路径按语言取 `./doc/manual/manual.zh-CN.html` 或 `./doc/manual/manual.en.html`（见 `manualPath()` / `manualName()`）。
+- **与 PDF 说明书并列**：桌面宽度下两条目同占一行（各 1 格，`.file-list` 是两列 grid——PDF 原先带 `file-item-full` 独占整行，本轮去掉该 class）；≤768px grid 降为单列，各自整行。
 - **始终在应用内阅读**：`openManualViewer()` 走 `openPdfViewer({inApp:true})` 复用 PDF 阅读器弹窗的 iframe 与「新窗口」按钮——Android 也不外抛给系统（`file.inApp` 为真时跳过 `Android.openPdfFile`），保证任何端都读得到对应语言版本。
 - 语言切换（`rc-lang-changed`）时重跑 `renderFileList()` 刷新条目名与语言版本。
 - 单一源为 `www/doc/manual/manual.en.md` / `manual.zh-CN.md`，构建产物 `manual.{en,zh-CN}.html` 随包入库（详见仓库根文档「使用说明书」）。
