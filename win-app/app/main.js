@@ -202,17 +202,19 @@ function createFirstRunWindow() {
     }
   });
 
-  // 页面就绪后再显示，避免先出现空白窗口；控制台页会通知 rc-firstrun-done 收尾
-  firstRunWindow.once('ready-to-show', () => {
-    if (firstRunWindow && !firstRunWindow.isDestroyed()) firstRunWindow.show();
-  });
-
   // 用户直接关闭激活窗口 = 跳过 First Run（不写标记，控制台内激活页仍是兜底）→ 进启动器。
   // 完成激活走 finishFirstRunAndOpenLauncher（先 destroy，closed 时 launcher 已存在，不重复建）。
   firstRunWindow.once('closed', () => {
     firstRunWindow = null;
     if (!launcherWindow || launcherWindow.isDestroyed()) createLauncherWindow();
   });
+
+  // 窗口保持隐藏直到页面判定是否需要填表：已激活用户（如从旧版本升级、或标记丢失）
+  // 由 firstRunReady(false) 直接收尾，不闪出激活窗口。兜底 3s 防止信号异常时窗口不出现。
+  const firstRunShowFallback = setTimeout(() => {
+    if (firstRunWindow && !firstRunWindow.isDestroyed() && !firstRunWindow.isVisible()) firstRunWindow.show();
+  }, 3000);
+  firstRunWindow.once('closed', () => clearTimeout(firstRunShowFallback));
 
   const FR_PAGE = 'www/' + encodeURIComponent('芮誊T系列仿人男性机器人控制台V1.1.html') + '?firstrun=1';
   firstRunWindow.loadURL(`${APP_SCHEME}://${APP_HOST}/${FR_PAGE}`);
@@ -714,8 +716,11 @@ function registerIpc() {
     if (firstRunWindow && !firstRunWindow.isDestroyed()) finishFirstRunAndOpenLauncher();
     else markFirstRunDone();
   });
-  ipcMain.on('firstrun-ready', () => {
-    if (firstRunWindow && !firstRunWindow.isDestroyed() && !firstRunWindow.isVisible()) firstRunWindow.show();
+  ipcMain.on('firstrun-ready', (_event, needsForm) => {
+    if (!firstRunWindow || firstRunWindow.isDestroyed()) return;
+    // 无需填表（已激活）：不显示窗口，直接走完成路径（写标记 → 回启动器），避免闪窗
+    if (needsForm === false) { finishFirstRunAndOpenLauncher(); return; }
+    if (!firstRunWindow.isVisible()) firstRunWindow.show();
   });
 
   // 型号信息（v1.6.0）：www 控制台保存/启动时推送生效值（zh 源串四键），

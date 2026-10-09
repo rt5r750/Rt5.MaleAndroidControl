@@ -1664,11 +1664,13 @@
                 if (frActivation) frActivation.style.display = 'none';
                 bindActivationButtons();
                 if (isRobotActivated()) {
-                    notifyFirstRunReady();
+                    // 已激活（如控制台内已完成、或宿主标记丢失的既存用户）：
+                    // ready(needsForm=false) 让宿主直接收尾，不闪出激活窗口
+                    notifyFirstRunReady(false);
                     setTimeout(function () { notifyFirstRunDone(); if (typeof _firstRunDone === 'function') _firstRunDone(); }, 60);
                 } else {
                     showActivationModal();
-                    notifyFirstRunReady();
+                    notifyFirstRunReady(true);   // 需要填表：宿主此时才显示窗口
                 }
                 return;
             }
@@ -5918,10 +5920,10 @@
 
         /** 供宿主注入 firstrun 完成回调（win-app 经 executeJavaScript 注入）。 */
         window.rcSetFirstRunDone = function (fn) { _firstRunDone = fn; };
-        /** firstrun 模式下通知宿主已就绪（宿主据此决定窗口显隐）。 */
-        function notifyFirstRunReady() {
-            try { window.dispatchEvent(new CustomEvent('rc-firstrun-ready')); } catch (e) { /* ignore */ }
-            try { if (window.consoleAPI && window.consoleAPI.firstRunReady) window.consoleAPI.firstRunReady(); } catch (e) { /* ignore */ }
+        /** firstrun 模式下通知宿主已就绪；needsForm=false 表示无需填表（已激活）。 */
+        function notifyFirstRunReady(needsForm) {
+            try { window.dispatchEvent(new CustomEvent('rc-firstrun-ready', { detail: { needsForm: needsForm !== false } })); } catch (e) { /* ignore */ }
+            try { if (window.consoleAPI && window.consoleAPI.firstRunReady) window.consoleAPI.firstRunReady(needsForm !== false); } catch (e) { /* ignore */ }
         }
         /** 激活完成后统一收尾：firstrun 模式回调宿主，否则回落登录页。 */
         function finishFirstRun() {

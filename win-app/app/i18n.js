@@ -50,7 +50,13 @@ function readStore() {
     const p = STORE_FILE();
     if (fs.existsSync(p)) {
       const j = JSON.parse(fs.readFileSync(p, 'utf8'));
-      if (j && (j.lang === 'en' || j.lang === 'zh') && j.manual === true) return j.lang;
+      if (j && (j.lang === 'en' || j.lang === 'zh')) {
+        // v1.10.0 之前的状态文件只有 lang、无 manual 字段——当时的实现仅在用户
+        // 手动切换时才写入，因此旧文件一律视为"手选"，避免升级后把用户的显式
+        // 选择改回设备语言。新写入恒带 manual:true。
+        const manual = j.manual === undefined ? true : j.manual === true;
+        if (manual) return j.lang;
+      }
     }
   } catch (e) { /* ignore */ }
   return null;
