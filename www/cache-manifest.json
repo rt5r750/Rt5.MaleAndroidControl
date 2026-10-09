@@ -1,7 +1,7 @@
 {
-  "version": "3bb69c0ca302",
-  "generatedAt": "2026-10-09T13:37:35.649Z",
-  "totalSize": 15584193,
+  "version": "1c277cc213d9",
+  "generatedAt": "2026-10-09T14:55:10.897Z",
+  "totalSize": 16189147,
   "files": [
     {
       "path": "MimoTTSClient.js",
@@ -260,8 +260,8 @@
     },
     {
       "path": "pic/right.webp",
-      "size": 236430,
-      "hash": "f0bd2c19c68e"
+      "size": 841384,
+      "hash": "f4970b0f8c43"
     },
     {
       "path": "sprites/rotation-color-sprite.png",

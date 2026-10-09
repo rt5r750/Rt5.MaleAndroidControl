@@ -4,7 +4,7 @@
 
 # Rt5 · Male Android Control
 
-**ASFR-oriented, offline control software** for a physical **T31-750 male android** — one shared web front end plus a console app, a robot-side phone app, a Wear OS watch app and a Windows desktop build, linked over a custom BLE GATT protocol **on a local link** (no cloud dependency except the optional speech engine).
+**ASFR-oriented, in-person control suite** — an objectification-cosplay prop rather than a real machine. One shared web front end plus a console app, a robot-side phone app, a Wear OS watch app and a Windows desktop build, linked over a custom BLE GATT protocol **on a local link** (no cloud dependency except the optional speech engine).
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
@@ -14,7 +14,7 @@
 
 </div>
 
-> A fictional product, **ASFR-oriented**: a private, local control link for a physical male android. The setting and copy contain adult-oriented content; published for technical reference only.
+> A fictional product, **ASFR-oriented**: a private, in-person control link for android objectification/materialisation cosplay — a prop for play, not a real machine. The setting and copy contain adult-oriented content; published for technical reference only.
 
 ## The clients and what each one does
 

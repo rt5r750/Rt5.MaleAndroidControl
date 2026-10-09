@@ -310,7 +310,7 @@ HTML 页面中的 BLE 连接弹窗（`#bt-modal`）通过左上角按钮打开�
 - 设置段预览：设置弹窗「灵动岛模拟效果」分组新增 `预览灵动岛效果` 按钮（`#preview-island-btn`），点击调用 `showDynamicIsland()` 直接预览灵动岛动画，便于未连接设备时检查样式。
 - 电量默认设置：设置弹窗「运行参数设置」剩余电量新增 `#battery-auto` 勾选（默认开启，存于 `robotRuntimeParams.batteryAuto`）；开启时电量按时间自动计算（凌晨1点0%、早7点100%，1-7点充电线性升至100%，7点至次日1点放电降至0%），手动百分比/充电输入隐藏；关闭时恢复手动输入。`updateCurrentTime()` 每秒调用 `refreshAutoBattery()` 刷新，变化时触发 `showChargingIsland()`（开始充电灵动岛动画）。
 - 状态栏右上角顺序为电池、网络、机器人模式、蓝牙、信息、设置；图标统一零内边距等高盒子（flex gap 1.625rem，间距一致），圆形图标 16×16，电池为 macOS 菜单栏式横长造型（20×11：外壳 16.5×9.5 细边 1.4 + 端子极耳），纵向居中与圆形图标视觉平衡。电池非充电显示电量条（宽度随电量 0-12.8 线性变化）、低电量（<20%）变红、充电时变绿且电量条让位、居中闪电（Bootstrap bolt 0.6 缩放）；由 `updateStatusBarBattery()` 驱动。
-- 默认机器人图片：`www/pic/right.webp` 为三栏"机器人视图2"与设置恢复默认共用的内骨骼默认图（1280×3189，已更换为新版骨架渲染图）；`left.webp` 对应机器人视图1。
+- 默认机器人图片：`www/pic/right.webp` 为三栏"机器人视图2"与设置恢复默认共用的内骨骼默认图（841×1870，镀铬内骨骼 + 红眼的新版渲染图；显示处 `object-fit: contain`，宽高比与旧图不同不影响布局）；`left.webp` 对应机器人视图1（`www/js/app-core.js` 的 `DEFAULT_IMAGES` 与 HTML 的 `data-src` 两处引用同一路径，换图只需替换该文件）。
 - 充电灵动岛：复用 `#dynamic-island` 容器，`showDynamicIsland('charging')` 加 `di-charging` 模式（隐藏机器人区，显示闪电+`正在充电 xx%`，卡片高度 96px），设置弹窗新增 `#preview-charging-island-btn`（预览充电灵动岛）可模拟。
 - 灵动岛动画流程：圆点（cam-anim 420ms）→ 药丸（pulse 320ms）→ 内容无背景放大非线性旋转（pop 360ms，scale 1.45/rotate -13°，`transform-origin: center`）→ 非线性回正（settle 440ms）→ 底框/跑马灯/文字（visible）；`di-pulse` 阶段 `.di-robot-wrap` 高度固定 136px，避免放大时中心上移；连接/充电文字均直接叠在卡片上（`.di-text-bar` 无独立色块），设置按钮为「预览连接灵动岛」「预览充电灵动岛」。
 
