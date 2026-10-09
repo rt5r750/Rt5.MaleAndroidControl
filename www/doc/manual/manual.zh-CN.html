@@ -147,7 +147,8 @@
 <li>露出主界面，该界面不再出现。</li>
 </ol>
 <h2>2.5 激活表单</h2>
-<p>控制台的激活界面是一页可滚动的表单，共十组。任何字段留空即保持默认。</p>
+<p>控制台的激活界面共十组，一页完成。任何字段留空即保持默认。</p>
+<p>版面随屏幕宽度自适应：手机上为整屏平铺（无卡片边框，顶部避开系统状态栏）；桌面宽屏下容器加宽、十组按两列排布，信息密度更高。<strong>第 1 组「语言」本身就是语言入口</strong>，页面右上角没有另外的切换按钮。</p>
 <div class="tbl-wrap"><table>
 <thead><tr><th>#</th><th>分组</th><th>字段</th></tr></thead>
 <tbody>
@@ -162,7 +163,7 @@
 <tr><td>9</td><td><strong>运行参数设置</strong></td><td>剩余仿真精液、剩余电量、剩余存储</td></tr>
 <tr><td>10</td><td><strong>控制按钮文本设置</strong></td><td>按钮文案；1–10 号固定，11 号及以后可编辑</td></tr>
 </tbody></table></div>
-<p>底部两个按钮结束流程：</p>
+<p>底部两个按钮吸底常驻结束流程：</p>
 <ul>
 <li><strong>开始使用</strong> — 校验填写内容（两次密码一致、链接以 <code>http://</code> 或 <code>https://</code> 开头、精液当前量不大于总量、电量 0–100、存储量在范围内）并保存。</li>
 </ul>
@@ -188,7 +189,7 @@
 <div class="tbl-wrap"><table>
 <thead><tr><th>客户端</th><th>切换位置</th></tr></thead>
 <tbody>
-<tr><td>Master 控制台</td><td>登录页与激活页右上角的 <code>ZH</code> / <code>EN</code>；进入后为<strong>设置 → 语言</strong></td></tr>
+<tr><td>Master 控制台</td><td>登录页右上角的 <code>ZH</code> / <code>EN</code>；激活页用第 1 组「语言」；进入控制台后为<strong>设置 → 语言</strong></td></tr>
 <tr><td>Master Windows 启动器</td><td>设置 → <strong>界面语言</strong></td></tr>
 <tr><td>Slave</td><td>蓝牙对话框的<strong>语言</strong>行；或首启界面</td></tr>
 </tbody></table></div>
@@ -365,16 +366,16 @@
 <h2>7. 信息面板</h2>
 <p>点 <strong>?</strong> 按钮打开信息面板，分两块。</p>
 <p><strong>关于</strong> —— 设备型号与制造公司（均跟随你设置的型号信息）、机器人系统名、底层版本、与服务器的通讯状态。</p>
-<p><strong>文件与链接</strong> —— 文档列表。每条都有「新窗口」按钮：</p>
+<p><strong>文件与链接</strong> —— 文档列表。<strong>「App 使用说明书」排在第一</strong>，在桌面宽度下与 PDF 使用说明书并列成一行（各占半行）；手机宽度下单列显示，各自整行。每条都有「新窗口」按钮：</p>
 <div class="tbl-wrap"><table>
 <thead><tr><th>条目</th><th>打开方式</th></tr></thead>
 <tbody>
+<tr><td><strong>App 使用说明书</strong></td><td>本说明书，按控制台当前语言显示对应版本</td></tr>
 <tr><td>T系列仿人男性机器人使用说明书（PDF）</td><td>内置 PDF 阅读器；浏览器不支持内嵌预览时提供兜底链接</td></tr>
 <tr><td>T31-750的演示合集</td><td>Telegram</td></tr>
 <tr><td>T31-750的公众号</td><td>Telegram</td></tr>
 <tr><td>T31-750的社交账号</td><td>X</td></tr>
 <tr><td>芮誊智能虚构公司机器人日志</td><td>Pixiv</td></tr>
-<tr><td><strong>App 使用说明书</strong></td><td>本说明书，按控制台当前语言显示对应版本</td></tr>
 <tr><td>获取 App（打开 / 下载）</td><td>浏览器 App 拉起引导</td></tr>
 </tbody></table></div>
 <p>链接名称与地址可在设置中编辑。有两个条目固定不可改名：PDF 保持固定文件名，App 说明书随界面语言显示。</p>

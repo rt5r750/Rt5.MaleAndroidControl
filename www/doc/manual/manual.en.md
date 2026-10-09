@@ -71,7 +71,9 @@ On later launches the activation window stays away and the launcher opens direct
 
 ## 2.5 The activation form
 
-The console's activation screen is one scrollable page with ten numbered groups. Leave any field empty to keep its default.
+The console's activation screen holds ten numbered groups on one page. Leave any field empty to keep its default.
+
+The layout adapts to the screen: on a phone it is a flat full-screen list (no card frame, clear of the system status bar); on a wide desktop the container widens and the ten groups flow into two columns for higher density. **Group 1 (Language) is itself the language entry** — there is no extra switcher at the top right.
 
 | # | Group | Fields |
 |---|---|---|
@@ -86,7 +88,7 @@ The console's activation screen is one scrollable page with ten numbered groups.
 | 9 | **Runtime Parameters Settings** | Remaining artificial semen, battery, storage |
 | 10 | **Control Button Text Settings** | Button captions; buttons 1–10 are fixed, 11 and up are editable |
 
-Two buttons close the screen:
+Two buttons stay pinned at the bottom and close the screen:
 
 - **Get Started** — validates the entries (passwords match, links start with `http://` or `https://`, liquid litres ≤ total, battery 0–100, storage within range) and saves them.
 - **Skip, Keep Defaults** — saves nothing except the fact that setup is complete.
@@ -111,7 +113,7 @@ Automatic detection is re-evaluated on every launch and is never written to stor
 
 | Client | Where to switch |
 |---|---|
-| Master console | `ZH` / `EN` at the top right of the login and activation screens; **Settings → Language** afterwards |
+| Master console | `ZH` / `EN` at the top right of the login screen; on the activation screen use group 1; **Settings → Language** afterwards |
 | Master Windows launcher | Settings → **Interface Language** |
 | Slave | Bluetooth dialog → the language row; or the first-run screen |
 
@@ -330,16 +332,16 @@ The **?** button opens the information panel in two blocks.
 
 **About** — Device Model and Manufacturer (both following your model information), the android's Android System name, the Base Version, and the Communication status with the server.
 
-**Files & Links** — the document list. Each row has an open-in-new-window button:
+**Files & Links** — the document list. **The App User Manual comes first** and, at desktop widths, sits side by side with the PDF manual (each taking half a row); on phone widths the list is a single column and every entry takes a full row. Each row has an open-in-new-window button:
 
 | Entry | Opens |
 |---|---|
+| **App User Manual** | This manual, in whichever language the console is currently using |
 | T-series male android user manual (PDF) | The built-in PDF viewer, with fallback links if your browser cannot display PDFs inline |
 | T31-750 Demo Collection | Telegram |
 | T31-750 Official Account | Telegram |
 | T31-750 Social Accounts | X |
 | Rt5 A.I. Fictional Liability Company Android Log | Pixiv |
-| **App User Manual** | This manual, in whichever language the console is currently using |
 | Get the app (open / download) | The browser app-launch guide |
 
 Link names and addresses are editable in Settings. Two entries are fixed and cannot be renamed: the PDF keeps its filename, and the app manual follows the interface language.

@@ -82,6 +82,16 @@
         // 信息列表（驱动信息板块渲染：含PDF文件与外部链接）
         const FILES = [
             {
+                /* App 使用说明书（v1.10.0）：中英双版本，按当前界面语言取对应 HTML 在应用内阅读。
+                   type:'doc' 与 action 一样不进「信息面板链接」可配置列表（名称为固定文档名）。
+                   列表首位（同版本内调整）：与 PDF 在桌面宽度并列成一行，移动端各自整行。 */
+                id: 'app-manual',
+                name: 'App 使用说明书',
+                type: 'doc',
+                iconPath: './pic/links/doc.svg',
+                meta: 'Markdown'
+            },
+            {
                 id: 'manual-2025-0101',
                 name: 'T系列仿人男性机器人使用说明书',
                 version: 'Ver.20250101',
@@ -123,15 +133,6 @@
                 url: 'https://www.pixiv.net/novel/series/16088814',
                 iconPath: './pic/links/log.svg',
                 meta: 'Pixiv'
-            },
-            {
-                /* App 使用说明书（v1.10.0）：中英双版本，按当前界面语言取对应 HTML 在应用内阅读。
-                   type:'doc' 与 action 一样不进「信息面板链接」可配置列表（名称为固定文档名）。 */
-                id: 'app-manual',
-                name: 'App 使用说明书',
-                type: 'doc',
-                iconPath: './pic/links/doc.svg',
-                meta: 'Markdown'
             },
             {
                 id: 'get-app',
@@ -6480,7 +6481,10 @@
                     const isAction = file.type === 'action';
                     const isDoc = file.type === 'doc';
                     const item = document.createElement('div');
-                    item.className = isPdf ? 'file-item file-item-full' : 'file-item';
+                    /* 说明书（v1.10.0）与 PDF 在桌面宽度并列各占半行：.file-list 是两列 grid，
+                       两者都占 1 列；≤768px 时 grid 降为单列，各自整行。
+                       PDF 原先独占整行（file-item-full），本轮按需求与说明书并列。 */
+                    item.className = 'file-item';
                     const metaText = isPdf
                         ? `${file.version} · ${file.type.toUpperCase()} · ${file.sizeText}`
                         : isAction

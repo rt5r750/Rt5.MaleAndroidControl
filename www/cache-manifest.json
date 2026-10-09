@@ -1,7 +1,7 @@
 {
-  "version": "b0b72a6deeab",
-  "generatedAt": "2026-10-09T13:28:19.296Z",
-  "totalSize": 15581664,
+  "version": "d9f76640329d",
+  "generatedAt": "2026-10-09T13:32:40.539Z",
+  "totalSize": 15583184,
   "files": [
     {
       "path": "MimoTTSClient.js",
@@ -85,13 +85,13 @@
     },
     {
       "path": "doc/manual/manual.en.html",
-      "size": 37804,
-      "hash": "1b40fb25cb61"
+      "size": 38405,
+      "hash": "8bac6418e28c"
     },
     {
       "path": "doc/manual/manual.zh-CN.html",
-      "size": 34193,
-      "hash": "ccd6cdd82c70"
+      "size": 34706,
+      "hash": "4815c7a95ea0"
     },
     {
       "path": "doc/robot_code.txt",
@@ -125,8 +125,8 @@
     },
     {
       "path": "js/app-core.js",
-      "size": 405870,
-      "hash": "05631d87c08b"
+      "size": 406276,
+      "hash": "220a661c4c34"
     },
     {
       "path": "js/app-desktop.js",

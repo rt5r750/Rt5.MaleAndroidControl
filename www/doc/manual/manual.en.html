@@ -147,7 +147,8 @@
 <li>The main interface is revealed and the screen does not return.</li>
 </ol>
 <h2>2.5 The activation form</h2>
-<p>The console's activation screen is one scrollable page with ten numbered groups. Leave any field empty to keep its default.</p>
+<p>The console's activation screen holds ten numbered groups on one page. Leave any field empty to keep its default.</p>
+<p>The layout adapts to the screen: on a phone it is a flat full-screen list (no card frame, clear of the system status bar); on a wide desktop the container widens and the ten groups flow into two columns for higher density. <strong>Group 1 (Language) is itself the language entry</strong> — there is no extra switcher at the top right.</p>
 <div class="tbl-wrap"><table>
 <thead><tr><th>#</th><th>Group</th><th>Fields</th></tr></thead>
 <tbody>
@@ -162,7 +163,7 @@
 <tr><td>9</td><td><strong>Runtime Parameters Settings</strong></td><td>Remaining artificial semen, battery, storage</td></tr>
 <tr><td>10</td><td><strong>Control Button Text Settings</strong></td><td>Button captions; buttons 1–10 are fixed, 11 and up are editable</td></tr>
 </tbody></table></div>
-<p>Two buttons close the screen:</p>
+<p>Two buttons stay pinned at the bottom and close the screen:</p>
 <ul>
 <li><strong>Get Started</strong> — validates the entries (passwords match, links start with <code>http://</code> or <code>https://</code>, liquid litres ≤ total, battery 0–100, storage within range) and saves them.</li>
 </ul>
@@ -188,7 +189,7 @@
 <div class="tbl-wrap"><table>
 <thead><tr><th>Client</th><th>Where to switch</th></tr></thead>
 <tbody>
-<tr><td>Master console</td><td><code>ZH</code> / <code>EN</code> at the top right of the login and activation screens; <strong>Settings → Language</strong> afterwards</td></tr>
+<tr><td>Master console</td><td><code>ZH</code> / <code>EN</code> at the top right of the login screen; on the activation screen use group 1; <strong>Settings → Language</strong> afterwards</td></tr>
 <tr><td>Master Windows launcher</td><td>Settings → <strong>Interface Language</strong></td></tr>
 <tr><td>Slave</td><td>Bluetooth dialog → the language row; or the first-run screen</td></tr>
 </tbody></table></div>
@@ -365,16 +366,16 @@
 <h2>7. Information panel</h2>
 <p>The <strong>?</strong> button opens the information panel in two blocks.</p>
 <p><strong>About</strong> — Device Model and Manufacturer (both following your model information), the android's Android System name, the Base Version, and the Communication status with the server.</p>
-<p><strong>Files &amp; Links</strong> — the document list. Each row has an open-in-new-window button:</p>
+<p><strong>Files &amp; Links</strong> — the document list. <strong>The App User Manual comes first</strong> and, at desktop widths, sits side by side with the PDF manual (each taking half a row); on phone widths the list is a single column and every entry takes a full row. Each row has an open-in-new-window button:</p>
 <div class="tbl-wrap"><table>
 <thead><tr><th>Entry</th><th>Opens</th></tr></thead>
 <tbody>
+<tr><td><strong>App User Manual</strong></td><td>This manual, in whichever language the console is currently using</td></tr>
 <tr><td>T-series male android user manual (PDF)</td><td>The built-in PDF viewer, with fallback links if your browser cannot display PDFs inline</td></tr>
 <tr><td>T31-750 Demo Collection</td><td>Telegram</td></tr>
 <tr><td>T31-750 Official Account</td><td>Telegram</td></tr>
 <tr><td>T31-750 Social Accounts</td><td>X</td></tr>
 <tr><td>Rt5 A.I. Fictional Liability Company Android Log</td><td>Pixiv</td></tr>
-<tr><td><strong>App User Manual</strong></td><td>This manual, in whichever language the console is currently using</td></tr>
 <tr><td>Get the app (open / download)</td><td>The browser app-launch guide</td></tr>
 </tbody></table></div>
 <p>Link names and addresses are editable in Settings. Two entries are fixed and cannot be renamed: the PDF keeps its filename, and the app manual follows the interface language.</p>
