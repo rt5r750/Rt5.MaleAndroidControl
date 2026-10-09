@@ -1,7 +1,7 @@
 {
-  "version": "d9f76640329d",
-  "generatedAt": "2026-10-09T13:32:40.539Z",
-  "totalSize": 15583184,
+  "version": "3bb69c0ca302",
+  "generatedAt": "2026-10-09T13:37:35.649Z",
+  "totalSize": 15584193,
   "files": [
     {
       "path": "MimoTTSClient.js",
@@ -30,8 +30,8 @@
     },
     {
       "path": "css/app.css",
-      "size": 196279,
-      "hash": "b2df8d8a6e5b"
+      "size": 197288,
+      "hash": "36b17d49ba2c"
     },
     {
       "path": "css/desktop-chrome.css",
