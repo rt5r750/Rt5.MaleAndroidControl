@@ -5,7 +5,7 @@
 win-app 是 master-app 控制台的 Windows 桌面版（Electron + HTML/JS + C# BLE 宿主），运行于 Windows：
 
 - 由前置启动器与控制台两部分组成：
-  - 启动器（`design/launcher.html`）：标题 **MACS**（`productName` 亦为 MACS），Acrylic 毛玻璃 USB 前置页，检测/匹配 USB 存储设备后点击进入控制台；
+  - 启动器（`design/launcher.html`）：标题 **Master**（`productName` 亦为 Master），Acrylic 毛玻璃 USB 前置页，检测/匹配 USB 存储设备后点击进入控制台；
   - 控制台：1440×900 宽屏三栏布局，前端资源为仓库根 `www/` 的构建期同步镜像（`scripts/sync-www.ps1`，npm prestart/predist 自动执行，gitignore；`css/win.css`/`js/win.js` 仅本端按需加载；同步排除 `.mimosa` 等工具状态目录，拷贝后递归清扫目标内同名目录兜底）。
 - 蓝牙外设：`ble-host/`（C#，Windows GATT Service Provider）广播 `RobotControl-Win`，slave-app 可扫描或扫码连接，复用 7500 服务协议（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey/UiLang、分片 0x7E、心跳 5s、0xFF 手动断开、API Key 同步）；`UiLang(7507)`（1.5.0 新增）`READ|NOTIFY` 1 字节（0x00=zh/0x01=en），主进程在宿主就绪与每次广播启动时补推当前语言、`i18n-set-lang` 即时推送——**1.10.0 起 slave-app 不再消费该特征**（其界面语言改为本机检测 + 手选），服务端推送与订阅补发保持不变，旧版客户端仍可用。**Mode(7501) 1.7.0 起 `Read|Write|Notify` 可写**：phone 反向推送模式经 C# 宿主 `ModeReceived` 事件 → IPC `{"type":"mode","ordinal":n}` → 主进程 `bleBridge.on('mode')` → `window.__rcOnRemoteMode(ordinal)` 切换并高亮对应模式按钮，桌面端同时弹 macOS 风格通知「推送成功」（详见 BLE 协议文档「反向模式推送」）。
 - 启动流程：双击 `RobotControl-Console.exe`（无窗口 C# 启动器，拉起 Electron 后立即退出）→ 启动器直接出现（冷启动实测约 0.5s、常规 1.0~1.3s 窗口可见，已移除前序可见加载界面）→（点击设备按钮，立即弹出“正在进入控制台”遮罩）→ 主窗口首帧渲染完成后显示轻量闪屏页（Rt5Open_169.mp4 横屏视频、带声音、无文字，点击/任意按键立即跳过）→ 登录页（进入登录页**无**加载动画）→ 登录成功后登录卡片下半部收缩、原位换入系统加载动画（属于登录界面，约 1.2s，进度起步即挂载主界面）→ 三栏控制台。

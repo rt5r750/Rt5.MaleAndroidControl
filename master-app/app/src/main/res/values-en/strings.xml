@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 品牌名 MACS 中英同值：values/ 与 values-en/ 保持一致，仅作系统语言的资源回退 -->
+<!-- 品牌名 Master 中英同值：values/ 与 values-en/ 保持一致，仅作系统语言的资源回退 -->
 <resources>
-    <string name="app_name">MACS</string>
+    <string name="app_name">Master</string>
 </resources>

@@ -22,17 +22,17 @@
 
 | 客户端 | 应用名 | 运行环境 | 作用 |
 |---|---|---|---|
-| 控制台（控制端） | **MACS** | Android 手机/平板（12+）、Windows 10/11 | 完整控制台：模式切换、控制按钮、情绪滑杆、运行参数、终端与全部设置；对外广播蓝牙供其余端连接 |
-| 机器人端（接收端） | **Slave** | Android 手机（7.0+） | 随机器人携带：显示模式、情绪、任务与语音消息，并可反向推送模式或语音指令；图标为蓝色调以与 MACS 区分 |
+| 控制台（控制端） | **Master** | Android 手机/平板（12+）、Windows 10/11 | 完整控制台：模式切换、控制按钮、情绪滑杆、运行参数、终端与全部设置；对外广播蓝牙供其余端连接 |
+| 机器人端（接收端） | **Slave** | Android 手机（7.0+） | 随机器人携带：显示模式、情绪、任务与语音消息，并可反向推送模式或语音指令；图标为蓝色调以与 Master 区分 |
 | 手表端 | 750接收端 | Wear OS | 腕上状态速览：情绪、任务、最近语音；自行保持 BLE 连接 |
 | 浏览器版 | — | 任意现代浏览器 | 同一套控制台的网页版：可一键缓存整站以实现秒开与离线，并带 App 拉起/下载引导；无蓝牙，适合查看或未安装 App 时使用 |
 
-命名说明：**控制台**在各平台都叫 MACS（Android 控制台 App 与 Windows 桌面端是同一套控制台），**机器人端手机 App** 叫 Slave。两者的 Android 包名与 BLE 设备名（`RobotControl-*`）均保持不变，升级与既有配对不受影响。
+命名说明：**控制台**在各平台都叫 Master（Android 控制台 App 与 Windows 桌面端是同一套控制台），**机器人端手机 App** 叫 Slave。两者的 Android 包名与 BLE 设备名（`RobotControl-*`）均保持不变，升级与既有配对不受影响。
 
 ## 演示
 
 - **宣传片** —— <https://x.com/rt5_750/status/2107868637948440956>
-- **下载** —— [Releases](https://github.com/rt5r750/Rt5.MaleAndroidControl/releases)：`MACS-Android-*.apk`（控制台）、`Slave-Android-*.apk`（机器人端）、`MACS-Windows-*.zip`（Windows 便携版）
+- **下载** —— [Releases](https://github.com/rt5r750/Rt5.MaleAndroidControl/releases)：`Master-Android-*.apk`（控制台）、`Slave-Android-*.apk`（机器人端）、`Master-Windows-*.zip`（Windows 便携版）
 
 ## 使用说明书
 
@@ -68,10 +68,10 @@
 | 目录 | 说明 | 技术栈 |
 |---|---|---|
 | `www/` | **三端共用的唯一前端主线**（控制台页面、样式、字体、词典、素材）；所有同步副本一律由它生成 | 原生 HTML/CSS/JS（Tailwind 已静态化，运行时零外链） |
-| `master-app/` | **MACS** 控制台 App：WebView 壳 + BLE GATT Server + 外链处理 | Kotlin，compileSdk/targetSdk 34，minSdk 31 |
+| `master-app/` | **Master** 控制台 App：WebView 壳 + BLE GATT Server + 外链处理 | Kotlin，compileSdk/targetSdk 34，minSdk 31 |
 | `slave-app/` | **Slave** 机器人端 App：模式 / 情绪 / 任务 / 连接面板，本地语音识别按读音匹配四大模式 | Kotlin，minSdk 24 |
 | `watch-app/` | WearOS 手表端：保活前台服务、模式切换震动、连接状态 | Kotlin，minSdk 31 |
-| `win-app/` | **MACS** Windows 桌面端：Electron 主程序 + C# BLE 宿主 + 启动器窗口 + 闪屏入口 | Electron 43 + Node + .NET 8 |
+| `win-app/` | **Master** Windows 桌面端：Electron 主程序 + C# BLE 宿主 + 启动器窗口 + 闪屏入口 | Electron 43 + Node + .NET 8 |
 | `design/` | 启动器 UI 设计稿与精灵图素材 | 原生 HTML/CSS/Canvas |
 | `tools/` | 构建辅助：`gen-mono-narrow.py`（英文窄体字体生成）、`web-build`（Tailwind 静态化 + 缓存清单）、`manual-build`（说明书 Markdown → 站内 HTML）、`i18n-check`（翻译覆盖检查） | Python / Node |
 | `docs/` | 开发文档群，入口 [`docs/reademe.md`](docs/reademe.md) | Markdown |

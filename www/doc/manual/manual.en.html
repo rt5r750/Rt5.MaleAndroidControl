@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MACS · User Manual</title>
+<title>Master · User Manual</title>
 <style>
   /* Palette matches the console (dark green). Font stack follows the project rule
      (MiSans for Chinese, JetBrains Mono for digits/latin). This page may be opened
@@ -66,11 +66,11 @@
 <body>
 <div class="wrap">
   <div class="bar">
-    <span class="bar-title">MACS · User Manual</span>
+    <span class="bar-title">Master · User Manual</span>
     <a href="manual.zh-CN.html">简体中文</a>
   </div>
-<h1>MACS · User Manual</h1>
-<p>MACS (Male Android Control System) is the control console for the T31-750 male android. This manual covers every client in the package: the <strong>MACS</strong> console app on Android and Windows, the <strong>Slave</strong> app that runs on the android's own phone, and the Wear OS watch app. It also covers the browser edition and the pairing methods that link them.</p>
+<h1>Master · User Manual</h1>
+<p>Master is the control console of the T31-750 male android (the Male Android Control system). This manual covers every client in the package: the <strong>Master</strong> console app on Android and Windows, the <strong>Slave</strong> app that runs on the android's own phone, and the Wear OS watch app. It also covers the browser edition and the pairing methods that link them.</p>
 <blockquote>The product is fictional. Many readouts in the console — CPU/GPU/NPU load, remaining artificial semen, storage, system version, self-check and update output — are part of the staged presentation rather than live telemetry. Wording in this manual follows the English interface; where the interface itself shows a fixed term, that term is used verbatim.</blockquote>
 <h2>Contents</h2>
 <div class="tbl-wrap"><table>
@@ -93,19 +93,19 @@
 <div class="tbl-wrap"><table>
 <thead><tr><th>Client</th><th>Where it runs</th><th>App name</th><th>Role</th></tr></thead>
 <tbody>
-<tr><td>Master console</td><td>Android phone/tablet (Android 12+)</td><td><strong>MACS</strong></td><td>Full control console; advertises Bluetooth so clients can connect</td></tr>
-<tr><td>Master console</td><td>Windows 10/11 desktop</td><td><strong>MACS</strong></td><td>Same console with a desktop launcher and USB entry</td></tr>
+<tr><td>Master console</td><td>Android phone/tablet (Android 12+)</td><td><strong>Master</strong></td><td>Full control console; advertises Bluetooth so clients can connect</td></tr>
+<tr><td>Master console</td><td>Windows 10/11 desktop</td><td><strong>Master</strong></td><td>Same console with a desktop launcher and USB entry</td></tr>
 <tr><td>Slave</td><td>Android phone (Android 7.0+)</td><td><strong>Slave</strong></td><td>Carried by the android: shows mode, emotion, tasks and voice messages; can push mode and voice commands back</td></tr>
 <tr><td>Watch</td><td>Wear OS</td><td>750 Receiver</td><td>Compact status display worn on the wrist. This client still ships its original Chinese label and is outside the language scope of this release</td></tr>
 <tr><td>Browser edition</td><td>Any modern browser</td><td>—</td><td>The same console served over the web, with optional full offline caching</td></tr>
 </tbody></table></div>
 <p>The <strong>Master</strong> distributes state; the <strong>Slave</strong> and <strong>Watch</strong> receive it. The Slave can also send the selected mode back to the Master, either by hand (long-press the mode capsule) or by voice.</p>
-<p><strong>Which do I need?</strong> For control alone, the MACS console is enough. To read the android's state on a separate phone, add the Slave. The watch is optional.</p>
+<p><strong>Which do I need?</strong> For control alone, the Master console is enough. To read the android's state on a separate phone, add the Slave. The watch is optional.</p>
 <hr>
 <h2>2. Installation and first launch</h2>
 <h2>2.1 First run in one sentence</h2>
 <p>Every client now opens in <strong>English on first launch</strong>, matches the device language automatically when it can, and walks you through a one-time setup before the main interface appears. Nothing is compulsory — each setup screen has a <strong>Skip and keep defaults</strong> option.</p>
-<h2>2.2 MACS on Android</h2>
+<h2>2.2 Master on Android</h2>
 <ol>
 <li>Install the APK and open it. A brand film plays once.</li>
 </ol>
@@ -119,7 +119,7 @@
 <li>The console opens. The setup screen does not appear again.</li>
 </ol>
 <blockquote>The film plays to the end before the setup screen appears. Tapping the screen skips the film early.</blockquote>
-<h2>2.3 MACS on Windows</h2>
+<h2>2.3 Master on Windows</h2>
 <ol>
 <li>Unpack the release archive somewhere you can write to, then run <code>RobotControl-Console.exe</code>.</li>
 </ol>
@@ -188,8 +188,8 @@
 <div class="tbl-wrap"><table>
 <thead><tr><th>Client</th><th>Where to switch</th></tr></thead>
 <tbody>
-<tr><td>MACS console</td><td><code>ZH</code> / <code>EN</code> at the top right of the login and activation screens; <strong>Settings → Language</strong> afterwards</td></tr>
-<tr><td>MACS Windows launcher</td><td>Settings → <strong>Interface Language</strong></td></tr>
+<tr><td>Master console</td><td><code>ZH</code> / <code>EN</code> at the top right of the login and activation screens; <strong>Settings → Language</strong> afterwards</td></tr>
+<tr><td>Master Windows launcher</td><td>Settings → <strong>Interface Language</strong></td></tr>
 <tr><td>Slave</td><td>Bluetooth dialog → the language row; or the first-run screen</td></tr>
 </tbody></table></div>
 <p>The switch takes effect immediately and survives restarts. On the Slave it rebuilds the screen so every label updates at once.</p>
@@ -235,7 +235,7 @@
 </ol>
 <p>Removing the device stops the charging indication; reconnecting restores it. <strong>Test mode</strong> (the <code>TEST MODE</code> button, or the F2 key) simulates a successful connection so you can open the console without hardware; it applies only to the current run of the app.</p>
 <h2>4.4 Launching the app from a browser</h2>
-<p>The web edition offers <code>robotcontrol://console</code>, which opens the installed MACS console. The browser guide and <strong>Settings → Launch App</strong> both use it. If the app is not installed the browser detects that the page is still visible after roughly two seconds and highlights the download link instead.</p>
+<p>The web edition offers <code>robotcontrol://console</code>, which opens the installed Master console. The browser guide and <strong>Settings → Launch App</strong> both use it. If the app is not installed the browser detects that the page is still visible after roughly two seconds and highlights the download link instead.</p>
 <hr>
 <h2>5. The console</h2>
 <p>The console adapts to the screen. On a wide desktop it shows three columns; on a phone it shows a single column with pages you switch between.</p>

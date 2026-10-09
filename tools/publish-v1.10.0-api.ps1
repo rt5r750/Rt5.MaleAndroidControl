@@ -31,34 +31,73 @@ try {
     }
     Write-Host ('   已取得凭据（用户 {0}）' -f (($credRaw | Where-Object { $_ -like 'username=*' }) -replace '^username=', ''))
 
-    # ---- 2. 创建 Release（正文用 notes 文件，UTF-8 无 BOM）----
-    Write-Host '== 2/4 创建 Release =='
+    # ---- 2. 创建或更新 Release（正文用 notes 文件，UTF-8 无 BOM）----
+    # Release 已存在时走幂等分支：PATCH 标题/正文（按 release id，/tags/ 接口返回 404）、素材先删同名再传
     $body = Get-Content -LiteralPath $NotesPath -Raw -Encoding UTF8
-    $payloadFile = Join-Path $TmpDir 'release-create.json'
-    $obj = [ordered]@{
-        tag_name         = $Tag
-        name             = 'v1.10.0 — Language auto-detection, unified first-run flow, client rename (MACS / Slave)'
-        body             = $body
-        draft            = $false
-        prerelease       = $false
+    $ReleaseTitle = 'v1.10.0 — Language auto-detection, unified first-run flow, client rename (Master / Slave)'
+    $existing = $null
+    try {
+        $existing = Invoke-RestMethod -Method Get -Uri "$Api/releases/tags/$Tag" -Headers $headers -Proxy $Proxy
+    } catch {
+        if ($_.Exception.Response.StatusCode.value__ -ne 404) { throw }
     }
-    $json = $obj | ConvertTo-Json -Depth 4
-    [System.IO.File]::WriteAllText($payloadFile, $json, (New-Object System.Text.UTF8Encoding($false)))
 
-    $resp = Invoke-RestMethod -Method Post -Uri "$Api/releases" -Headers $headers `
-        -ContentType 'application/json; charset=utf-8' -InFile $payloadFile -Proxy $Proxy
-    $releaseId = $resp.id
-    $uploadUrl = $resp.upload_url -replace '\{.*$', ''
-    Write-Host ("   Release #{0} 已创建" -f $releaseId)
+    if ($existing) {
+        Write-Host ("== 2/4 Release {0} 已存在（#{1}），更新标题与正文 ==" -f $Tag, $existing.id)
+        $releaseId = $existing.id
+        $uploadUrl = $existing.upload_url -replace '\{.*$', ''
+        $payloadFile = Join-Path $TmpDir 'release-patch.json'
+        $obj = [ordered]@{
+            name = $ReleaseTitle
+            body = $body
+        }
+        $json = $obj | ConvertTo-Json -Depth 4
+        [System.IO.File]::WriteAllText($payloadFile, $json, (New-Object System.Text.UTF8Encoding($false)))
+        Invoke-RestMethod -Method Patch -Uri "$Api/releases/$releaseId" -Headers $headers `
+            -ContentType 'application/json; charset=utf-8' -InFile $payloadFile -Proxy $Proxy | Out-Null
+        Write-Host '   标题与正文已更新'
+    } else {
+        Write-Host '== 2/4 创建 Release =='
+        $payloadFile = Join-Path $TmpDir 'release-create.json'
+        $obj = [ordered]@{
+            tag_name         = $Tag
+            name             = $ReleaseTitle
+            body             = $body
+            draft            = $false
+            prerelease       = $false
+        }
+        $json = $obj | ConvertTo-Json -Depth 4
+        [System.IO.File]::WriteAllText($payloadFile, $json, (New-Object System.Text.UTF8Encoding($false)))
 
-    # ---- 3. 上传三件素材 ----
+        $resp = Invoke-RestMethod -Method Post -Uri "$Api/releases" -Headers $headers `
+            -ContentType 'application/json; charset=utf-8' -InFile $payloadFile -Proxy $Proxy
+        $releaseId = $resp.id
+        $uploadUrl = $resp.upload_url -replace '\{.*$', ''
+        Write-Host ("   Release #{0} 已创建" -f $releaseId)
+    }
+
+    # ---- 3. 上传三件素材（同名先删后传，幂等）----
     Write-Host '== 3/4 上传素材 =='
     $files = @(
-        (Join-Path $Stage 'MACS-Android-v1.10.0.apk'),
+        (Join-Path $Stage 'Master-Android-v1.10.0.apk'),
         (Join-Path $Stage 'Slave-Android-v1.10.0.apk'),
+        (Join-Path $Stage 'Master-Windows-v1.10.0.zip')
+    )
+    # 旧名素材（改名前上传的）也一并删除，避免 Release 页并存两套
+    $files += @(
+        (Join-Path $Stage 'MACS-Android-v1.10.0.apk'),
         (Join-Path $Stage 'MACS-Windows-v1.10.0.zip')
     )
+    $existingAssets = Invoke-RestMethod -Method Get -Uri "$Api/releases/$releaseId/assets?per_page=100" -Headers $headers -Proxy $Proxy
     foreach ($f in $files) {
+        $name = Split-Path -Leaf $f
+        $old = $existingAssets | Where-Object { $_.name -eq $name }
+        if ($old) {
+            Invoke-RestMethod -Method Delete -Uri "$Api/releases/assets/$($old.id)" -Headers $headers -Proxy $Proxy | Out-Null
+            Write-Host ("   已删除同名旧素材 {0}" -f $name)
+        }
+    }
+    foreach ($f in $files[0..2]) {
         if (-not (Test-Path -LiteralPath $f)) { throw "缺少素材：$f" }
         $name = Split-Path -Leaf $f
         $sizeMb = [math]::Round((Get-Item -LiteralPath $f).Length / 1MB, 1)

@@ -1,9 +1,9 @@
-# master-app（控制台端 / MACS）
+# master-app（控制台端 / Master）
 
 ## 概述
 
 - **目录**：[master-app](../../master-app)
-- **显示名（1.10.0）**：**MACS**（`app_name`；master 侧统一口径——win-app 的 `productName` 与启动器标题同用 MACS，Gradle `rootProject.name` 亦改为 `MACS`）
+- **显示名（1.10.0）**：**Master**（`app_name`；master 侧统一口径——win-app 的 `productName` 与启动器标题同用 Master，Gradle `rootProject.name` 亦为 `Master`；与 Slave 对仗）
 - **包名**：`com.robotcontrol.console`（1.10.0 刻意不改：改包名会让已装用户数据丢失且需卸载重装）
 - **技术栈**：Kotlin + WebView + HTML/JS/CSS 混合架构
 - **BLE 角色**：GATT Server（中心广播端）

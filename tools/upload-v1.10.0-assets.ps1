@@ -28,9 +28,9 @@ try {
         "https://api.github.com/repos/$Repo/releases/$id/assets"
 
     $files = @(
-        'MACS-Android-v1.10.0.apk',
+        'Master-Android-v1.10.0.apk',
         'Slave-Android-v1.10.0.apk',
-        'MACS-Windows-v1.10.0.zip'
+        'Master-Windows-v1.10.0.zip'
     )
 
     foreach ($name in $files) {

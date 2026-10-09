@@ -4,7 +4,7 @@
 
 | 端 | 目录 | 技术栈 | BLE 角色 | 功能定位 |
 |---|---|---|---|---|
-| 控制台 | [master-app](../master-app) | Kotlin + WebView + HTML/JS | GATT Server | 机器人控制主界面，提供完整控制面板（显示名 **MACS**） |
+| 控制台 | [master-app](../master-app) | Kotlin + WebView + HTML/JS | GATT Server | 机器人控制主界面，提供完整控制面板（显示名 **Master**） |
 | 手机端 | [slave-app](../slave-app) | Kotlin 原生（纯代码 UI） | GATT Client（连接 Console / win-app） | 状态接收展示终端，双列展示任务和语音（显示名 **Slave**，图标与 master 同族色相区分） |
 | 手表端 | [watch-app](../watch-app) | Kotlin 原生（WearOS） | GATT Client（连接 Phone） | 腕上轻量状态查看，三页面横滑切换 |
 | Windows 桌面版 | [win-app](../win-app) | Electron + HTML/JS + C# BLE 宿主 | GATT Server（`RobotControl-Win`） | 控制台桌面端：前置 USB 启动器 + master-app www 副本控制台，桥接等效；C# 宿主实现 7500 服务外设广播，slave-app 可连接 |

@@ -29,8 +29,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(HERE, '..', '..', 'www', 'doc', 'manual');
 
 const DOCS = [
-  { src: 'manual.en.md', out: 'manual.en.html', lang: 'en', title: 'MACS · User Manual' },
-  { src: 'manual.zh-CN.md', out: 'manual.zh-CN.html', lang: 'zh-CN', title: 'MACS · 使用说明书' }
+  { src: 'manual.en.md', out: 'manual.en.html', lang: 'en', title: 'Master · User Manual' },
+  { src: 'manual.zh-CN.md', out: 'manual.zh-CN.html', lang: 'zh-CN', title: 'Master · 使用说明书' }
 ];
 
 const esc = (s) =>

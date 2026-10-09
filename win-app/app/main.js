@@ -184,7 +184,7 @@ function createFirstRunWindow() {
     resizable: true,
     icon: APP_ICON,
     autoHideMenuBar: true,
-    title: 'MACS',
+    title: 'Master',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -277,7 +277,7 @@ function createLauncherWindow() {
     fullscreenable: false,
     icon: APP_ICON,
     autoHideMenuBar: true,
-    title: 'MACS',
+    title: 'Master',
     webPreferences: {
       preload: path.join(__dirname, 'preload-launcher.js'),
       contextIsolation: true,

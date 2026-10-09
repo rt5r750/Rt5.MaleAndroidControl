@@ -40,9 +40,9 @@ try {
 
     Write-Host '== 4/4 创建 Release 并上传素材 =='
     $files = @(
-        (Join-Path $Stage 'MACS-Android-v1.10.0.apk'),
+        (Join-Path $Stage 'Master-Android-v1.10.0.apk'),
         (Join-Path $Stage 'Slave-Android-v1.10.0.apk'),
-        (Join-Path $Stage 'MACS-Windows-v1.10.0.zip')
+        (Join-Path $Stage 'Master-Windows-v1.10.0.zip')
     )
     foreach ($f in $files) {
         if (-not (Test-Path -LiteralPath $f)) { throw "缺少素材：$f" }
@@ -75,7 +75,7 @@ try {
         $args = @(
             'release', 'create', $Tag,
             '--repo', $Repo,
-            '--title', "v1.10.0 — Language auto-detection, unified first-run flow, client rename (MACS / Slave)",
+            '--title', "v1.10.0 — Language auto-detection, unified first-run flow, client rename (Master / Slave)",
             '--notes-file', $Notes,
             '--verify-tag'
         )

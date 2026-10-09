@@ -1,7 +1,7 @@
 {
-  "name": "macs-windows-console",
+  "name": "master-windows-console",
   "version": "1.10.0",
-  "description": "MACS 控制台 Windows 桌面版（宽屏）",
+  "description": "Master 控制台 Windows 桌面版（宽屏）",
   "main": "app/main.js",
   "scripts": {
     "test": "node --test",
@@ -14,7 +14,7 @@
   "license": "MIT",
   "build": {
     "appId": "com.robotcontrol.console.win",
-    "productName": "MACS",
+    "productName": "Master",
     "executableName": "RobotControl-Console-Main",
     "electronDist": "node_modules/electron/dist",
     "files": [

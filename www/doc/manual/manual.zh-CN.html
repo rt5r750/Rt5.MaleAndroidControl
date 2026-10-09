@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MACS · 使用说明书</title>
+<title>Master · 使用说明书</title>
 <style>
   /* Palette matches the console (dark green). Font stack follows the project rule
      (MiSans for Chinese, JetBrains Mono for digits/latin). This page may be opened
@@ -66,11 +66,11 @@
 <body>
 <div class="wrap">
   <div class="bar">
-    <span class="bar-title">MACS · 使用说明书</span>
+    <span class="bar-title">Master · 使用说明书</span>
     <a href="manual.en.html">English</a>
   </div>
-<h1>MACS · 使用说明书</h1>
-<p>MACS（Male Android Control System，仿人男性机器人控制系统）是 T31-750 型仿人男性机器人的控制台。本说明书覆盖随包发布的全部客户端：Android 与 Windows 上的 <strong>MACS</strong> 控制台、随机器人携带的 <strong>Slave</strong> 应用、Wear OS 手表应用，以及浏览器版本和把各端连接起来的配对方式。</p>
+<h1>Master · 使用说明书</h1>
+<p>Master 是 T31-750 型仿人男性机器人控制系统（Male Android Control System）的控制台。本说明书覆盖随包发布的全部客户端：Android 与 Windows 上的 <strong>Master</strong> 控制台、随机器人携带的 <strong>Slave</strong> 应用、Wear OS 手表应用，以及浏览器版本和把各端连接起来的配对方式。</p>
 <blockquote>本产品为虚构设定。控制台中的许多读数——CPU/GPU/NPU 占用率、剩余仿真精液、剩余存储、系统版本、自检与更新过程输出——属于演出式呈现，并非真实遥测。下文对这类内容均标注为「模拟」。</blockquote>
 <h2>目录</h2>
 <div class="tbl-wrap"><table>
@@ -93,19 +93,19 @@
 <div class="tbl-wrap"><table>
 <thead><tr><th>客户端</th><th>运行环境</th><th>应用名</th><th>作用</th></tr></thead>
 <tbody>
-<tr><td>控制台（控制端）</td><td>Android 手机/平板（Android 12+）</td><td><strong>MACS</strong></td><td>完整控制台；对外广播蓝牙供各端连接</td></tr>
-<tr><td>控制台（控制端）</td><td>Windows 10/11 桌面</td><td><strong>MACS</strong></td><td>同一套控制台，外加桌面启动器与 USB 进入方式</td></tr>
+<tr><td>控制台（控制端）</td><td>Android 手机/平板（Android 12+）</td><td><strong>Master</strong></td><td>完整控制台；对外广播蓝牙供各端连接</td></tr>
+<tr><td>控制台（控制端）</td><td>Windows 10/11 桌面</td><td><strong>Master</strong></td><td>同一套控制台，外加桌面启动器与 USB 进入方式</td></tr>
 <tr><td>接收端</td><td>Android 手机（Android 7.0+）</td><td><strong>Slave</strong></td><td>由机器人携带：显示模式、情绪、任务与语音消息，并可反向推送模式与语音指令</td></tr>
 <tr><td>手表端</td><td>Wear OS</td><td>750接收端</td><td>腕上精简状态显示</td></tr>
 <tr><td>浏览器版</td><td>任意现代浏览器</td><td>—</td><td>同一套控制台以网页形式提供，可选完整离线缓存</td></tr>
 </tbody></table></div>
 <p><strong>控制端</strong>负责分发状态，<strong>接收端</strong>与<strong>手表端</strong>负责接收展示。接收端还能把选定的模式回推给控制端，既可手动（长按模式胶囊），也可用语音。</p>
-<p><strong>我该装哪一个？</strong> 仅需控制时，装 MACS 控制台即可；若要在另一部手机上查看机器人状态，再加装 Slave；手表端为可选项。</p>
+<p><strong>我该装哪一个？</strong> 仅需控制时，装 Master 控制台即可；若要在另一部手机上查看机器人状态，再加装 Slave；手表端为可选项。</p>
 <hr>
 <h2>2. 安装与首次启动</h2>
 <h2>2.1 一句话概括首次启动</h2>
 <p>所有客户端现在均<strong>默认以英文打开</strong>，能读到设备语言时自动匹配，并在进入主界面之前引导你完成一次初始设置。这些设置都不是必填项，每个首启界面都提供「跳过，保持默认」。</p>
-<h2>2.2 Android 版 MACS</h2>
+<h2>2.2 Android 版 Master</h2>
 <ol>
 <li>安装 APK 并打开，先播放一次品牌宣传片。</li>
 </ol>
@@ -119,7 +119,7 @@
 <li>进入控制台。此后不会再出现该界面。</li>
 </ol>
 <blockquote>宣传片会完整播放后才出现首启界面；点按屏幕可提前结束播放。</blockquote>
-<h2>2.3 Windows 版 MACS</h2>
+<h2>2.3 Windows 版 Master</h2>
 <ol>
 <li>将发布包解压到可写目录，运行 <code>RobotControl-Console.exe</code>。</li>
 </ol>
@@ -188,8 +188,8 @@
 <div class="tbl-wrap"><table>
 <thead><tr><th>客户端</th><th>切换位置</th></tr></thead>
 <tbody>
-<tr><td>MACS 控制台</td><td>登录页与激活页右上角的 <code>ZH</code> / <code>EN</code>；进入后为<strong>设置 → 语言</strong></td></tr>
-<tr><td>MACS Windows 启动器</td><td>设置 → <strong>界面语言</strong></td></tr>
+<tr><td>Master 控制台</td><td>登录页与激活页右上角的 <code>ZH</code> / <code>EN</code>；进入后为<strong>设置 → 语言</strong></td></tr>
+<tr><td>Master Windows 启动器</td><td>设置 → <strong>界面语言</strong></td></tr>
 <tr><td>Slave</td><td>蓝牙对话框的<strong>语言</strong>行；或首启界面</td></tr>
 </tbody></table></div>
 <p>切换即时生效并跨重启保留。Slave 上切换会重建界面，所有文案一次性更新。</p>
@@ -235,7 +235,7 @@
 </ol>
 <p>拔出设备会停止充电显示，重新插上则恢复。<strong>测试模式</strong>（<code>测试模式</code> 按钮或 F2 键）可模拟连接成功，便于在没有硬件时进入控制台；该状态仅在本次应用启动内有效。</p>
 <h2>4.4 从浏览器拉起 App</h2>
-<p>网页版提供 <code>robotcontrol://console</code> 协议，用于打开已安装的 MACS 控制台。浏览器引导窗口与<strong>设置 → 拉起 App</strong> 均使用它。若未安装，浏览器会在约两秒后判定页面仍可见，转为高亮下载链接。</p>
+<p>网页版提供 <code>robotcontrol://console</code> 协议，用于打开已安装的 Master 控制台。浏览器引导窗口与<strong>设置 → 拉起 App</strong> 均使用它。若未安装，浏览器会在约两秒后判定页面仍可见，转为高亮下载链接。</p>
 <hr>
 <h2>5. 控制台</h2>
 <p>控制台会自适应屏幕：宽屏桌面显示三栏，手机上显示单栏并通过页面切换。</p>

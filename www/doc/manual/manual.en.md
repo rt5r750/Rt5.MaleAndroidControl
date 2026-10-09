@@ -1,6 +1,6 @@
-# MACS · User Manual
+# Master · User Manual
 
-MACS (Male Android Control System) is the control console for the T31-750 male android. This manual covers every client in the package: the **MACS** console app on Android and Windows, the **Slave** app that runs on the android's own phone, and the Wear OS watch app. It also covers the browser edition and the pairing methods that link them.
+Master is the control console of the T31-750 male android (the Male Android Control system). This manual covers every client in the package: the **Master** console app on Android and Windows, the **Slave** app that runs on the android's own phone, and the Wear OS watch app. It also covers the browser edition and the pairing methods that link them.
 
 > The product is fictional. Many readouts in the console — CPU/GPU/NPU load, remaining artificial semen, storage, system version, self-check and update output — are part of the staged presentation rather than live telemetry. Wording in this manual follows the English interface; where the interface itself shows a fixed term, that term is used verbatim.
 
@@ -26,15 +26,15 @@ MACS (Male Android Control System) is the control console for the T31-750 male a
 
 | Client | Where it runs | App name | Role |
 |---|---|---|---|
-| Master console | Android phone/tablet (Android 12+) | **MACS** | Full control console; advertises Bluetooth so clients can connect |
-| Master console | Windows 10/11 desktop | **MACS** | Same console with a desktop launcher and USB entry |
+| Master console | Android phone/tablet (Android 12+) | **Master** | Full control console; advertises Bluetooth so clients can connect |
+| Master console | Windows 10/11 desktop | **Master** | Same console with a desktop launcher and USB entry |
 | Slave | Android phone (Android 7.0+) | **Slave** | Carried by the android: shows mode, emotion, tasks and voice messages; can push mode and voice commands back |
 | Watch | Wear OS | 750 Receiver | Compact status display worn on the wrist. This client still ships its original Chinese label and is outside the language scope of this release |
 | Browser edition | Any modern browser | — | The same console served over the web, with optional full offline caching |
 
 The **Master** distributes state; the **Slave** and **Watch** receive it. The Slave can also send the selected mode back to the Master, either by hand (long-press the mode capsule) or by voice.
 
-**Which do I need?** For control alone, the MACS console is enough. To read the android's state on a separate phone, add the Slave. The watch is optional.
+**Which do I need?** For control alone, the Master console is enough. To read the android's state on a separate phone, add the Slave. The watch is optional.
 
 ---
 
@@ -44,7 +44,7 @@ The **Master** distributes state; the **Slave** and **Watch** receive it. The Sl
 
 Every client now opens in **English on first launch**, matches the device language automatically when it can, and walks you through a one-time setup before the main interface appears. Nothing is compulsory — each setup screen has a **Skip and keep defaults** option.
 
-## 2.2 MACS on Android
+## 2.2 Master on Android
 
 1. Install the APK and open it. A brand film plays once.
 2. When the film ends, the **Activation Setup** screen (first-run setup) appears. It is the same form described in section 2.5; on a phone it is a single scrollable page.
@@ -53,7 +53,7 @@ Every client now opens in **English on first launch**, matches the device langua
 
 > The film plays to the end before the setup screen appears. Tapping the screen skips the film early.
 
-## 2.3 MACS on Windows
+## 2.3 Master on Windows
 
 1. Unpack the release archive somewhere you can write to, then run `RobotControl-Console.exe`.
 2. On the **first** launch the activation window opens **before the launcher**. Complete it, or close the window to skip.
@@ -111,8 +111,8 @@ Automatic detection is re-evaluated on every launch and is never written to stor
 
 | Client | Where to switch |
 |---|---|
-| MACS console | `ZH` / `EN` at the top right of the login and activation screens; **Settings → Language** afterwards |
-| MACS Windows launcher | Settings → **Interface Language** |
+| Master console | `ZH` / `EN` at the top right of the login and activation screens; **Settings → Language** afterwards |
+| Master Windows launcher | Settings → **Interface Language** |
 | Slave | Bluetooth dialog → the language row; or the first-run screen |
 
 The switch takes effect immediately and survives restarts. On the Slave it rebuilds the screen so every label updates at once.
@@ -159,7 +159,7 @@ Removing the device stops the charging indication; reconnecting restores it. **T
 
 ## 4.4 Launching the app from a browser
 
-The web edition offers `robotcontrol://console`, which opens the installed MACS console. The browser guide and **Settings → Launch App** both use it. If the app is not installed the browser detects that the page is still visible after roughly two seconds and highlights the download link instead.
+The web edition offers `robotcontrol://console`, which opens the installed Master console. The browser guide and **Settings → Launch App** both use it. If the app is not installed the browser detects that the page is still visible after roughly two seconds and highlights the download link instead.
 
 ---
 

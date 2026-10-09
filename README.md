@@ -22,17 +22,17 @@ The system is split into a **Master** that controls and pushes state, and **Slav
 
 | Client | App name | Runs on | Role |
 |---|---|---|---|
-| Master console | **MACS** | Android phone/tablet (12+), Windows 10/11 | The control console: mode switching, control buttons, emotion gauges, parameters, terminal, settings. Advertises Bluetooth so the other clients can connect. Full feature set. |
-| Slave (robot-side) | **Slave** | Android phone (7.0+) | The phone that travels with the android: shows mode, emotion, tasks and voice messages, and can push a mode or a spoken command back to the console. Icon is tinted blue to distinguish it from MACS. |
+| Master console | **Master** | Android phone/tablet (12+), Windows 10/11 | The control console: mode switching, control buttons, emotion gauges, parameters, terminal, settings. Advertises Bluetooth so the other clients can connect. Full feature set. |
+| Slave (robot-side) | **Slave** | Android phone (7.0+) | The phone that travels with the android: shows mode, emotion, tasks and voice messages, and can push a mode or a spoken command back to the console. Icon is tinted blue to distinguish it from Master. |
 | Watch | 750 Receiver | Wear OS | Glanceable status on the wrist: emotion, tasks, recent voice messages; keeps its own BLE connection alive. |
 | Browser edition | — | Any modern browser | The same console over the web, with optional one-click full caching for instant offline use, plus an app-launch/download guide. No Bluetooth — use it for viewing or when no app is installed. |
 
-Naming note: the **console** is MACS on every platform (the Android console app and the Windows build are the same console), and the **robot-side phone app** is Slave. Their Android package names and BLE names (`RobotControl-*`) are unchanged, so upgrades and existing pairings keep working.
+Naming note: the **console** is Master on every platform (the Android console app and the Windows build are the same console), and the **robot-side phone app** is Slave. Their Android package names and BLE names (`RobotControl-*`) are unchanged, so upgrades and existing pairings keep working.
 
 ## Demo
 
 - **Promo film** — <https://x.com/rt5_750/status/2107868637948440956>
-- **Downloads** — [Releases](https://github.com/rt5r750/Rt5.MaleAndroidControl/releases): `MACS-Android-*.apk` (console), `Slave-Android-*.apk` (robot side), `MACS-Windows-*.zip` (portable desktop build)
+- **Downloads** — [Releases](https://github.com/rt5r750/Rt5.MaleAndroidControl/releases): `Master-Android-*.apk` (console), `Slave-Android-*.apk` (robot side), `Master-Windows-*.zip` (portable desktop build)
 
 ## User manual
 
@@ -68,10 +68,10 @@ Stills from the promo film; the console and app UIs run in English.
 | Directory | What it is | Stack |
 |---|---|---|
 | `www/` | **Single source of truth for the shared front end** (console pages, styles, fonts, dictionaries, manual, assets); every synced copy is generated from here | Plain HTML/CSS/JS (Tailwind pre-compiled, zero runtime CDN) |
-| `master-app/` | **MACS** console app — WebView shell + BLE GATT server + external-link handling | Kotlin, compileSdk/targetSdk 34, minSdk 31 |
+| `master-app/` | **Master** console app — WebView shell + BLE GATT server + external-link handling | Kotlin, compileSdk/targetSdk 34, minSdk 31 |
 | `slave-app/` | **Slave** robot-side app — mode / emotion / task / connection panels, on-device speech recognition by pronunciation matching | Kotlin, minSdk 24 |
 | `watch-app/` | Wear OS app — keep-alive foreground service, mode-change haptics, connection state | Kotlin, minSdk 31 |
-| `win-app/` | **MACS** Windows desktop build — Electron main app + C# BLE host + launcher window + splash entry | Electron 43 + Node + .NET 8 |
+| `win-app/` | **Master** Windows desktop build — Electron main app + C# BLE host + launcher window + splash entry | Electron 43 + Node + .NET 8 |
 | `design/` | Launcher UI design and sprite assets | Plain HTML/CSS/Canvas |
 | `tools/` | Build helpers: `gen-mono-narrow.py` (condensed Latin face), `web-build` (Tailwind + manual + cache manifest), `manual-build` (Markdown → in-app HTML), `i18n-check` (translation-coverage checks) | Python / Node |
 | `docs/` | Development documentation set — entry [`docs/reademe.md`](docs/reademe.md) (Chinese) | Markdown |
