@@ -39,6 +39,8 @@ AGENTS.md
 .mimosa/
 .workbuddy/
 .zcode/
+# ZCode 工具在仓库根生成的排除规则文件（由工具维护，非项目源码）
+.zcodeignore
 .trae/
 design/HANDOFF.md
 docs/release-ledger.md
