@@ -3,7 +3,8 @@
 ## 概述
 
 - **目录**：[slave-app](../../slave-app)
-- **显示名（1.10.0）**：**Slave**（`app_name`，中英 `values`/`values-en` 同值；原「750接收端」随改名统一；Gradle `rootProject.name` 亦改为 `Slave`；图标按 master 同族色相偏移（深绿→深蓝）以区分两端）
+- **显示名（1.10.0）**：**Slave**（`app_name`，中英 `values`/`values-en` 同值；原「750接收端」随改名统一；Gradle `rootProject.name` 亦改为 `Slave`）
+- **图标（1.10.0）**：与 master 同一套 Rt5 构图，靠**明暗对调**区分——master = 深绿底 `#0d1a0d` + 银圆 + 深绿字，slave = **银底 `#cfd3cf` + 深绿圆 `#163a1e` + 银字**。原实现是「深绿→深蓝的色相偏移」，两端都是深色块、缩到启动器/桌面尺寸几乎无法分辨，故改为互换。生成脚本 `tools/gen-slave-icon.py`（由 master 图标逐档转换 5 档 mipmap × 方形/圆形，另含 `res/` 根下两个 72px 历史副本；`--check` 只做几何与主色核对）
 - **包名**：`com.robotcontrol.phone`（1.10.0 刻意不改：改包名会让已装用户数据丢失且需卸载重装）
 - **技术栈**：Kotlin 原生 Android，纯代码构建 UI（无 XML 布局编写、无 Compose）
 - **BLE 角色**：GATT Client（连接 Console）；代码中存在 WatchGattServer 但未在 MainActivity 中启动

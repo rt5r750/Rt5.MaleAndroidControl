@@ -23,7 +23,7 @@ The system is split into a **Master** that controls and pushes state, and **Slav
 | Client | App name | Runs on | Role |
 |---|---|---|---|
 | Master console | **Master** | Android phone/tablet (12+), Windows 10/11 | The control console: mode switching, control buttons, emotion gauges, parameters, terminal, settings. Advertises Bluetooth so the other clients can connect. Full feature set. |
-| Slave (robot-side) | **Slave** | Android phone (7.0+) | The phone that travels with the android: shows mode, emotion, tasks and voice messages, and can push a mode or a spoken command back to the console. Icon is tinted blue to distinguish it from Master. |
+| Slave (robot-side) | **Slave** | Android phone (7.0+) | The phone that travels with the android: shows mode, emotion, tasks and voice messages, and can push a mode or a spoken command back to the console. Its icon inverts the console's palette (silver background, dark-green disc) to distinguish it from Master. |
 | Watch | 750 Receiver | Wear OS | Glanceable status on the wrist: emotion, tasks, recent voice messages; keeps its own BLE connection alive. |
 | Browser edition | — | Any modern browser | The same console over the web, with optional one-click full caching for instant offline use, plus an app-launch/download guide. No Bluetooth — use it for viewing or when no app is installed. |
 
