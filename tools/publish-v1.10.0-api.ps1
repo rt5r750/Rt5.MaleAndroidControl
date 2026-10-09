@@ -102,7 +102,9 @@ try {
         $name = Split-Path -Leaf $f
         $sizeMb = [math]::Round((Get-Item -LiteralPath $f).Length / 1MB, 1)
         Write-Host ("   上传 {0}（{1} MB）…" -f $name, $sizeMb)
-        $uri = "$uploadUrl?name=$name"
+        # 必须用 ${uploadUrl}：PowerShell 会把 "$uploadUrl?name=" 里的 `?` 当成变量名的一部分
+        # （合法字符），解析成未定义的 $uploadUrl? → 空值 → "Invalid URI: The hostname could not be parsed"
+        $uri = "${uploadUrl}?name=$name"
         $r = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers `
             -ContentType 'application/octet-stream' -InFile $f -Proxy $Proxy -TimeoutSec 1800
         Write-Host ("     ok  {0} bytes" -f $r.size)
