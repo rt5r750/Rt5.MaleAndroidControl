@@ -8,6 +8,7 @@ Master is the control console of the T31-750 male android (the Male Android Cont
 
 | Chapter | What it covers |
 |---|---|
+| 0. What this suite is for | Why in-person control needs ritual |
 | 1. Clients and roles | Which app does what, and which one you need |
 | 2. Installation and first launch | Installing each client, the first-run activation flow |
 | 3. Language | Automatic device-language matching and manual switching |
@@ -19,6 +20,18 @@ Master is the control console of the T31-750 male android (the Male Android Cont
 | 9. Watch app | The Wear OS client |
 | 10. Browser edition | Caching, offline use and app launching |
 | 11. Troubleshooting | Symptom-by-symptom checks |
+
+---
+
+# 0. What this suite is for
+
+Meeting your android **in person** is nothing like chatting online. Whispering an instruction across the table works, but it fades the moment it is spoken; typing it into a chat app flattens the scene entirely. What is missing is **ritual**.
+
+So imagine this: your android is fully objectified — every parameter visible, every value yours to set, live and in your hands. When you go out together, its phone stays linked to yours over Bluetooth. On the street you don't have to lean in and whisper, and there is no chat window breaking the spell: you tap your phone, its phone lights up — **"Master's command"** — and the android receives your latest instruction the way a machine receives its programming.
+
+Back home, set the console up in front of your computer (or plug in a USB drive and connect it directly), and it becomes what it truly is: a terminal in front of a machine that stands there, motionless, waiting to be programmed by you.
+
+That is what this suite is for: **objectification with a protocol**. All of it, in person. The rest of this manual covers how to put it to work.
 
 ---
 

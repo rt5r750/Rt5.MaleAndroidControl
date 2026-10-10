@@ -16,6 +16,16 @@
 
 > A fictional product, **ASFR-oriented**: a private, in-person control link for android objectification/materialisation cosplay — a prop for play, not a real machine. The setting and copy contain adult-oriented content; published for technical reference only.
 
+## Why this exists
+
+Meeting your android in person is nothing like chatting online. Whispering an instruction across the table works, but it fades the moment it is spoken; typing it into a chat app flattens the scene entirely. What is missing is **ritual**.
+
+So imagine this: your android is fully objectified — every parameter visible, every value yours to set, live and in your hands. When you go out together, its phone stays linked to yours over Bluetooth. On the street you don't have to lean in and whisper, and there is no chat window breaking the spell: you tap your phone, its phone lights up — **"Master's command"** — and the android receives your latest instruction the way a machine receives its programming.
+
+Back home, set the console up on your PC and it becomes what it truly is: a terminal in front of a machine that stands there, motionless, while you program it.
+
+That is what this suite is for: **objectification with a protocol**. All of it, in person. Full background is also in the [user manual](#user-manual), chapter 0.
+
 ## The clients and what each one does
 
 The system is split into a **Master** that controls and pushes state, and **Slaves** that receive and display it. One of them can also send commands back.

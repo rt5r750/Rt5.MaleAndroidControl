@@ -2,7 +2,7 @@
 
 ## 项目总览
 
-RobotControl 是一个多端协同的机器人控制系统：master-app（控制台，Kotlin+WebView+HTML，GATT Server）作为主控面板，slave-app（手机端，Kotlin原生）和watch-app（手表端，WearOS原生）作为BLE客户端接收状态展示，另有 win-app（Windows 桌面版，Electron）作为控制台的桌面端。数据以 Console 经 BLE Notification 向下推送到 Phone 和 Watch 为主，另有客户端上行通道（Heartbeat 心跳、ApiKey 同步、Mode 反向模式推送）；win-app 通过 C# BLE 外设宿主（Windows GATT Server）广播 `RobotControl-Win`，前端与桥接等效于 master-app 控制台，slave-app 可直接扫描或扫码连接。www 共享前端可直接以浏览器打开（未来托管到网站），并内置 App 拉起引导：网页打开后弹窗引导拉起本机 App（`robotcontrol://console`，手机端拉起 master-app / PC 端拉起 win-app），未安装则引导至夸克网盘下载（https://pan.quark.cn/s/e33470bcc0ef）；纯浏览器端首访为强制缓存流程：「获取完整体验」窗口不可关闭/忽略，必须点击置顶的「缓存网页」按钮完成缓存（`rc_full_cache` 标记）才进入控制台，网页更新后自动提示重新缓存（背景图更新除外）；已缓存用户窗口恢复常规可关闭形态，设置页亦有缓存/拉起/下载三按钮。
+RobotControl 是一个多端协同的机器人控制系统：master-app（控制台，Kotlin+WebView+HTML，GATT Server）作为主控面板，slave-app（手机端，Kotlin原生）和watch-app（手表端，WearOS原生）作为BLE客户端接收状态展示，另有 win-app（Windows 桌面版，Electron）作为控制台的桌面端。数据以 Console 经 BLE Notification 向下推送到 Phone 和 Watch 为主，另有客户端上行通道（Heartbeat 心跳、ApiKey 同步、Mode 反向模式推送）；win-app 通过 C# BLE 外设宿主（Windows GATT Server）广播 `RobotControl-Win`，前端与桥接等效于 master-app 控制台，slave-app 可直接扫描或扫码连接。www 共享前端可直接以浏览器打开（未来托管到网站），并内置 App 拉起引导：网页打开后弹窗引导拉起本机 App（`robotcontrol://console`，手机端拉起 master-app / PC 端拉起 win-app），未安装则引导至 GitHub Releases 下载（https://github.com/rt5r750/Rt5.MaleAndroidControl/releases/latest，1.11.0 起替代原夸克网盘）；纯浏览器端首访为强制缓存流程：「获取完整体验」窗口不可关闭/忽略，必须点击置顶的「缓存网页」按钮完成缓存（`rc_full_cache` 标记）才进入控制台，网页更新后自动提示重新缓存（背景图更新除外）；已缓存用户窗口恢复常规可关闭形态，设置页亦有缓存/拉起/下载三按钮。
 
 ## 文档导航
 

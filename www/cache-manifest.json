@@ -1,7 +1,7 @@
 {
-  "version": "164436b48388",
-  "generatedAt": "2026-10-10T03:09:48.208Z",
-  "totalSize": 16205794,
+  "version": "68f2a15d9d69",
+  "generatedAt": "2026-10-10T04:16:10.469Z",
+  "totalSize": 16208850,
   "files": [
     {
       "path": "MimoTTSClient.js",
@@ -30,8 +30,8 @@
     },
     {
       "path": "css/app.css",
-      "size": 199112,
-      "hash": "cb3c5fb61429"
+      "size": 199579,
+      "hash": "147056be6ad9"
     },
     {
       "path": "css/desktop-chrome.css",
@@ -85,13 +85,13 @@
     },
     {
       "path": "doc/manual/manual.en.html",
-      "size": 40007,
-      "hash": "331a53835fe2"
+      "size": 41316,
+      "hash": "cc266dcb5bcb"
     },
     {
       "path": "doc/manual/manual.zh-CN.html",
-      "size": 36162,
-      "hash": "c990077c375b"
+      "size": 37382,
+      "hash": "d6574d31b50a"
     },
     {
       "path": "doc/robot_code.txt",
@@ -310,8 +310,8 @@
     },
     {
       "path": "芮誊T系列仿人男性机器人控制台V1.1.html",
-      "size": 134118,
-      "hash": "17280cd10deb"
+      "size": 134178,
+      "hash": "fbe8c7a02365"
     }
   ]
 }
