@@ -34,6 +34,7 @@
 1. **Console → Phone**：Phone 作为 GATT Client 连接 Console（master-app / win-app）的 GATT Server，订阅 7 个 Characteristic（Mode/Emotion/Tasks/Voice/Heartbeat/ApiKey/UiLang）的通知
 2. **Phone → Watch**：（设计意图，但当前代码中 WatchGattServer 未启用；Watch 实际通过扫描并连接名为 RobotControl- 前缀的设备，当前代码中 Phone 未启动 GATT Server，Watch 扫描到的是 Console）
 3. **Phone → Console（反向，1.7.0）**：slave-app 长按胶囊选模式或语音识别命中后，经 `ConsoleBleClient.writeMode(ordinal)` 写入 Mode(7501)（1 字节 ordinal，仅 0-3 生效）反向切换控制台模式；控制台切换并高亮后经既有链路回推模式/语音，手机端据此把通知标题显示为「推送成功」（4s 回声窗口 + 兜底，防同一次推送双弹）。协议细节见 BLE 协议文档「反向模式推送」
+4. **ApiKey(7506) 双向对齐（1.11.0）**：Slave 连接后读取 7506 取 Master 侧 Key 并按同步矩阵裁决（一侧空/失效另一侧可用 → 以有效方为准；双方可用不同 → 各用各的；详见 BLE 协议文档 7506 节）——Master→Slave 方向靠 Master 把可用 Key 预置进 7506（前端 `syncCurrentStateToNative` 推送）+ Slave READ/Notify；Slave→Master 方向沿用 7506 写入，Master 侧前端按矩阵裁决后落库
 
 > **注意**：watch 的 PhoneBleClient 仍按 `RobotControl-` 名称前缀扫描；phone 的 ConsoleBleClient 按服务 UUID 7500 过滤并接受“名称前缀匹配”或“广告含服务 UUID 7500”的设备，因此可连接 master-app 或 win-app。
 

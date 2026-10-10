@@ -140,6 +140,7 @@ var onEmotionReceived: ((obedience, shame, pleasure, mechanical: Int) -> Unit)?
 var onTasksReceived: ((tasksJson: String) -> Unit)?
 var onVoiceReceived: ((voiceJson: String) -> Unit)?
 var onVoiceHistoryReceived: ((historyJson: String) -> Unit)?
+// 1.11.0 新增：onApiKeySynced——同步裁决采用 Master 的 Key 后回调宿主（提示）
 // 1.10.0 移除：onLangReceived（原 1.5.0 新增的 7507(UiLang) 回调）——界面语言不再跟随控制端
 ```
 
@@ -152,6 +153,14 @@ Voice 数据分发规则：
 
 - 心跳兜底以服务端 Notification 为准；写入成功后 15s 内未收到服务端心跳则调用统一的断连恢复流程。
 - **7507(UiLang) 不再消费（1.10.0）**：`onCharacteristicChanged` 中已无该分支、连接时也不订阅/初读——语言只由本机 `PhoneI18n` 决定；服务端特征与推送保留（旧版客户端仍订阅），`BleConstants.CHAR_UI_LANG_UUID` 常量保留备查。
+
+**ApiKey(7506) 双端同步裁决（1.11.0，取代旧版「连接后无条件上传」）**：
+
+- 连接成功约 500ms 后对 7506 执行 READ_CHAR（取代旧的 `writeApiKey` 直写）；读取值与后续 Notify 都进入 `maybeSyncApiKey(remoteKey)`。
+- `ApiKeyStore.decideSync(local, remote)` 纯函数裁决（可用 = 格式合法 `sk-` 前缀 ≥16 字符 且无失败历史；远端历史不可知，非空格式合法即视为可用——Master 只发布可用 Key，自知失效按空发布）：
+  `PUSH_TO_MASTER`（本地可用、远端空/不可用）→ `writeApiKey`；`ADOPT_FROM_MASTER`（本地空/不可用、远端可用）→ `saveApiKey` + `onApiKeySynced` 回调提示「API Key 已从控制端同步」；其余（双方可用不同 → 各用各的；双方皆不可用；同 Key）→ 不动。
+- `lastRemoteApiKey` 去重：同一远端 Key 不重复裁决（写后回显、重连短路），远端变化（Master 改 Key）才重裁；断连清理时复位。
+- 成败标志：`MimoAsrClient` 对 401/403 落 `recordKeyResult(false)`、成功落 `true`（`ApiKeyStore.key_state_<sha256 前 8 字节>` 键）；`ApiKeyStore` 另有 `isWellFormed/keyState/isUsable` 判定与 `KeyState/SyncAction` 枚举。完整矩阵见 `docs/ble-protocol.md` 7506 节。
 - 恢复流程只允许 `userDisconnected=true` 阻止自动重连；否则同时执行限次重连和周期扫描。
 - 清理 GATT 时重置 `currentGattAction`，防止上一轮操作残留导致新连接的 GATT 队列不推进。
 - Activity 销毁先断开并清空 `ConsoleBleClient` 全部回调引用，避免旧 Activity 监听器在重建后重复触发。

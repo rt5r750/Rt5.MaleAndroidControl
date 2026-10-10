@@ -87,13 +87,22 @@ Mode/Heartbeat/ApiKey Characteristic 属性：`PROPERTY_READ | PROPERTY_WRITE | 
 - 意外断开（`!userDisconnected`）：`scheduleReconnect(autoConnect=true)` 后台自动连接 + `startAutoScan()` 周期扫描兜底
 - `scheduleReconnect()` 不受 `activeDisconnect` 阻断，仅 `userDisconnected` 阻断
 
-### CHAR_APIKEY (7506) - MiMo TTS API Key
+### CHAR_APIKEY (7506) - MiMo API Key（v1.11.0 起双向对齐）
 
 - **长度**：可变（UTF-8）
 - **属性**：`PROPERTY_READ | PROPERTY_WRITE | PROPERTY_NOTIFY`
 - **权限**：`PERMISSION_READ | PERMISSION_WRITE`
-- **方向**：slave-app 连接成功后若本地保存有 MiMo API Key（约 500ms 后）写入该特征；master-app / win-app 服务端收到后保存并向客户端回显 Notify，同时通知前端（`_onMimoApiKeySynced` 覆写 TTS Key）
-- **初始值**：空
+- **方向（v1.11.0 双向）**：Slave 为唯一裁决方。连接成功后约 500ms 读取本特征取 Master 侧 Key，按同步矩阵裁决一次（远端 Key 变化时经 Notify 重新裁决）：
+  | Slave 侧 | Master 侧 | 动作 |
+  |---|---|---|
+  | 空/不可用 | 可用 | 本地采用 Master 的 Key（不回写） |
+  | 可用 | 空/不可用 | `writeApiKey` 推给 Master |
+  | 可用 | 可用且相同 | 短路不动 |
+  | 可用 | 可用但不同 | 各用各的，不同步 |
+  | 空/不可用 | 空/不可用 | 不动（不清空） |
+
+  「可用」= 格式合法（`sk-` 前缀且 ≥16 字符）且无鉴权失败历史（真实 TTS/ASR 调用的 401/403 记 fail、成功记 ok，按 Key 哈希落本地标志；网络类错误不改写）。**Master 只把可用 Key 发布进 7506**（自知失效按空发布），故 Slave 侧对远端只需格式判。Master 收到 Slave 推送后交前端 `_onMimoApiKeySynced` 裁决落库（本机可用且不同 → 拒绝覆盖，兼容旧版 Slave 的无条件写入）。
+- **初始值**：空（Master 前端 `syncCurrentStateToNative` 启动/连接后把可用 Key 写入本特征）
 
 ### CHAR_UI_LANG (7507) - 界面语言
 

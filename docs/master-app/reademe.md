@@ -117,7 +117,7 @@ BLE GATT Server 单例（`object`），职责：
 6. 按“设备地址 → Notification 队列”顺序异步发包，替代阻塞式 `Thread.sleep`，避免大任务/语音分片阻塞心跳与握手
 7. 维护心跳检测：每 5s 向所有已连接设备 Notify `0x01`，断开时发送 `0xFF`
 8. 独立 BLE 线程（`BleServerThread`）处理所有 BLE 操作
-9. 处理客户端上行写入：Heartbeat（心跳/手动断开 `0xFF`）、ApiKey（TTS Key 同步）、**Mode（反向模式推送，1.7.0）**——Mode(7501) 属性为 `READ|WRITE|NOTIFY`、权限 `READ|WRITE`，收到写入立即 `sendResponse(GATT_SUCCESS)`、同步 `characteristicValues` 保持读值一致，ordinal ∈ 0..3 时在主线程回调 `onModeReceived`（255=NA 与其他值忽略）
+9. 处理客户端上行写入：Heartbeat（心跳/手动断开 `0xFF`）、ApiKey（**1.11.0 双端同步**：Slave 推来的 Key 交前端 `_onMimoApiKeySynced` 按矩阵裁决落库，不再原生直写；Master 侧自己的 Key 由前端经 `onDataChanged('apikey')` → 新增 `sendApiKey()` 写入 7506 供 Slave 读取）、**Mode（反向模式推送，1.7.0）**——Mode(7501) 属性为 `READ|WRITE|NOTIFY`、权限 `READ|WRITE`，收到写入立即 `sendResponse(GATT_SUCCESS)`、同步 `characteristicValues` 保持读值一致，ordinal ∈ 0..3 时在主线程回调 `onModeReceived`（255=NA 与其他值忽略）
 
 关键 API：
 ```kotlin
@@ -226,6 +226,7 @@ SharedPreferences 存储已配对的 Phone 端 MAC 地址，启动时自动重�
 - `"tasks"`: json 为 Task JSON 数组字符串，调用 `sendTasks()`
 - `"voice"`: json 为语音内容（纯文本或 VoiceMessage JSON），自动补 timestamp，调用 `sendVoice()`
 - `"voice-history"`: json 为 VoiceMessage JSON 数组字符串，调用 `sendVoice()`
+- `"apikey"`: json 为本机可用 API Key（或空串），调用 `RobotGattServer.sendApiKey()` 写入 7506 供 Slave 读取（1.11.0 双端同步；前端 `syncCurrentStateToNative` 按值变化推送、保存 Key 即推）
 
 ### Kotlin → JS（10 个 evaluateJavascript 调用）
 
@@ -241,7 +242,7 @@ Kotlin 端通过 `webView.evaluateJavascript("jsCode(...)", null)` 调用前端 
 | `updateSafeAreaInsets(imeHeightPx)` | WindowInsets 变化时 | imeHeightPx 为输入法像素高度 |
 | `__ttsOnComplete(callbackId, resultJson)` | Native MediaPlayer 播放完成/出错时 | callbackId 为回调ID，resultJson 为 `{"ok":true}` 或 `{"ok":false,"error":"..."}` |
 | `__mimoFetchCallback(callbackId)` | `mimoFetchAsync` HTTP 请求完成时 | 仅传 callbackId（通知+拉取模式），JS 通过 `Android.getMimoFetchResult(cbId)` 同步拉取完整结果 |
-| `_onMimoApiKeySynced(key)` | `RobotGattServer.onApiKeyReceived` 触发（phone 经 7506 写入 API Key）时 | key 为规范化并转义后的 API Key；同时保存 SharedPreferences 并弹 Toast「API Key 已同步」 |
+| `_onMimoApiKeySynced(key)` | `RobotGattServer.onApiKeyReceived` 触发（phone 经 7506 写入 API Key）时 | key 为规范化并转义后的 API Key；**1.11.0 起原生层不再直写 SharedPreferences**，统一由前端按同步矩阵裁决（本机可用且不同 → 各用各的不覆盖），决定采用时前端回调 `Android.setMimoApiKey` 落库并提示「API Key 已同步」 |
 | `__rcOnRemoteMode(ordinal)` | `RobotGattServer.onModeReceived` 触发（phone 经 7501 反向推送模式）时 | ordinal 为 0-3；前端切换到对应模式并高亮按钮，同时弹 Toast「推送成功」（1.7.0） |
 
 > 两个反向通道回调均带 `typeof === 'function'` 守卫，页面尚未加载完成时静默跳过。
