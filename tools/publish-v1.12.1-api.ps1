@@ -1,0 +1,124 @@
+# v1.12.1 发布（无 gh CLI 版）：用 GitHub REST API 创建 Release 并上传三件素材。
+# 凭据经 Git Credential Manager 读取（与 git push 同一份），脚本内只读一次。
+# 用法（仓库根）：pwsh tools/publish-v1.12.1-api.ps1
+#
+# 要点（本机实测踩坑）：含中文的 JSON 必须写成 UTF-8 无 BOM 文件再 --data-binary @file，
+# 直接经命令行传会被本地码页破坏导致 400；curl 与 pwsh 共用的临时文件用绝对 Windows 路径。
+
+$ErrorActionPreference = 'Stop'
+
+$Proxy = 'http://127.0.0.1:10808'
+$Repo = 'rt5r750/Rt5.MaleAndroidControl'
+$Tag = 'v1.12.1'
+$Api = "https://api.github.com/repos/$Repo"
+$Root = Resolve-Path (Join-Path $PSScriptRoot '..')
+$Stage = Join-Path $Root 'release\v1.12.1'
+$NotesPath = Join-Path $Stage 'RELEASE-NOTES.md'
+$TmpDir = Join-Path $Root '.zcode'
+
+Push-Location $Root
+try {
+    # ---- 1. 取凭据（Git Credential Manager；只读一次，避免反复弹授权）----
+    Write-Host '== 1/4 读取凭据 =='
+    $credRaw = "protocol=https`nhost=github.com`n" | git credential fill 2>$null
+    $token = ($credRaw | Where-Object { $_ -like 'password=*' }) -replace '^password=', ''
+    if (-not $token) { throw '未能从凭据管理器取得 GitHub token' }
+    $headers = @{
+        Authorization          = "Bearer $token"
+        Accept                 = 'application/vnd.github+json'
+        'X-GitHub-Api-Version' = '2022-11-28'
+        'User-Agent'           = 'robotcontrol-publish'
+    }
+    Write-Host ('   已取得凭据（用户 {0}）' -f (($credRaw | Where-Object { $_ -like 'username=*' }) -replace '^username=', ''))
+
+    # ---- 2. 创建或更新 Release（正文用 notes 文件，UTF-8 无 BOM）----
+    # Release 已存在时走幂等分支：PATCH 标题/正文（按 release id，/tags/ 接口返回 404）、素材先删同名再传
+    $body = Get-Content -LiteralPath $NotesPath -Raw -Encoding UTF8
+    $ReleaseTitle = 'v1.12.1 — IM notifications (Telegram/Feishu), slash-command queries, 0 token'
+    $existing = $null
+    try {
+        $existing = Invoke-RestMethod -Method Get -Uri "$Api/releases/tags/$Tag" -Headers $headers -Proxy $Proxy
+    } catch {
+        if ($_.Exception.Response.StatusCode.value__ -ne 404) { throw }
+    }
+
+    if ($existing) {
+        Write-Host ("== 2/4 Release {0} 已存在（#{1}），更新标题与正文 ==" -f $Tag, $existing.id)
+        $releaseId = $existing.id
+        $uploadUrl = $existing.upload_url -replace '\{.*$', ''
+        $payloadFile = Join-Path $TmpDir 'release-patch.json'
+        $obj = [ordered]@{
+            name = $ReleaseTitle
+            body = $body
+        }
+        $json = $obj | ConvertTo-Json -Depth 4
+        [System.IO.File]::WriteAllText($payloadFile, $json, (New-Object System.Text.UTF8Encoding($false)))
+        Invoke-RestMethod -Method Patch -Uri "$Api/releases/$releaseId" -Headers $headers `
+            -ContentType 'application/json; charset=utf-8' -InFile $payloadFile -Proxy $Proxy | Out-Null
+        Write-Host '   标题与正文已更新'
+    } else {
+        Write-Host '== 2/4 创建 Release =='
+        $payloadFile = Join-Path $TmpDir 'release-create.json'
+        $obj = [ordered]@{
+            tag_name         = $Tag
+            name             = $ReleaseTitle
+            body             = $body
+            draft            = $false
+            prerelease       = $false
+        }
+        $json = $obj | ConvertTo-Json -Depth 4
+        [System.IO.File]::WriteAllText($payloadFile, $json, (New-Object System.Text.UTF8Encoding($false)))
+
+        $resp = Invoke-RestMethod -Method Post -Uri "$Api/releases" -Headers $headers `
+            -ContentType 'application/json; charset=utf-8' -InFile $payloadFile -Proxy $Proxy
+        $releaseId = $resp.id
+        $uploadUrl = $resp.upload_url -replace '\{.*$', ''
+        Write-Host ("   Release #{0} 已创建" -f $releaseId)
+    }
+
+    # ---- 3. 上传三件素材（同名先删后传，幂等）----
+    Write-Host '== 3/4 上传素材 =='
+    $files = @(
+        (Join-Path $Stage 'Master-Android-v1.12.1.apk'),
+        (Join-Path $Stage 'Slave-Android-v1.12.1.apk'),
+        (Join-Path $Stage 'Master-Windows-v1.12.1.zip')
+    )
+    # 旧名素材（改名前上传的）也一并删除，避免 Release 页并存两套
+    $unused = @(
+        (Join-Path $Stage 'MACS-Android-v1.12.1.apk'),
+        (Join-Path $Stage 'MACS-Windows-v1.12.1.zip')
+    )
+    $existingAssets = Invoke-RestMethod -Method Get -Uri "$Api/releases/$releaseId/assets?per_page=100" -Headers $headers -Proxy $Proxy
+    foreach ($f in $files) {
+        $name = Split-Path -Leaf $f
+        $old = $existingAssets | Where-Object { $_.name -eq $name }
+        if ($old) {
+            Invoke-RestMethod -Method Delete -Uri "$Api/releases/assets/$($old.id)" -Headers $headers -Proxy $Proxy | Out-Null
+            Write-Host ("   已删除同名旧素材 {0}" -f $name)
+        }
+    }
+    foreach ($f in $files[0..2]) {
+        if (-not (Test-Path -LiteralPath $f)) { throw "缺少素材：$f" }
+        $name = Split-Path -Leaf $f
+        $sizeMb = [math]::Round((Get-Item -LiteralPath $f).Length / 1MB, 1)
+        Write-Host ("   上传 {0}（{1} MB）…" -f $name, $sizeMb)
+        # 必须用 ${uploadUrl}：PowerShell 会把 "$uploadUrl?name=" 里的 `?` 当成变量名的一部分
+        # （合法字符），解析成未定义的 $uploadUrl? → 空值 → "Invalid URI: The hostname could not be parsed"
+        $uri = "${uploadUrl}?name=$name"
+        $r = Invoke-RestMethod -Method Post -Uri $uri -Headers $headers `
+            -ContentType 'application/octet-stream' -InFile $f -Proxy $Proxy -TimeoutSec 1800
+        Write-Host ("     ok  {0} bytes" -f $r.size)
+    }
+
+    # ---- 4. 结果 ----
+    Write-Host '== 4/4 完成 =='
+    $final = Invoke-RestMethod -Method Get -Uri "$Api/releases/$releaseId" -Headers $headers -Proxy $Proxy
+    Write-Host ('   {0}' -f $final.html_url)
+    Write-Host '   素材：'
+    $final.assets | ForEach-Object { Write-Host ('     - {0}  {1} bytes' -f $_.name, $_.size) }
+
+    Remove-Item -LiteralPath $payloadFile -Force -ErrorAction SilentlyContinue
+}
+finally {
+    Pop-Location
+}
