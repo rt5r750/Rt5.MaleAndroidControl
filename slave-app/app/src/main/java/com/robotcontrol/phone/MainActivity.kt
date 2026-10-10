@@ -454,6 +454,13 @@ class MainActivity : ComponentActivity(), DataStoreListener {
             val emotion = Emotion(o.coerceIn(0, 100), s.coerceIn(0, 100), p.coerceIn(0, 100), m.coerceIn(0, 100))
             PhoneDataStore.setEmotion(emotion)
         }
+        // API Key 同步（v1.11.0）：采用 Master 的 Key 后提示（存储已在 ApiKeyStore 落库，
+        // 连接对话框下次打开时自然回填，无需触碰其局部输入框）
+        ConsoleBleClient.onApiKeySynced = {
+            runOnUiThread {
+                Toast.makeText(this@MainActivity, PhoneI18n.t("API Key 已从控制端同步"), Toast.LENGTH_SHORT).show()
+            }
+        }
         ConsoleBleClient.onTasksReceived = { json ->
             try {
                 if (!json.isNullOrBlank()) {
@@ -1710,6 +1717,7 @@ class MainActivity : ComponentActivity(), DataStoreListener {
         ConsoleBleClient.onTasksReceived = null
         ConsoleBleClient.onVoiceReceived = null
         ConsoleBleClient.onVoiceHistoryReceived = null
+        ConsoleBleClient.onApiKeySynced = null
         PhoneDataStore.removeListener(this)
     }
 

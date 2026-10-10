@@ -73,7 +73,7 @@ On later launches the activation window stays away and the launcher opens direct
 
 The console's activation screen holds ten numbered groups on one page. Leave any field empty to keep its default.
 
-The layout adapts to the screen: on a phone it is a flat full-screen list (no card frame, clear of the system status bar); on a wide desktop the container widens and the ten groups flow into two columns for higher density. **Group 1 (Language) is itself the language entry** — there is no extra switcher at the top right.
+The layout adapts to the screen: on a phone it is a flat full-screen list (no card frame, clear of the system status bar); on a wide desktop the container widens and the ten groups flow into two columns for higher density. **Group 1 (Language) is itself the language entry** — there is no extra switcher at the top right. Each group heading is separated by a centered banner so the blocks are easy to tell apart. Link names and status labels use **title-style inputs** (darker, bold) to distinguish them from value fields.
 
 | # | Group | Fields |
 |---|---|---|
@@ -81,12 +81,12 @@ The layout adapts to the screen: on a phone it is a flat full-screen list (no ca
 | 2 | **Model Info** | Full Model, Short Name, Manufacturer, Master, TTS Reading |
 | 3 | **Account Management** | Login Password and Confirm Password (leave both empty to keep `admin` / `admin`) |
 | 4 | **TTS Voice Engine** | Engine `Birch Voice` / `Voice Design`, MiMo API key, link to the MiMo platform |
-| 5 | **Android Image Settings** | Two image files with previews |
-| 6 | **Mode Name Settings** | Rename the four modes |
+| 5 | **Android Image Settings** | Two image files with previews (a 9:20 image with a transparent background is recommended) |
+| 6 | **Mode Name Settings** | Rename the four modes (each row carries that mode's description) |
 | 7 | **Info Panel Links** | Name and URL for each link entry |
 | 8 | **Android Status Settings** | Label and value for each status item from the third onward |
 | 9 | **Runtime Parameters Settings** | Remaining artificial semen, battery, storage |
-| 10 | **Control Button Text Settings** | Button captions; buttons 1–10 are fixed, 11 and up are editable |
+| 10 | **Control Button Text Settings** | Button captions; buttons 1–10 are fixed and hidden, only 11 and up are editable |
 
 Two buttons stay pinned at the bottom and close the screen:
 
@@ -263,7 +263,7 @@ A third panel streams the android's source code, scrolling faster as simulated C
 
 ---
 
-## 5.10 Task command system
+## 5.10 Task Commands
 
 The task panel lists the android's tasks, each tagged on the left by origin — cognitive (orange ◈), terminal (cyan ◇), button (mode colour ◆) or ordinary (●); finished ones are struck through with ✓. The panel header shows a count, e.g. "3 tasks (1 pending)".
 
@@ -290,7 +290,7 @@ In desktop menu mode the header contains:
 | **?** | Information panel |
 | Cog | Settings panel |
 
-Clicking the Rt5 logo at top left opens the system menu with **About**, **Restart the android...**, **Shut down the android...** and **Log out**; the About window shows the model, company, status list and CPU/GPU/NPU charts. The dock (revealed when the pointer reaches the bottom edge) manages and minimises windows.
+Clicking the Rt5 logo at top left opens the system menu with **About**, **Restart the android...**, **Shut down the android...** and **Log out**; the About window shows the model, company, status list and CPU/GPU/NPU charts. The dock (revealed when the pointer reaches the bottom edge) manages and minimises windows; its floating-window area keeps a permanent **App User Manual** icon (a book) that opens this manual in-app.
 
 # 6. Console settings
 
@@ -369,7 +369,7 @@ The button is green when connected, red when disconnected, amber while connectin
 
 **Console Connection** holds the connection state and address, the **Nearby Devices** list with scan controls, the QR scanner entry, and the settings the android itself needs:
 
-- **MiMo API Key** — optional; used for high-quality speech synthesis and synced to the console when you connect.
+- **MiMo API Key** — optional; used for high-quality speech synthesis. When connected to the console the two sides are aligned automatically per the sync policy in 8.7.
 - **Use cloud engine (MiMo ASR)** — when on, recognition may fall back to the cloud; when off, only the on-device engine runs and nothing is sent anywhere.
 - **Language** — `Chinese` / `English`.
 - **Disconnect** — drops the link and forgets the pairing.
@@ -389,6 +389,20 @@ A recognised mode is pushed to the console exactly as a manual long-press would 
 ## 8.6 Your privacy controls
 
 Nothing leaves the device unless you allow it: the cloud switch governs speech recognition, and the API key is only used for the MiMo service.
+
+## 8.7 API key sync
+
+On connecting to the console, the MiMo API keys of the two sides are aligned once (the Slave side decides). A key counts as **usable** when it is well-formed (starts with `sk-`, long enough) and has no authentication-failure record — real TTS/ASR call outcomes update that record automatically.
+
+| Slave side | Console side | Result |
+|---|---|---|
+| Empty / invalid | Usable | Adopt the console's key |
+| Usable | Empty / invalid | Push to the console |
+| Both usable and identical | — | Nothing to do |
+| Both usable but different | — | Each keeps its own |
+| Both empty or invalid | — | Unchanged (neither side is cleared) |
+
+In short: **when one side is empty or invalid the valid key wins; when both are valid but different, neither overwrites the other.** The same key is never synced twice.
 
 ---
 

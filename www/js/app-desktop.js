@@ -605,7 +605,7 @@
             }
             function genieTarget(r) {
                 dockPeekShow();
-                var item = document.getElementById(r.d.dockItem);
+                var item = document.getElementById(dockItemFor(r));
                 var ir = (item && item.offsetWidth > 0) ? item.getBoundingClientRect()
                     : { left: window.innerWidth / 2 - 30, top: window.innerHeight - 40, width: 60, height: 60 };
                 var wr = r.winEl.getBoundingClientRect();
@@ -696,7 +696,7 @@
                     if (typeof window.chromeMenuClosed === 'function') window.chromeMenuClosed(r.id);
                     if (typeof window.notifyModalState === 'function') window.notifyModalState();
                     syncDock(r);
-                    var di = document.getElementById(r.d.dockItem);
+                    var di = document.getElementById(dockItemFor(r));
                     if (di) bounceDockItem(di); /* 图标就位后再弹跳 */
                 };
                 a.finished.then(fin).catch(function () { r.anim = null; });
@@ -822,24 +822,38 @@
                 setTimeout(fin, 380);
                 return true;
             }
+            /* 阅读器窗口的坞图标按内容区分：说明书 → dock-manual-window，PDF → dock-pdf-window
+               （两者共用 pdf-viewer-modal 实例，dockItem 需按当前文件动态解析） */
+            function dockItemFor(r) {
+                if (r.id === 'pdf-viewer-modal' && typeof currentPdfFile !== 'undefined' && currentPdfFile && currentPdfFile.id === 'app-manual') {
+                    return 'dock-manual-window';
+                }
+                return r.d.dockItem;
+            }
             function syncDock(r) {
-                /* 聚合同一坞图标的全部窗口实例：任一显示即显示图标，任一打开（非最小化）即带指示点 */
-                var item = document.getElementById(r.d.dockItem);
-                if (!item) return;
-                var shown = false, open = false;
-                Object.keys(recs).forEach(function (k) {
-                    var o = recs[k];
-                    if (o.d.dockItem !== r.d.dockItem) return;
-                    if (isOpen(o) || o.minimized) shown = true;
-                    if (isOpen(o) && !o.minimized) open = true;
+                /* 聚合同一坞图标的全部窗口实例：任一显示即显示图标，任一打开（非最小化）即带指示点。
+                   阅读器窗口两图标（说明书/PDF）都重算：内容切换时旧图标不留残点。 */
+                var candidates = (r.id === 'pdf-viewer-modal')
+                    ? ['dock-manual-window', 'dock-pdf-window']
+                    : [dockItemFor(r)];
+                candidates.forEach(function (itemId) {
+                    var item = document.getElementById(itemId);
+                    if (!item) return;
+                    var shown = false, open = false;
+                    Object.keys(recs).forEach(function (k) {
+                        var o = recs[k];
+                        if (dockItemFor(o) !== itemId) return;
+                        if (isOpen(o) || o.minimized) shown = true;
+                        if (isOpen(o) && !o.minimized) open = true;
+                    });
+                    item.classList.toggle('window-shown', shown);
+                    item.classList.toggle('window-open', open);
                 });
-                item.classList.toggle('window-shown', shown);
-                item.classList.toggle('window-open', open);
             }
             function dockActivate(itemId) {
                 /* 聚合同一坞图标的全部实例：优先恢复最小化窗口，否则置顶最上层的打开窗口 */
                 var matches = Object.keys(recs).map(function (k) { return recs[k]; })
-                    .filter(function (r) { return r.d.dockItem === itemId; });
+                    .filter(function (r) { return dockItemFor(r) === itemId; });
                 var handled = matches.length > 0;
                 var min = matches.filter(function (r) { return r.minimized; })[0];
                 if (min) { restore(min.id); return; }
@@ -854,13 +868,17 @@
                     setTimeout(function () { r.winEl.classList.remove('menu-panel-highlight'); }, 1400);
                     return;
                 }
-                /* 全部关闭：关于本机常驻图标直开；其余打开空实例兜底 */
+                /* 全部关闭：关于本机 / 说明书常驻图标直开；其余打开空实例兜底 */
                 matches.forEach(function (r) {
                     if (r.id === 'about-modal' && typeof window.openAboutModal === 'function') { window.openAboutModal(); }
+                    else if (r.id === 'pdf-viewer-modal' && typeof openManualViewer === 'function') { openManualViewer(); }
                     else open(r.id);
                 });
                 if (!handled && itemId === 'dock-about-window' && typeof window.openAboutModal === 'function') {
                     window.openAboutModal(); /* 常驻图标：从未打开过时直接打开 */
+                }
+                if (!handled && itemId === 'dock-manual-window' && typeof openManualViewer === 'function') {
+                    openManualViewer(); /* 说明书常驻图标：直接应用内打开说明书 */
                 }
             }
             /* 黄灯最小化 / 绿灯最大化（含双击标题栏）：三窗口红绿灯统一在此绑定 */

@@ -526,6 +526,9 @@
             .dock-window-item { display: none; }
             .dock-window-item.window-shown { display: flex; }
             #dock-about-window { display: flex; }
+            /* App 使用说明书常驻图标（v1.11.0）：书本造型内嵌 SVG，金棕渐变与相邻 dock 项风格一致 */
+            #dock-manual-window { display: flex; }
+            #dock-manual-window .dock-icon { background: linear-gradient(180deg, #b08a3f, #6e5419); border: 1px solid rgba(226, 190, 106, 0.4); color: #ffeeda; }
             /* 过程窗口 / PDF 阅读器独立配色 */
             #dock-process-window .dock-icon { background: linear-gradient(180deg, #b0556b, #6e2337); border: 1px solid rgba(244, 114, 182, 0.4); color: #ffe9f1; }
             #dock-pdf-window .dock-icon { background: linear-gradient(180deg, #c25b4e, #7a2a22); border: 1px solid rgba(248, 113, 113, 0.4); color: #ffe9e5; }

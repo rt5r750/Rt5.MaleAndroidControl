@@ -256,11 +256,12 @@ class MainActivity : AppCompatActivity() {
         RobotGattServer.onApiKeyReceived = { apiKey ->
             mainHandler.post {
                 if (apiKey.isNotEmpty()) {
+                    /* v1.11.0 双端同步矩阵：原生层不再无条件覆写 SharedPreferences，
+                       统一交前端 _onMimoApiKeySynced 裁决（本端可用且不同 → 各用各的），
+                       决定采用时前端回调 Android.setMimoApiKey 落库 */
                     val cleanKey = normalizeApiKey(apiKey)
-                    ttsPrefs.edit().putString(PREF_KEY_MIMO_TOKEN, cleanKey).apply()
                     val escapedKey = cleanKey.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n")
                     webView.evaluateJavascript("if (typeof window._onMimoApiKeySynced === 'function') { window._onMimoApiKeySynced(\"$escapedKey\"); }", null)
-                    showToastSafely(ConsoleI18n.t("API Key 已同步"))
                 }
             }
         }
@@ -490,6 +491,10 @@ class MainActivity : AppCompatActivity() {
                             }
                             "voice-history" -> {
                                 RobotGattServer.sendVoice(json)
+                            }
+                            // ApiKey(7506) 下发（v1.11.0）：Master Key 可用、Slave 空/不可用时推给 Slave
+                            "apikey" -> {
+                                RobotGattServer.sendApiKey(json)
                             }
                         }
                     } catch (e: Exception) {

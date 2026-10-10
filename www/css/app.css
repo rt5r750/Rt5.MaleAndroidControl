@@ -1121,15 +1121,27 @@
         .activation-form {
             gap: 1.1rem;
         }
+        /* v1.11.0：表单容器绝不能自带 overflow——它若成为滚动祖先，
+           吸底按钮（.activation-actions 的 sticky bottom）会以它为参照，
+           而它内容自然高、永不滚动，sticky 即失效，按钮停在文档流末尾被
+           .activation-container 的可视区裁掉（实测 bottom 1062 > 可视 857）。
+           滚动必须只发生在 .activation-container 上，sticky 才贴得住。 */
         .activation-scroll {
-            overflow-y: auto;
+            overflow: visible;
             min-height: 0;
         }
         .activation-section-title {
             font-size: 0.9rem;
             font-weight: bold;
-            color: #8fbc8f;
-            margin-bottom: 0.5rem;
+            color: #c0e4c0;
+            text-align: center;
+            /* 大块标题居中横幅：整宽底色带 + 上下细线，一眼分隔各大块（v1.11.0） */
+            background: rgba(26, 47, 26, 0.85);
+            border-top: 1px solid rgba(143, 188, 143, 0.28);
+            border-bottom: 1px solid rgba(143, 188, 143, 0.28);
+            padding: 0.35rem 0.75rem;
+            margin-bottom: 0.55rem;
+            border-radius: 0.4rem;
         }
         .activation-row {
             display: flex;
@@ -1148,6 +1160,25 @@
             font-size: 0.85rem;
             flex: 1;
             min-width: 0;
+        }
+        /* 标题类输入框（信息面板链接名称、信息参数标签）：
+           更深底色 + 加粗文本，与值输入框区分，提示用户这里填的是标题（v1.11.0） */
+        #activation-modal input.act-status-label,
+        #activation-modal textarea.act-status-label,
+        #activation-modal textarea.act-link-name {
+            background: rgba(13, 26, 13, 0.85);
+            border-color: rgba(143, 188, 143, 0.5);
+            font-weight: bold;
+            color: #e5f2e5;
+        }
+        /* 模式名称行：输入框一行、简介换行整宽显示 */
+        #activation-modal .activation-row.act-mode-row {
+            flex-wrap: wrap;
+            row-gap: 0.15rem;
+        }
+        #activation-modal .act-mode-desc {
+            flex: 1 1 100%;
+            margin: 0 0 0.45rem;
         }
         .activation-img-grid {
             display: grid;
@@ -1476,7 +1507,8 @@
         }
         .file-item {
             display: flex;
-            align-items: center;
+            /* 顶部对齐：英文长名换行到两行时，右侧按钮列不再居中挤压名称区 */
+            align-items: flex-start;
             background: rgba(45, 74, 45, 0.2);
             border: 1px solid rgba(78, 111, 78, 0.3);
             border-radius: 0.5rem;
@@ -1522,7 +1554,13 @@
             font-weight: bold;
             font-size: 0.875rem;
             line-height: 1.3;
-            word-break: break-all;
+            /* 英文长名排版：按词换行（break-all 会把英文单词拦腰截断），最多两行截断 */
+            overflow-wrap: break-word;
+            word-break: normal;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
         .file-meta {
             color: rgba(143, 188, 143, 0.6);
@@ -1534,6 +1572,9 @@
             flex-direction: column;
             gap: 0.25rem;
             flex-shrink: 0;
+            /* 按钮列定宽不缩水：中英按钮宽度差不再挤名称区 */
+            min-width: 5.2rem;
+            align-items: stretch;
         }
         .file-open-new-btn {
             background: #2d4a2d;

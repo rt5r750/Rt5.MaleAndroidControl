@@ -1,12 +1,12 @@
 {
-  "version": "1c277cc213d9",
-  "generatedAt": "2026-10-09T14:55:10.897Z",
-  "totalSize": 16189147,
+  "version": "164436b48388",
+  "generatedAt": "2026-10-10T03:09:48.208Z",
+  "totalSize": 16205794,
   "files": [
     {
       "path": "MimoTTSClient.js",
-      "size": 20304,
-      "hash": "d5bddb839895"
+      "size": 21058,
+      "hash": "45d3d0d93e54"
     },
     {
       "path": "RotationSprite.js",
@@ -30,13 +30,13 @@
     },
     {
       "path": "css/app.css",
-      "size": 197288,
-      "hash": "36b17d49ba2c"
+      "size": 199112,
+      "hash": "cb3c5fb61429"
     },
     {
       "path": "css/desktop-chrome.css",
-      "size": 43791,
-      "hash": "64aefd07a328"
+      "size": 44140,
+      "hash": "6a04dba15072"
     },
     {
       "path": "css/fonts-face.css",
@@ -85,13 +85,13 @@
     },
     {
       "path": "doc/manual/manual.en.html",
-      "size": 38405,
-      "hash": "8bac6418e28c"
+      "size": 40007,
+      "hash": "331a53835fe2"
     },
     {
       "path": "doc/manual/manual.zh-CN.html",
-      "size": 34706,
-      "hash": "4815c7a95ea0"
+      "size": 36162,
+      "hash": "c990077c375b"
     },
     {
       "path": "doc/robot_code.txt",
@@ -125,13 +125,13 @@
     },
     {
       "path": "js/app-core.js",
-      "size": 406276,
-      "hash": "220a661c4c34"
+      "size": 412609,
+      "hash": "b40205ec67d8"
     },
     {
       "path": "js/app-desktop.js",
-      "size": 55029,
-      "hash": "d955df37b151"
+      "size": 56336,
+      "hash": "0cdb49abfe62"
     },
     {
       "path": "js/app-launch.js",
@@ -145,13 +145,13 @@
     },
     {
       "path": "js/i18n.js",
-      "size": 131375,
-      "hash": "38e53429b0e8"
+      "size": 131861,
+      "hash": "68107a0cb8d9"
     },
     {
       "path": "js/platform-bootstrap.js",
-      "size": 13864,
-      "hash": "5982b79affcc"
+      "size": 14209,
+      "hash": "42e9e70e0d9a"
     },
     {
       "path": "js/win.js",
@@ -310,8 +310,8 @@
     },
     {
       "path": "芮誊T系列仿人男性机器人控制台V1.1.html",
-      "size": 131927,
-      "hash": "6aa2e1cf3ab7"
+      "size": 134118,
+      "hash": "17280cd10deb"
     }
   ]
 }

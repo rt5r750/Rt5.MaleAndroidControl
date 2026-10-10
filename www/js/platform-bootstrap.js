@@ -11,7 +11,11 @@
         // 桌面菜单模式（macOS 菜单风格窗口 + 底部程序坞）：win-app 与浏览器启用，Android WebView 不启用
         // （win-app preload 同名暴露 window.Android，故以 isWin 优先判定）
         if (isWin || !isAndroid) document.documentElement.classList.add('desktop-chrome');
-        if (isAndroid) {
+        /* android-webview 类只给真正的 Android WebView：win-app preload 同名暴露
+           window.Android，若不排除 win，会误中 app.css 的
+           html.android-webview #login-modal{display:none!important}，
+           打包后的 win-app 登录层只剩背景图、无密码输入框（v1.11.0 修复） */
+        if (isAndroid && !isWin) {
             document.documentElement.classList.add('android-webview');
             var aLink = document.createElement('link');
             aLink.rel = 'stylesheet';

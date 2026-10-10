@@ -53,6 +53,7 @@ object PhoneI18n {
         "控制面板连接" to "Console Connection",
         "输入 API Key 用于语音播报" to "API Key for voice broadcast",
         "用于高质量机械语音合成，连接时自动同步到控制台" to "High-quality mechanical TTS; synced to console on connect",
+        "API Key 已从控制端同步" to "API Key synced from the console",
         "附近设备" to "Nearby Devices",
         "二维码格式无效" to "Invalid QR code",
         "无法打开相机" to "Unable to open camera",

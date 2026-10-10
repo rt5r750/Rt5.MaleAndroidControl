@@ -1,6 +1,6 @@
 {
   "name": "master-windows-console",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "description": "Master 控制台 Windows 桌面版（宽屏）",
   "main": "app/main.js",
   "scripts": {

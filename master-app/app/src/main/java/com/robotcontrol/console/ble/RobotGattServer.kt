@@ -660,6 +660,16 @@ object RobotGattServer {
         }
     }
 
+    /* ApiKey(7506) 下发（v1.11.0）：Master 侧 Key 可用而 Slave 空/不可用时推给 Slave；
+       值写入特征表并 notify，客户端读后本地采用，不回写（防覆盖循环） */
+    fun sendApiKey(apiKey: String) {
+        bleHandler?.post {
+            val value = apiKey.toByteArray(Charsets.UTF_8)
+            characteristicValues[BleConstants.CHAR_APIKEY_UUID] = value
+            notifyCharacteristicChanged(apikeyCharacteristic, value)
+        }
+    }
+
     /* UiLang(7507)：0=zh、1=en、255=未设置。语言变化即推；
        订阅 CCCD 后由 sendCurrentValueFor 自动补发当前值 */
     @Volatile var lastUiLang: String = "zh"

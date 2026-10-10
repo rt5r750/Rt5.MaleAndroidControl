@@ -572,6 +572,27 @@
             setMimoApiKey(key) {
                 return this.set(this.KEYS.MIMO_API_KEY, key);
             }
+            /* Key 可用性历史（v1.11.0）：真实 TTS/ASR 调用的成败按 Key 哈希落本地标志，
+               供双端同步裁决（格式校验 + 历史标志，不发探测请求）。
+               ok=有成功记录；fail=有鉴权失败记录；空=无记录（未知）。 */
+            recordMimoKeyResult(key, ok) {
+                var k = String(key || '').trim();
+                if (!k || k.length < 16 || k.indexOf('sk-') !== 0) return;
+                var hash = 0;
+                for (var i = 0; i < k.length; i++) {
+                    hash = ((hash << 5) - hash + k.charCodeAt(i)) | 0;
+                }
+                this.set('mimoKeyState' + Math.abs(hash).toString(36), ok ? 'ok' : 'fail');
+            }
+            getMimoKeyState(key) {
+                var k = String(key || '').trim();
+                if (!k) return '';
+                var hash = 0;
+                for (var i = 0; i < k.length; i++) {
+                    hash = ((hash << 5) - hash + k.charCodeAt(i)) | 0;
+                }
+                return this.get('mimoKeyState' + Math.abs(hash).toString(36), '');
+            }
             getMimoTtsEngine() {
                 return this.get(this.KEYS.MIMO_TTS_ENGINE, 'voicedesign');
             }
@@ -1384,6 +1405,10 @@
                     if (typeof Android !== 'undefined' && Android.setMimoApiKey) {
                         Android.setMimoApiKey(key);
                     }
+                    // 7506 同步（v1.11.0）：改完即推，Slave 下次读取/连接裁决用最新值
+                    if (typeof Android !== 'undefined' && Android.onDataChanged) {
+                        Android.onDataChanged('apikey', key);
+                    }
                     var statusEl = document.getElementById('mimo-status');
                     if (statusEl) statusEl.textContent = key ? 'API Key 已保存' : 'API Key 已清除';
                 });
@@ -1403,6 +1428,7 @@
             }
         }
 
+        var syncLastPushedApiKey;   // 7506 推送去重（undefined=未推过）
         function syncCurrentStateToNative() {
             if (typeof Android === 'undefined' || !Android.onDataChanged) return;
             try {
@@ -1419,6 +1445,20 @@
                 Android.onDataChanged('emotion', [emotions.obedience||0, emotions.shame||0, emotions.pleasure||0, emotions.mechanical||0].join(','));
                 var tasks = loadTasks();
                 Android.onDataChanged('tasks', JSON.stringify(tasks));
+                // ApiKey(7506)：把本机 Key 写进特征值供 Slave 读取（v1.11.0 双端同步，
+                // Slave 侧统一裁决：本端空/不可用才采用，双方可用不同则各用各的）。
+                // 仅发布「可用」Key：本机自知失效（失败历史/格式非法）时按空发布，
+                // 使 Slave 侧把本端视为不可用，正确走「以有效方为准」分支。
+                // 值未变时不重复推送（本函数在每次状态同步时都会跑）。
+                (function () {
+                    var k = storage.getMimoApiKey() || '';
+                    if (!k || k.length < 16 || k.indexOf('sk-') !== 0) k = '';
+                    else if (storage.getMimoKeyState(k) === 'fail') k = '';
+                    if (k !== syncLastPushedApiKey) {
+                        syncLastPushedApiKey = k;
+                        Android.onDataChanged('apikey', k);
+                    }
+                })();
             } catch(e) {
                 console.log('syncCurrentStateToNative error', e);
             }
@@ -1586,17 +1626,47 @@
             }, 0);
         }
 
-        // API Key 同步回调（由 Native 层调用，连接后覆写）
+        /* 真实 TTS/ASR 调用成败落本地标志（MimoTTSClient 回调；v1.11.0 双端同步判定用） */
+        window.__rcRecordKeyResult = function(key, ok) {
+            try { storage.recordMimoKeyResult(key, ok); } catch (e) { /* ignore */ }
+        };
+
+        // API Key 同步回调（由 Native 层调用：Slave 经 7506 写入本端 Key）
         window._onMimoApiKeySynced = function(apiKey) {
+            var remote = String(apiKey || '').trim();
+            // 本机 Key 以原生存储优先（master-app SharedPreferences / win localStorage），与 _initMimoTTS 同口径
+            var local = '';
+            try {
+                if (typeof Android !== 'undefined' && Android.getMimoApiKey) local = Android.getMimoApiKey() || '';
+            } catch (e) { /* ignore */ }
+            if (!local) local = String(storage.getMimoApiKey() || '').trim();
+            var statusEl = document.getElementById('mimo-status');
+            /* v1.11.0 双端同步矩阵（Slave 侧统一裁决；Master 侧对旧版 Slave 的无条件
+               写入同样设防）：本端 Key 可用且与远端不同 → 各用各的，不覆盖；
+               本端空/不可用 → 采用远端；双方一致 → 无事。 */
+            var localUsable = (function (k) {
+                if (!k || k.length < 16 || k.indexOf('sk-') !== 0) return false;
+                return storage.getMimoKeyState(k) !== 'fail';
+            })(local);
+            if (remote && remote === local) {
+                if (statusEl) statusEl.textContent = 'API Key 一致，无需同步';
+                return;
+            }
+            if (localUsable) {
+                if (statusEl) statusEl.textContent = '本机 API Key 可用，各用各的（未覆盖）';
+                return;
+            }
             console.log('[MimoTTS] API Key 已从手机端同步');
             if (_ttsClient) {
-                _ttsClient.setApiKey(apiKey);
+                _ttsClient.setApiKey(remote);
             }
-            // 连接后以手机端 Key 为准，覆写本地存储
-            storage.setMimoApiKey(apiKey);
+            storage.setMimoApiKey(remote);
+            // 原生侧同步落库（master-app SharedPreferences / win localStorage）
+            if (typeof Android !== 'undefined' && Android.setMimoApiKey) {
+                Android.setMimoApiKey(remote);
+            }
             var keyInput = document.getElementById('mimo-api-key-input');
-            if (keyInput) keyInput.value = apiKey;
-            var statusEl = document.getElementById('mimo-status');
+            if (keyInput) keyInput.value = remote;
             if (statusEl) statusEl.textContent = 'API Key 已同步';
         };
 
@@ -5897,16 +5967,17 @@
                         }
                     }
                 });
-                // 模式名称四行
+                // 模式名称四行（每行下补该模式功能简介，复用设置页 MODE_DESCRIPTIONS 提示词）
                 var modeWrap = document.getElementById('activation-mode-names');
                 if (modeWrap) {
                     modeWrap.innerHTML = '';
                     var savedModes = storage.getModeNames();
                     Object.keys(MODES).forEach(function (id) {
                         var row = document.createElement('div');
-                        row.className = 'activation-row';
+                        row.className = 'activation-row act-mode-row';
                         row.innerHTML = '<label>' + escapeHtmlAttr(MODES[id].name) + '</label>' +
-                            '<input type="text" class="login-input" data-act-mode="' + id + '" value="' + escapeHtmlAttr(savedModes[id] || '') + '" placeholder="' + escapeHtmlAttr(MODES[id].name) + '">';
+                            '<input type="text" class="login-input" data-act-mode="' + id + '" value="' + escapeHtmlAttr(savedModes[id] || '') + '" placeholder="' + escapeHtmlAttr(MODES[id].name) + '">' +
+                            '<p class="text-xs text-[#8fbc8f]/60 mt-1 leading-relaxed act-mode-desc">' + escapeHtmlAttr(MODE_DESCRIPTIONS[id] || '') + '</p>';
                         modeWrap.appendChild(row);
                     });
                 }
@@ -5970,17 +6041,21 @@
                 if (ic) ic.checked = !!rp.isCharging;
                 if (su) su.value = rp.storageUsed;
                 if (st) st.value = rp.storageTotal;
-                // 控制按钮文本（前 10 固定只读，11 起可编辑）
+                // 控制按钮文本（1-10 固定不可修改，不显示；11 起可编辑才渲染）
                 var btnWrap = document.getElementById('activation-button-texts');
                 if (btnWrap) {
                     btnWrap.innerHTML = '';
                     var texts = storage.getButtonTexts();
+                    var fixedNote = document.createElement('p');
+                    fixedNote.className = 'text-xs text-[#8fbc8f]/70 mb-1';
+                    fixedNote.textContent = '提示：1-10 号按钮固定不可修改，此处仅显示 11 号及之后的自定义按钮';
+                    btnWrap.appendChild(fixedNote);
                     texts.forEach(function (text, i) {
+                        if (i < 10) return;
                         var row = document.createElement('div');
                         row.className = 'activation-row';
-                        var editable = i >= 10;
                         row.innerHTML = '<label class="act-no">' + (i + 1) + ':</label>' +
-                            '<input type="text" class="login-input" data-act-btn-index="' + i + '" value="' + escapeHtmlAttr(displayWithDefault(text, storage.DEFAULT_BUTTON_TEXTS[i])) + '"' + (editable ? '' : ' disabled style="opacity:0.55;"') + '>';
+                            '<input type="text" class="login-input" data-act-btn-index="' + i + '" value="' + escapeHtmlAttr(displayWithDefault(text, storage.DEFAULT_BUTTON_TEXTS[i])) + '">';
                         btnWrap.appendChild(row);
                     });
                 }
@@ -6040,8 +6115,32 @@
         });
         window.addEventListener('rc-lang-changed', function () {
             var modal = document.getElementById('activation-modal');
-            if (modal && modal.style.display !== 'none') autoGrowActivationTextareas();
+            if (modal && modal.style.display !== 'none') {
+                refreshActivationInputDefaults();
+                autoGrowActivationTextareas();
+            }
         });
+
+        /** 语言切换后刷新激活页 input 默认显示值：
+            textarea 内容由 i18n 文本翻译自动重写，但 input.value 不是文本节点，
+            默认值仍显示旧语言（EN 下残留中文）。只重算「当前值恰为默认」的输入框
+            （displayWithDefault 对用户自定义值原样返回，天然不动手填内容）；
+            空值+placeholder 的行（型号/模式）placeholder 已由属性翻译自动更新，无需处理。 */
+        function refreshActivationInputDefaults() {
+            document.querySelectorAll('#activation-button-texts input[data-act-btn-index]').forEach(function (el) {
+                var idx = parseInt(el.getAttribute('data-act-btn-index'), 10);
+                el.value = displayWithDefault(el.value, storage.DEFAULT_BUTTON_TEXTS[idx]);
+            });
+            var actDefaults = storage.getDefaultStatusItems();
+            var rows = document.querySelectorAll('#activation-status-items .activation-row');
+            rows.forEach(function (row, ri) {
+                var dflt = actDefaults[ri + 2] || {};
+                var labelEl = row.querySelector('.act-status-label');
+                var valueEl = row.querySelector('.act-status-value');
+                if (labelEl) labelEl.value = displayWithDefault(labelEl.value, dflt.label);
+                if (valueEl) valueEl.value = displayWithDefault(valueEl.value, dflt.value);
+            });
+        }
 
         /** 激活页两个按钮的绑定（必须早于登录成功：initEventListeners 登录后才执行）。 */
         function bindActivationButtons() {
@@ -6171,16 +6270,17 @@
                 if (storageUsed < 0 || storageTotal <= 0 || storageUsed > storageTotal) { alert('存储设置无效：已使用量不能大于总量，且总量必须大于0'); return; }
                 state.runtimeParams = { liquidCurrent, liquidTotal, batteryAuto, batteryPercentage, isCharging, storageUsed, storageTotal };
                 saveRuntimeParams();
-                // 10. 控制按钮文本（前 10 固定 + 输入的 11+）
-                const btnTexts = [];
+                // 10. 控制按钮文本（1-10 不渲染、以存储值原样保留；只保存 11+ 输入）
+                const btnTexts = storage.getButtonTexts().slice();
                 let btnChanged = false;
                 document.querySelectorAll('#activation-button-texts input[data-act-btn-index]').forEach(function (input) {
                     const idx = parseInt(input.getAttribute('data-act-btn-index'), 10);
-                    btnTexts[idx] = valueWithDefaultSource(input, storage.DEFAULT_BUTTON_TEXTS[idx]);
-                    if (idx >= 10 && input.value !== storage.DEFAULT_BUTTON_TEXTS[idx]) btnChanged = true;
+                    if (idx < 10) return;
+                    const nextVal = valueWithDefaultSource(input, storage.DEFAULT_BUTTON_TEXTS[idx]);
+                    if (nextVal !== btnTexts[idx]) btnChanged = true;
+                    btnTexts[idx] = nextVal;
                 });
                 if (btnChanged) {
-                    for (let i = 0; i < btnTexts.length; i++) if (btnTexts[i] == null) btnTexts[i] = storage.DEFAULT_BUTTON_TEXTS[i];
                     storage.setButtonTexts(btnTexts);
                 }
             }

@@ -148,7 +148,7 @@
 </ol>
 <h2>2.5 激活表单</h2>
 <p>控制台的激活界面共十组，一页完成。任何字段留空即保持默认。</p>
-<p>版面随屏幕宽度自适应：手机上为整屏平铺（无卡片边框，顶部避开系统状态栏）；桌面宽屏下容器加宽、十组按两列排布，信息密度更高。<strong>第 1 组「语言」本身就是语言入口</strong>，页面右上角没有另外的切换按钮。</p>
+<p>版面随屏幕宽度自适应：手机上为整屏平铺（无卡片边框，顶部避开系统状态栏）；桌面宽屏下容器加宽、十组按两列排布，信息密度更高。<strong>第 1 组「语言」本身就是语言入口</strong>，页面右上角没有另外的切换按钮。每组标题以居中横幅分隔，一眼可辨。链接名称与状态项标签是<strong>标题类输入框</strong>（深底加粗，与值输入框区分）。</p>
 <div class="tbl-wrap"><table>
 <thead><tr><th>#</th><th>分组</th><th>字段</th></tr></thead>
 <tbody>
@@ -156,12 +156,12 @@
 <tr><td>2</td><td><strong>型号信息</strong></td><td>完整型号、简称、制造公司、主人、语音播报读法</td></tr>
 <tr><td>3</td><td><strong>账号管理</strong></td><td>登录密码与确认密码（两项均留空则保持 <code>admin</code> / <code>admin</code>）</td></tr>
 <tr><td>4</td><td><strong>TTS 语音引擎</strong></td><td>引擎 <code>白桦音色</code> / <code>音色设计</code>、MiMo API Key、MiMo 开放平台链接</td></tr>
-<tr><td>5</td><td><strong>机器人图片设置</strong></td><td>两张图片文件与预览</td></tr>
-<tr><td>6</td><td><strong>模式名称设置</strong></td><td>重命名四大模式</td></tr>
+<tr><td>5</td><td><strong>机器人图片设置</strong></td><td>两张图片文件与预览（建议 9:20 比例、带透明通道的图片）</td></tr>
+<tr><td>6</td><td><strong>模式名称设置</strong></td><td>重命名四大模式（每行附该模式的功能简介）</td></tr>
 <tr><td>7</td><td><strong>信息面板链接</strong></td><td>各链接条目的名称与地址</td></tr>
 <tr><td>8</td><td><strong>信息参数</strong></td><td>第三条起的状态项标签与值</td></tr>
 <tr><td>9</td><td><strong>运行参数设置</strong></td><td>剩余仿真精液、剩余电量、剩余存储</td></tr>
-<tr><td>10</td><td><strong>控制按钮文本设置</strong></td><td>按钮文案；1–10 号固定，11 号及以后可编辑</td></tr>
+<tr><td>10</td><td><strong>控制按钮文本设置</strong></td><td>按钮文案；1–10 号固定不显示，仅 11 号及以后可编辑</td></tr>
 </tbody></table></div>
 <p>底部两个按钮吸底常驻结束流程：</p>
 <ul>
@@ -336,7 +336,7 @@
 <tr><td><strong>?</strong></td><td>信息面板</td></tr>
 <tr><td>齿轮</td><td>设置面板</td></tr>
 </tbody></table></div>
-<p>点左上角 Rt5 标志打开系统菜单，含 <strong>关于本机</strong>、<strong>重新启动机器人…</strong>、<strong>关闭机器人…</strong>、<strong>退出登录</strong> 四项；「关于本机」窗口显示型号、公司、状态清单与 CPU/GPU/NPU 图表。程序坞（鼠标触底缘浮出）提供窗口管理与最小化入口。</p>
+<p>点左上角 Rt5 标志打开系统菜单，含 <strong>关于本机</strong>、<strong>重新启动机器人…</strong>、<strong>关闭机器人…</strong>、<strong>退出登录</strong> 四项；「关于本机」窗口显示型号、公司、状态清单与 CPU/GPU/NPU 图表。程序坞（鼠标触底缘浮出）提供窗口管理与最小化入口，其浮窗区常驻 <strong>App 使用说明书</strong> 图标（书本造型），点击即在应用内打开本说明书。</p>
 <h2>6. 控制台设置</h2>
 <p>设置可从顶栏齿轮、Rt5 菜单、程序坞，或手机上的胶囊进入。桌面端左侧列出分组，手机端点选分组后带返回箭头。</p>
 <div class="tbl-wrap"><table>
@@ -396,7 +396,7 @@
 <h2>8.3 连接对话框</h2>
 <p>「控制面板连接」内含连接状态与地址、附近设备列表与扫描控制、二维码入口，以及机器人自身需要的设置：</p>
 <ul>
-<li><strong>MiMo API Key</strong> —— 可选；用于高质量语音合成，连接时同步到控制台。</li>
+<li><strong>MiMo API Key</strong> —— 可选；用于高质量语音合成。连接控制台时按双端同步策略自动对齐（见 8.7）。</li>
 </ul>
 <ul>
 <li><strong>识别引擎调用云端（MiMo ASR）</strong> —— 开启时识别可回退到云端；关闭时仅用本机引擎，不向外发送任何内容。</li>
@@ -415,6 +415,18 @@
 <p><strong>任务</strong>按来源标注——认知、终端、按钮或普通，已完成的会划去。<strong>语音消息</strong>按时间倒序显示时间与内容；每条新消息都会发出系统通知，标题为「主人指令」，若该消息是控制台对你所推送模式的确认，则标题为「推送成功」。</p>
 <h2>8.6 隐私控制</h2>
 <p>未经你的许可不会有任何内容离开设备：云端识别由开关控制，API Key 仅用于 MiMo 服务。</p>
+<h2>8.7 API Key 双端同步</h2>
+<p>连接控制台后，双端的 MiMo API Key 自动对齐一次（以 Slave 端为裁决方）。判定「可用」看两点：格式合法（<code>sk-</code> 前缀且长度足够）且没有鉴权失败记录——真实 TTS/ASR 调用的成败会自动更新这一记录。</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Slave 端</th><th>控制台端</th><th>结果</th></tr></thead>
+<tbody>
+<tr><td>空 / 失效</td><td>可用</td><td>采用控制台的 Key</td></tr>
+<tr><td>可用</td><td>空 / 失效</td><td>推送给控制台</td></tr>
+<tr><td>都可用且相同</td><td>—</td><td>无需同步</td></tr>
+<tr><td>都可用但不同</td><td>—</td><td>各用各的，不同步</td></tr>
+<tr><td>都为空或失效</td><td>—</td><td>不变（不会清空任何一侧）</td></tr>
+</tbody></table></div>
+<p>换言之：<strong>一侧为空或失效、另一侧有效时以有效方为准；双方有效且不一致时互不覆盖</strong>。同一 Key 不会重复同步。</p>
 <hr>
 <h2>9. 手表应用</h2>
 <p>手表有三页，可左右滑动或用表冠滚动切换：</p>

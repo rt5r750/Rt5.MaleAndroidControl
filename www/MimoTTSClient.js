@@ -202,7 +202,23 @@
         ];
     };
 
+    /* v1.11.0：真实调用成败按 Key 落本地标志（双端同步判定用）。
+       仅鉴权结果落标志——401/403 记 fail、成功记 ok，网络/服务端错误不改写记录。 */
     MimoTTSClient.prototype._callMimoApi = function(body) {
+        var self = this;
+        return this._callMimoApiRaw(body).then(function(data) {
+            if (global.__rcRecordKeyResult) global.__rcRecordKeyResult(self.apiKey, true);
+            return data;
+        }, function(err) {
+            var msg = String((err && err.message) || '');
+            if (/HTTP (401|403)/.test(msg) && global.__rcRecordKeyResult) {
+                global.__rcRecordKeyResult(self.apiKey, false);
+            }
+            throw err;
+        });
+    };
+
+    MimoTTSClient.prototype._callMimoApiRaw = function(body) {
         var self = this;
         if (!this.apiKey) {
             return Promise.reject(new Error('API Key is not set. Please enter MiMo API Key in settings.'));

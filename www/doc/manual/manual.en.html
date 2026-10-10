@@ -148,7 +148,7 @@
 </ol>
 <h2>2.5 The activation form</h2>
 <p>The console's activation screen holds ten numbered groups on one page. Leave any field empty to keep its default.</p>
-<p>The layout adapts to the screen: on a phone it is a flat full-screen list (no card frame, clear of the system status bar); on a wide desktop the container widens and the ten groups flow into two columns for higher density. <strong>Group 1 (Language) is itself the language entry</strong> — there is no extra switcher at the top right.</p>
+<p>The layout adapts to the screen: on a phone it is a flat full-screen list (no card frame, clear of the system status bar); on a wide desktop the container widens and the ten groups flow into two columns for higher density. <strong>Group 1 (Language) is itself the language entry</strong> — there is no extra switcher at the top right. Each group heading is separated by a centered banner so the blocks are easy to tell apart. Link names and status labels use <strong>title-style inputs</strong> (darker, bold) to distinguish them from value fields.</p>
 <div class="tbl-wrap"><table>
 <thead><tr><th>#</th><th>Group</th><th>Fields</th></tr></thead>
 <tbody>
@@ -156,12 +156,12 @@
 <tr><td>2</td><td><strong>Model Info</strong></td><td>Full Model, Short Name, Manufacturer, Master, TTS Reading</td></tr>
 <tr><td>3</td><td><strong>Account Management</strong></td><td>Login Password and Confirm Password (leave both empty to keep <code>admin</code> / <code>admin</code>)</td></tr>
 <tr><td>4</td><td><strong>TTS Voice Engine</strong></td><td>Engine <code>Birch Voice</code> / <code>Voice Design</code>, MiMo API key, link to the MiMo platform</td></tr>
-<tr><td>5</td><td><strong>Android Image Settings</strong></td><td>Two image files with previews</td></tr>
-<tr><td>6</td><td><strong>Mode Name Settings</strong></td><td>Rename the four modes</td></tr>
+<tr><td>5</td><td><strong>Android Image Settings</strong></td><td>Two image files with previews (a 9:20 image with a transparent background is recommended)</td></tr>
+<tr><td>6</td><td><strong>Mode Name Settings</strong></td><td>Rename the four modes (each row carries that mode's description)</td></tr>
 <tr><td>7</td><td><strong>Info Panel Links</strong></td><td>Name and URL for each link entry</td></tr>
 <tr><td>8</td><td><strong>Android Status Settings</strong></td><td>Label and value for each status item from the third onward</td></tr>
 <tr><td>9</td><td><strong>Runtime Parameters Settings</strong></td><td>Remaining artificial semen, battery, storage</td></tr>
-<tr><td>10</td><td><strong>Control Button Text Settings</strong></td><td>Button captions; buttons 1–10 are fixed, 11 and up are editable</td></tr>
+<tr><td>10</td><td><strong>Control Button Text Settings</strong></td><td>Button captions; buttons 1–10 are fixed and hidden, only 11 and up are editable</td></tr>
 </tbody></table></div>
 <p>Two buttons stay pinned at the bottom and close the screen:</p>
 <ul>
@@ -317,7 +317,7 @@
 <h2>5.9 Self-check</h2>
 <p><strong>Self-check</strong> opens a progress window and walks through the diagnostic list — model, face, body, chassis, sex-function configuration and software subsystems — reporting elapsed time and line count. On desktop widths a file-transfer window appears during the sex-function test. When it finishes successfully it reports the total time and speaks the result. Closing a running window asks for confirmation first.</p>
 <hr>
-<h2>5.10 Task command system</h2>
+<h2>5.10 Task Commands</h2>
 <p>The task panel lists the android's tasks, each tagged on the left by origin — cognitive (orange ◈), terminal (cyan ◇), button (mode colour ◆) or ordinary (●); finished ones are struck through with ✓. The panel header shows a count, e.g. &quot;3 tasks (1 pending)&quot;.</p>
 <p>Tasks produced locally — pressing button 11 or later, sending a command with <code>*</code> in the terminal, adding a cognitive offset — enter this list immediately and are synchronised to any connected Slave and watch.</p>
 <h2>5.11 Timer</h2>
@@ -336,7 +336,7 @@
 <tr><td><strong>?</strong></td><td>Information panel</td></tr>
 <tr><td>Cog</td><td>Settings panel</td></tr>
 </tbody></table></div>
-<p>Clicking the Rt5 logo at top left opens the system menu with <strong>About</strong>, <strong>Restart the android...</strong>, <strong>Shut down the android...</strong> and <strong>Log out</strong>; the About window shows the model, company, status list and CPU/GPU/NPU charts. The dock (revealed when the pointer reaches the bottom edge) manages and minimises windows.</p>
+<p>Clicking the Rt5 logo at top left opens the system menu with <strong>About</strong>, <strong>Restart the android...</strong>, <strong>Shut down the android...</strong> and <strong>Log out</strong>; the About window shows the model, company, status list and CPU/GPU/NPU charts. The dock (revealed when the pointer reaches the bottom edge) manages and minimises windows; its floating-window area keeps a permanent <strong>App User Manual</strong> icon (a book) that opens this manual in-app.</p>
 <h2>6. Console settings</h2>
 <p>Open Settings from the cog in the header, the Rt5 menu, the dock, or the capsule on mobile. On desktop the groups are listed down the left; on mobile you pick a group and get a back arrow.</p>
 <div class="tbl-wrap"><table>
@@ -396,7 +396,7 @@
 <h2>8.3 Connection dialog</h2>
 <p><strong>Console Connection</strong> holds the connection state and address, the <strong>Nearby Devices</strong> list with scan controls, the QR scanner entry, and the settings the android itself needs:</p>
 <ul>
-<li><strong>MiMo API Key</strong> — optional; used for high-quality speech synthesis and synced to the console when you connect.</li>
+<li><strong>MiMo API Key</strong> — optional; used for high-quality speech synthesis. When connected to the console the two sides are aligned automatically per the sync policy in 8.7.</li>
 </ul>
 <ul>
 <li><strong>Use cloud engine (MiMo ASR)</strong> — when on, recognition may fall back to the cloud; when off, only the on-device engine runs and nothing is sent anywhere.</li>
@@ -415,6 +415,18 @@
 <p><strong>Tasks</strong> are tagged by origin — cognitive, terminal, button or ordinary — and finished ones are struck through. <strong>Voice messages</strong> show the time and content, newest first; a system notification is posted for each new message, titled <strong>Master's command</strong>, or <strong>Push successful</strong> when the message is the console acknowledging a mode you pushed.</p>
 <h2>8.6 Your privacy controls</h2>
 <p>Nothing leaves the device unless you allow it: the cloud switch governs speech recognition, and the API key is only used for the MiMo service.</p>
+<h2>8.7 API key sync</h2>
+<p>On connecting to the console, the MiMo API keys of the two sides are aligned once (the Slave side decides). A key counts as <strong>usable</strong> when it is well-formed (starts with <code>sk-</code>, long enough) and has no authentication-failure record — real TTS/ASR call outcomes update that record automatically.</p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Slave side</th><th>Console side</th><th>Result</th></tr></thead>
+<tbody>
+<tr><td>Empty / invalid</td><td>Usable</td><td>Adopt the console's key</td></tr>
+<tr><td>Usable</td><td>Empty / invalid</td><td>Push to the console</td></tr>
+<tr><td>Both usable and identical</td><td>—</td><td>Nothing to do</td></tr>
+<tr><td>Both usable but different</td><td>—</td><td>Each keeps its own</td></tr>
+<tr><td>Both empty or invalid</td><td>—</td><td>Unchanged (neither side is cleared)</td></tr>
+</tbody></table></div>
+<p>In short: <strong>when one side is empty or invalid the valid key wins; when both are valid but different, neither overwrites the other.</strong> The same key is never synced twice.</p>
 <hr>
 <h2>9. Watch app</h2>
 <p>The watch shows three pages you swipe between, or scroll with the crown:</p>

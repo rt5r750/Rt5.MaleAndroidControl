@@ -91,6 +91,11 @@ object MimoAsrClient {
             val code = conn.responseCode
             val stream = if (code in 200..299) conn.inputStream else conn.errorStream
             val text = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+            /* Key 成败标志（v1.11.0 同步判定用）：仅鉴权结果落标志
+               ——401/403 记 fail，成功记 ok，网络类/服务端错误不改写 */
+            if (code == 401 || code == 403) {
+                com.robotcontrol.phone.data.ApiKeyStore.recordKeyResult(apiKey, false)
+            }
             if (code !in 200..299) {
                 Log.w(TAG, "ASR HTTP $code: ${text.take(300)}")
                 throw IllegalStateException("HTTP $code")
@@ -105,6 +110,7 @@ object MimoAsrClient {
                 ?.optString("content")
                 .orEmpty()
             if (content.isEmpty()) throw IllegalStateException("empty transcription")
+            com.robotcontrol.phone.data.ApiKeyStore.recordKeyResult(apiKey, true)
             return content
         } finally {
             runCatching { conn.disconnect() }

@@ -49,6 +49,8 @@ object ConsoleBleClient {
     var onTasksReceived: ((tasksJson: String) -> Unit)? = null
     var onVoiceReceived: ((voiceJson: String) -> Unit)? = null
     var onVoiceHistoryReceived: ((historyJson: String) -> Unit)? = null
+    /** ApiKey 同步采用 Master 的 Key 后通知宿主（v1.11.0） */
+    var onApiKeySynced: ((apiKey: String) -> Unit)? = null
     // 7507(UiLang) 在 v1.10.0 起不再消费：Slave 界面语言由本机检测/手选决定，不跟随控制端
 
     private var bluetoothManager: BluetoothManager? = null
@@ -83,6 +85,12 @@ object ConsoleBleClient {
 
     private val chunkBuffers = ConcurrentHashMap<UUID, ByteArray>()
     private val readBuffers = ConcurrentHashMap<UUID, ByteArray>()
+
+    /* ===== ApiKey(7506) 双端同步（v1.11.0）=====
+       连接后读取 Master 侧 Key，由 Slave 统一裁决（见 ApiKeyStore.decideSync）；
+       同一远端 Key 不重复裁决（写入后 Master 回显、重连等场景短路），
+       远端 Key 变化（Master 中途改了 Key）则重新裁决。 */
+    private var lastRemoteApiKey: String? = null
 
     private data class GattAction(val type: Int, val characteristic: BluetoothGattCharacteristic? = null, val descriptor: BluetoothGattDescriptor? = null, val value: ByteArray? = null, val offset: Int = 0) {
         companion object {
@@ -295,11 +303,10 @@ object ConsoleBleClient {
                 startHeartbeat()
 
                 bleHandler?.postDelayed({
-                    if (isConnected() && ApiKeyStore.hasApiKey()) {
-                        val key = ApiKeyStore.getApiKey()
-                        if (!key.isNullOrEmpty()) {
-                            writeApiKey(key)
-                        }
+                    if (isConnected()) {
+                        /* ApiKey 同步（v1.11.0）：先读 Master 侧 Key 交裁决（原来无条件写入覆盖 Master 已废弃） */
+                        enqueueGattAction(GattAction(GattAction.READ_CHAR, apikeyCharacteristic))
+                        processNextGattAction()
                     }
                 }, 500)
             }
@@ -507,6 +514,10 @@ object ConsoleBleClient {
             BleConstants.CHAR_VOICE_UUID -> {
                 dispatchVoiceData(String(value, Charsets.UTF_8))
             }
+            BleConstants.CHAR_APIKEY_UUID -> {
+                // Master 侧 Key（读取或 notify 而来）：交给同步裁决
+                maybeSyncApiKey(String(value, Charsets.UTF_8))
+            }
             // 7507(UiLang) 已不订阅，不会走到这里（服务端特征保留供旧版客户端）
         }
     }
@@ -684,6 +695,7 @@ object ConsoleBleClient {
         gattOperationInProgress = false
         chunkBuffers.clear()
         readBuffers.clear()
+        lastRemoteApiKey = null
         modeCharacteristic = null
         emotionCharacteristic = null
         tasksCharacteristic = null
@@ -1000,6 +1012,7 @@ object ConsoleBleClient {
         voiceCharacteristic = null
         heartbeatCharacteristic = null
         apikeyCharacteristic = null
+        lastRemoteApiKey = null
         if (clearTargetAddress) {
             targetAddress = null
         }
@@ -1015,6 +1028,34 @@ object ConsoleBleClient {
                 val data = key.toByteArray(Charsets.UTF_8)
                 enqueueGattAction(GattAction(GattAction.WRITE_CHAR, char, value = data))
                 processNextGattAction()
+            }
+        }
+    }
+
+    /** ApiKey(7506) 同步裁决（v1.11.0）：Slave 为唯一决策者，连接后读到 Master 侧 Key 即裁决一次。
+        PUSH_TO_MASTER → writeApiKey（Master 收到即落库）；ADOPT_FROM_MASTER → 本地采用；
+        NONE → 不动（含双方都可用但不一致，各用各的）。 */
+    private fun maybeSyncApiKey(remoteKey: String) {
+        val remote = remoteKey.trim().trim('"', '\'').trim()
+        if (remote == lastRemoteApiKey) return   // 同一远端 Key 不重复裁决（null=尚未裁决，''=远端为空，两者不同）
+        lastRemoteApiKey = remote
+        val local = ApiKeyStore.getApiKey()
+        when (ApiKeyStore.decideSync(local, remoteKey)) {
+            ApiKeyStore.SyncAction.PUSH_TO_MASTER -> {
+                val key = local ?: return
+                android.util.Log.i("BleClient", "API Key sync: push local key to master")
+                writeApiKey(key)
+            }
+            ApiKeyStore.SyncAction.ADOPT_FROM_MASTER -> {
+                val key = remoteKey.trim().trim('"', '\'').trim()
+                if (key.isNotEmpty()) {
+                    android.util.Log.i("BleClient", "API Key sync: adopt master key")
+                    ApiKeyStore.saveApiKey(key)
+                    mainHandler.post { onApiKeySynced?.invoke(key) }
+                }
+            }
+            ApiKeyStore.SyncAction.NONE -> {
+                android.util.Log.i("BleClient", "API Key sync: no action (both usable or both unusable)")
             }
         }
     }
