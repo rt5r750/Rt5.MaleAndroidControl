@@ -1583,7 +1583,7 @@
             return String(text).replace(/踢三一七五零/g, 'T31-750');
         }
 
-        function speak(message) {
+        function speak(message, kind) {
             var raw = String(message);
             var lang = (window.I18N && I18N.getLang) ? I18N.getLang() : 'zh';
             /* EN 模式播报统一经词典翻译：默认按钮/功能/窗口名等照英文词条朗读；
@@ -1594,6 +1594,11 @@
             pruneVoiceHistory();
             if (typeof Android !== 'undefined' && Android.onDataChanged) {
                 Android.onDataChanged('voice', JSON.stringify(msgObj));
+            }
+            /* Clawbot 通知推送（v1.12.0）：播报内容外发（默认「主人指令：」类；
+               参数修改类播报传 kind='data' 走「数据变更：」类），空白内容不推 */
+            if (window.ClawbotBridge && window.ClawbotBridge.push) {
+                window.ClawbotBridge.push(kind || 'cmd', displayMsg);
             }
 
             // 语音引擎失败：单栏弹窗提示、三栏左上角通知；不进行语音合成
@@ -2467,6 +2472,15 @@
             });
 
             function performSettingsSave() {
+                // Clawbot 数据变更推送（v1.12.0）：保存前快照，成功后 diff 出实际改动项推送
+                const clawbotBefore = (window.ClawbotBridge && window.ClawbotBridge.snapshotSettings)
+                    ? window.ClawbotBridge.snapshotSettings() : null;
+                // 保存 Clawbot 通知推送设置（校验失败中止保存；表单未渲染则跳过不覆盖）
+                if (window.ClawbotBridge && window.ClawbotBridge.collectForm) {
+                    const clawbotSaved = window.ClawbotBridge.collectForm('set-');
+                    if (clawbotSaved.error) { alert(clawbotSaved.error); return; }
+                    if (!clawbotSaved.skipped) window.ClawbotBridge.setConfig(clawbotSaved.config);
+                }
                 // 保存模式名称（无变更时为同值落库）
                 persistModeNamesFromInputs();
 
@@ -2618,9 +2632,12 @@
                 
                 // 同步三栏图片
                 syncTripleImages();
-                
+
                 closeModal();
                 appendToLogs('控制设置已更新并保存');
+                if (clawbotBefore && window.ClawbotBridge && window.ClawbotBridge.pushSettingsDiff) {
+                    window.ClawbotBridge.pushSettingsDiff(clawbotBefore, window.ClawbotBridge.snapshotSettings());
+                }
             }
 
             // 三栏头部按钮：信息和设置
@@ -2762,6 +2779,11 @@
                     this.src = PLACEHOLDER_SVG_2;
                 };
                 imagePreview2.appendChild(img);
+            }
+
+            // 回填 Clawbot 通知推送表单（v1.12.0）：激活页大窗改过配置后设置页同步显示
+            if (window.ClawbotBridge && window.ClawbotBridge.fillForm) {
+                window.ClawbotBridge.fillForm('set-');
             }
         }
         
@@ -3006,7 +3028,10 @@
         function getModeNamesMatch(saved) {
             const ids = Object.keys(MODES);
             const trim = v => ((v == null ? '' : String(v)) || '').trim();
-            if (ids.every(id => trim(saved && saved[id]) === MODES[id].name)) return 'zh';
+            /* 空串=恢复默认（与 getModelInfoMatch 的 eff 回退同口径）：
+               全组未自定义（留空）即「全默认」，应随界面语言，不能判为整组不匹配 */
+            const eff = id => trim(saved && saved[id]) || MODES[id].name;
+            if (ids.every(id => eff(id) === MODES[id].name)) return 'zh';
             const en = getModeNamesEnDefaults();
             if (ids.every(id => { const v = trim(saved && saved[id]); return v !== '' && v === en[id]; })) return 'en';
             return null;
@@ -5804,7 +5829,8 @@
                 storage.KEYS.BUTTON_TEXTS, storage.KEYS.STATUS_ITEMS, storage.KEYS.MODE_NAMES,
                 storage.KEYS.MODEL_INFO, storage.KEYS.INFO_LINKS, storage.KEYS.RUNTIME_PARAMS,
                 storage.KEYS.ACCOUNTS, storage.KEYS.ROBOT_IMAGE_1, storage.KEYS.ROBOT_IMAGE_2,
-                storage.KEYS.EMOTIONS, 'robot_ui_lang', storage.KEYS.MIMO_API_KEY, storage.KEYS.MIMO_TTS_ENGINE
+                storage.KEYS.EMOTIONS, 'robot_ui_lang', storage.KEYS.MIMO_API_KEY, storage.KEYS.MIMO_TTS_ENGINE,
+                'robotClawbotConfig'
             ];
         }
 
@@ -6837,6 +6863,9 @@
             saveTasks(tasks);
             renderTasks();
             appendToLogs(`[任务系统] 新增任务：${name}`);
+            if (window.ClawbotBridge && window.ClawbotBridge.push) {
+                window.ClawbotBridge.push('data', (window.I18N && I18N.getLang() === 'en') ? 'Task added: ' + name : '任务已添加：' + name);
+            }
         }
         function addTerminalTask(name) {
             name = (name || '').trim();
@@ -6847,6 +6876,9 @@
             saveTasks(tasks);
             renderTasks();
             appendToLogs(`[终端指令] 已添加：${name}`);
+            if (window.ClawbotBridge && window.ClawbotBridge.push) {
+                window.ClawbotBridge.push('data', (window.I18N && I18N.getLang() === 'en') ? 'Task added: ' + name : '任务已添加：' + name);
+            }
         }
         function setTaskStatus(id, status) {
             const tasks = loadTasks();
@@ -7261,7 +7293,7 @@
                     }
                     const value = getValueFromTrack(track, e.clientX);
                     setEmotionValue(key, value);
-                    speak(emotionConfig[key].label + value);
+                    speak(emotionConfig[key].label + value, 'data');
                 });
 
                 // Drag start on thumb
@@ -7306,7 +7338,7 @@
                     if (th) th.classList.remove('dragging');
                 });
                 const emotions = loadEmotions();
-                speak(emotionConfig[key].label + (emotions[key] || 0));
+                speak(emotionConfig[key].label + (emotions[key] || 0), 'data');
                 gaugeDragging = null;
                 gaugeJustDragged = true;
                 setTimeout(() => { gaugeJustDragged = false; }, 100);

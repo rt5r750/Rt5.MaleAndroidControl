@@ -87,6 +87,12 @@ ipcRenderer.on('mimo-result', (_event, cbId, resultJson) => {
   mimoResults.set(String(cbId), String(resultJson));
 });
 
+// 通用 HTTP 桥（v1.12.0 Clawbot）：结果存表，getHttpFetchResult 同步取回
+const httpResults = new Map();
+ipcRenderer.on('http-result', (_event, cbId, resultJson) => {
+  httpResults.set(String(cbId), String(resultJson));
+});
+
 function normalizeEngine(engine) {
   const e = String(engine || 'voicedesign');
   if (e === 'voiceclone') return 'voicedesign';
@@ -167,6 +173,21 @@ contextBridge.exposeInMainWorld('Android', {
     const key = String(cbId);
     const result = mimoResults.get(key);
     mimoResults.delete(key);
+    return result || '';
+  },
+
+  // 通用 HTTP 桥（v1.12.0 Clawbot）：URL/options 通用，白名单在主进程校验
+  httpFetchAsync: (url, optionsJson, cbId) => {
+    ipcRenderer.send('http-fetch', {
+      url: String(url || ''),
+      optionsJson: String(optionsJson || '{}'),
+      cbId: String(cbId || '')
+    });
+  },
+  getHttpFetchResult: (cbId) => {
+    const key = String(cbId);
+    const result = httpResults.get(key);
+    httpResults.delete(key);
     return result || '';
   },
 

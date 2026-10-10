@@ -39,6 +39,8 @@ The system is split into a **Master** that controls and pushes state, and **Slav
 
 Naming note: the **console** is Master on every platform (the Android console app and the Windows build are the same console), and the **robot-side phone app** is Slave. Their Android package names and BLE names (`RobotControl-*`) are unchanged, so upgrades and existing pairings keep working.
 
+**Clawbot notifications** — the console can push everything it announces (`Master's Command: ` + content) and every live data change (`Data Change: ` + content) to Telegram / Feishu chats, and answer slash-command queries (`/query`, `/mode`, …) there with locally generated replies — plain API calls, no LLM, 0 token cost. See manual section 6.2.
+
 ## Demo
 
 - **Promo film** — <https://x.com/rt5_750/status/2107868637948440956>

@@ -14,7 +14,7 @@ Master is the control console of the T31-750 male android (the Male Android Cont
 | 3. Language | Automatic device-language matching and manual switching |
 | 4. Connecting the clients | Bluetooth, QR pairing, USB entry, app launching |
 | 5. The console | Every panel, button and readout of the main interface |
-| 6. Console settings | All settings groups and the configuration file |
+| 6. Console settings | All settings groups, configuration file and Clawbot notifications |
 | 7. Information panel | Device information, documents and links |
 | 8. Slave app | The android's phone client in full |
 | 9. Watch app | The Wear OS client |
@@ -84,7 +84,7 @@ On later launches the activation window stays away and the launcher opens direct
 
 ## 2.5 The activation form
 
-The console's activation screen holds ten numbered groups on one page. Leave any field empty to keep its default.
+The console's activation screen holds eleven numbered groups on one page. Leave any field empty to keep its default.
 
 The layout adapts to the screen: on a phone it is a flat full-screen list (no card frame, clear of the system status bar); on a wide desktop the container widens and the ten groups flow into two columns for higher density. **Group 1 (Language) is itself the language entry** — there is no extra switcher at the top right. Each group heading is separated by a centered banner so the blocks are easy to tell apart. Link names and status labels use **title-style inputs** (darker, bold) to distinguish them from value fields.
 
@@ -100,6 +100,7 @@ The layout adapts to the screen: on a phone it is a flat full-screen list (no ca
 | 8 | **Android Status Settings** | Label and value for each status item from the third onward |
 | 9 | **Runtime Parameters Settings** | Remaining artificial semen, battery, storage |
 | 10 | **Control Button Text Settings** | Button captions; buttons 1–10 are fixed and hidden, only 11 and up are editable |
+| 11 | **Notifications (Clawbot)** | A status line and an "Open Settings" button (configures Telegram / Feishu push in a large window; optional, safe to skip) |
 
 Two buttons stay pinned at the bottom and close the screen:
 
@@ -323,6 +324,7 @@ Open Settings from the cog in the header, the Rt5 menu, the dock, or the capsule
 | **Mode Name Settings** | Rename the four modes; you are asked to confirm before saving |
 | **Info Panel Links** | Names and URLs for the link entries, with a reset to defaults |
 | **Android Status Settings** | Label and value for each status row |
+| **Clawbot Notifications** | Push command broadcasts / data changes to Telegram & Feishu, and answer slash-command queries (see 6.2) |
 | **Config Import / Export** | Export or import the whole configuration |
 
 Three buttons sit at the bottom: **Set to Defaults** (reset everything to defaults), **Cancel** and **Apply Changes**. Closing the panel discards unapplied edits. Applying after changing a mode name shows a confirmation listing each old and new name; confirming saves the whole group, cancelling aborts the entire save.
@@ -336,6 +338,55 @@ The battery schedule, which is the default, runs from 1 % at 01:00 to 100 % at 0
 > The exported file contains your login password and API key in plain text, and may include the android images. Store it accordingly.
 
 **Import** reads such a file back, warns that it overwrites every personalisation and reloads the page. Invalid files are rejected.
+
+## 6.2 Clawbot notifications
+
+Everything that happens in the console can be pushed live to a Telegram / Feishu chat (your Clawbot — or any bot — in the group will see it), and the chat can query android parameters with slash commands. **All traffic is plain API calls with locally generated replies — no LLM involved, 0 token cost.**
+
+**Push format (two distinct kinds)**
+
+| Kind | When | Format |
+|---|---|---|
+| Command broadcast | Whatever is spoken (terminal commands, control buttons, mode switches, task completion, system notices) | `Master's Command: ` + the content |
+| Data change | Real-time parameter edits (emotion sliders, task add/remove, actual changed items after saving settings) | `Data Change: ` + what changed |
+
+In the Chinese interface the two prefixes appear as their Chinese equivalents (literally "Master's Command:" and "Data Change:"); content follows the interface language, and mode names use your actual settings. Blank content is never pushed.
+
+**Where to configure**: the "Clawbot Notifications" group in Settings; on first activation, group 11's "Open Settings" button opens the same form in a large window (optional — skipping does not block activation). Three switches: push voice broadcasts / push data changes / respond to slash commands.
+
+**Telegram**
+
+1. Talk to `@BotFather` on Telegram, create a bot with `/newbot`, and copy the **Bot Token** (looks like `123456789:AA...`).
+2. Add the bot to the target group (or just message it privately) and get the **Chat ID** (groups start with `-100...`, private chats are positive integers; @userinfobot can tell you).
+3. Fill the form, tick "Enable Telegram", and press "Send Test Message" to verify.
+
+The device must reach `api.telegram.org` (a system proxy is usually needed in mainland China). Reverse queries use getUpdates long polling and need no public IP.
+
+**Feishu (choose one)**
+
+- **Custom bot Webhook (push only)**: group settings → Group Bots → Add Bot → Custom Bot, copy the **Webhook URL**. This mode cannot receive slash commands.
+- **Custom app (bidirectional)**: create an enterprise custom app on the Feishu Open Platform → enable the bot capability → request the `im:message` scope → publish a version → add the bot to the target group; fill **App ID / App Secret / Chat ID**.
+
+Feishu is directly reachable from mainland China with no proxy. Both platforms can be enabled at once (messages go to both; query replies return to the platform the command came from).
+
+**Slash commands (locally parsed, 0 token)**
+
+| Command | Returns |
+|---|---|
+| `/help` | Command list |
+| `/query` | Full parameter summary |
+| `/mode` | Current mode and mode names |
+| `/emotion` | Emotion parameters |
+| `/runtime` | Runtime parameters |
+| `/tasks` | Task list |
+| `/model` | Model info |
+| `/status` | Info parameters |
+| `/buttons` | Control button texts |
+| `/links` | Info panel links |
+
+Blank commands (empty message or a lone `/`) are not supported and are ignored; unknown commands get the help text. Replies follow the console language and use your actual mode names; account passwords and API keys are reported only as "set / not set", and the Bot Token / App Secret are never echoed. The push queue is rate-limited to one message per second.
+
+> The console must keep running (page open) to answer queries. Configuration travels with "Export Config", which contains sensitive data such as the Bot Token — keep it safe.
 
 ---
 

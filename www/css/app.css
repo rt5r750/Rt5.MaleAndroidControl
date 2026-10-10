@@ -5503,3 +5503,121 @@
     background: rgba(143, 188, 143, 0.22);
     color: #eafbea;
 }
+
+/* ===== v1.12.0 Clawbot 通知推送：大窗模态 + 设置组/大窗共用表单 ===== */
+.clawbot-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(13, 26, 13, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    /* 高于激活层/设置层（50），低于浏览器强制缓存窗（952） */
+    z-index: 70;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s;
+}
+.clawbot-modal.visible {
+    opacity: 1;
+    visibility: visible;
+}
+.clawbot-modal-content {
+    background: rgba(13, 26, 13, 0.95);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    border: 1px solid rgba(143, 188, 143, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    max-width: 52rem;
+    height: 85vh;
+    max-height: 860px;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.95);
+    opacity: 0;
+    transition: all 0.3s;
+}
+.clawbot-modal.visible .clawbot-modal-content {
+    transform: scale(1);
+    opacity: 1;
+}
+.clawbot-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(143, 188, 143, 0.2);
+}
+.clawbot-modal-header h2 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #c0e4c0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.clawbot-modal-close-btn {
+    background: none;
+    border: none;
+    color: #8fbc8f;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.35rem;
+    border-radius: 0.25rem;
+    transition: background 0.2s;
+}
+.clawbot-modal-close-btn:hover {
+    background: rgba(143, 188, 143, 0.15);
+}
+.clawbot-modal-body {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 1.25rem;
+    scrollbar-color: rgba(143, 188, 143, 0.5) transparent;
+}
+.clawbot-modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+.clawbot-modal-body::-webkit-scrollbar-thumb {
+    background: rgba(143, 188, 143, 0.5);
+    border-radius: 3px;
+}
+.clawbot-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid rgba(143, 188, 143, 0.2);
+}
+.clawbot-form .clawbot-switch-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+.clawbot-form .clawbot-platform {
+    border: 1px solid rgba(143, 188, 143, 0.2);
+    border-radius: 0.5rem;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1rem;
+    background: rgba(45, 74, 45, 0.18);
+}
+.clawbot-form .clawbot-platform-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #c0e4c0;
+    margin-bottom: 0.6rem;
+}
+.clawbot-form .clawbot-test-status {
+    min-height: 1.1em;
+}
+.clawbot-form .activation-row > label {
+    width: 8rem;
+}

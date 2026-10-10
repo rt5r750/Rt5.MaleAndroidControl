@@ -82,7 +82,7 @@
 <tr><td>3. Language</td><td>Automatic device-language matching and manual switching</td></tr>
 <tr><td>4. Connecting the clients</td><td>Bluetooth, QR pairing, USB entry, app launching</td></tr>
 <tr><td>5. The console</td><td>Every panel, button and readout of the main interface</td></tr>
-<tr><td>6. Console settings</td><td>All settings groups and the configuration file</td></tr>
+<tr><td>6. Console settings</td><td>All settings groups, configuration file and Clawbot notifications</td></tr>
 <tr><td>7. Information panel</td><td>Device information, documents and links</td></tr>
 <tr><td>8. Slave app</td><td>The android's phone client in full</td></tr>
 <tr><td>9. Watch app</td><td>The Wear OS client</td></tr>
@@ -154,7 +154,7 @@
 <li>The main interface is revealed and the screen does not return.</li>
 </ol>
 <h2>2.5 The activation form</h2>
-<p>The console's activation screen holds ten numbered groups on one page. Leave any field empty to keep its default.</p>
+<p>The console's activation screen holds eleven numbered groups on one page. Leave any field empty to keep its default.</p>
 <p>The layout adapts to the screen: on a phone it is a flat full-screen list (no card frame, clear of the system status bar); on a wide desktop the container widens and the ten groups flow into two columns for higher density. <strong>Group 1 (Language) is itself the language entry</strong> — there is no extra switcher at the top right. Each group heading is separated by a centered banner so the blocks are easy to tell apart. Link names and status labels use <strong>title-style inputs</strong> (darker, bold) to distinguish them from value fields.</p>
 <div class="tbl-wrap"><table>
 <thead><tr><th>#</th><th>Group</th><th>Fields</th></tr></thead>
@@ -169,6 +169,7 @@
 <tr><td>8</td><td><strong>Android Status Settings</strong></td><td>Label and value for each status item from the third onward</td></tr>
 <tr><td>9</td><td><strong>Runtime Parameters Settings</strong></td><td>Remaining artificial semen, battery, storage</td></tr>
 <tr><td>10</td><td><strong>Control Button Text Settings</strong></td><td>Button captions; buttons 1–10 are fixed and hidden, only 11 and up are editable</td></tr>
+<tr><td>11</td><td><strong>Notifications (Clawbot)</strong></td><td>A status line and an &quot;Open Settings&quot; button (configures Telegram / Feishu push in a large window; optional, safe to skip)</td></tr>
 </tbody></table></div>
 <p>Two buttons stay pinned at the bottom and close the screen:</p>
 <ul>
@@ -361,6 +362,7 @@
 <tr><td><strong>Mode Name Settings</strong></td><td>Rename the four modes; you are asked to confirm before saving</td></tr>
 <tr><td><strong>Info Panel Links</strong></td><td>Names and URLs for the link entries, with a reset to defaults</td></tr>
 <tr><td><strong>Android Status Settings</strong></td><td>Label and value for each status row</td></tr>
+<tr><td><strong>Clawbot Notifications</strong></td><td>Push command broadcasts / data changes to Telegram &amp; Feishu, and answer slash-command queries (see 6.2)</td></tr>
 <tr><td><strong>Config Import / Export</strong></td><td>Export or import the whole configuration</td></tr>
 </tbody></table></div>
 <p>Three buttons sit at the bottom: <strong>Set to Defaults</strong> (reset everything to defaults), <strong>Cancel</strong> and <strong>Apply Changes</strong>. Closing the panel discards unapplied edits. Applying after changing a mode name shows a confirmation listing each old and new name; confirming saves the whole group, cancelling aborts the entire save.</p>
@@ -369,6 +371,53 @@
 <p><strong>Config Import / Export → Export</strong> writes <code>robotcontrol-config-YYYYMMDD.json</code> containing button texts, status items, mode names, model information, links, runtime parameters, accounts, both images, emotion values, language, the TTS engine and the MiMo API key.</p>
 <blockquote>The exported file contains your login password and API key in plain text, and may include the android images. Store it accordingly.</blockquote>
 <p><strong>Import</strong> reads such a file back, warns that it overwrites every personalisation and reloads the page. Invalid files are rejected.</p>
+<h2>6.2 Clawbot notifications</h2>
+<p>Everything that happens in the console can be pushed live to a Telegram / Feishu chat (your Clawbot — or any bot — in the group will see it), and the chat can query android parameters with slash commands. <strong>All traffic is plain API calls with locally generated replies — no LLM involved, 0 token cost.</strong></p>
+<p><strong>Push format (two distinct kinds)</strong></p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Kind</th><th>When</th><th>Format</th></tr></thead>
+<tbody>
+<tr><td>Command broadcast</td><td>Whatever is spoken (terminal commands, control buttons, mode switches, task completion, system notices)</td><td><code>Master's Command: </code> + the content</td></tr>
+<tr><td>Data change</td><td>Real-time parameter edits (emotion sliders, task add/remove, actual changed items after saving settings)</td><td><code>Data Change: </code> + what changed</td></tr>
+</tbody></table></div>
+<p>In the Chinese interface the two prefixes appear as their Chinese equivalents (literally &quot;Master's Command:&quot; and &quot;Data Change:&quot;); content follows the interface language, and mode names use your actual settings. Blank content is never pushed.</p>
+<p><strong>Where to configure</strong>: the &quot;Clawbot Notifications&quot; group in Settings; on first activation, group 11's &quot;Open Settings&quot; button opens the same form in a large window (optional — skipping does not block activation). Three switches: push voice broadcasts / push data changes / respond to slash commands.</p>
+<p><strong>Telegram</strong></p>
+<ol>
+<li>Talk to <code>@BotFather</code> on Telegram, create a bot with <code>/newbot</code>, and copy the <strong>Bot Token</strong> (looks like <code>123456789:AA...</code>).</li>
+</ol>
+<ol>
+<li>Add the bot to the target group (or just message it privately) and get the <strong>Chat ID</strong> (groups start with <code>-100...</code>, private chats are positive integers; @userinfobot can tell you).</li>
+</ol>
+<ol>
+<li>Fill the form, tick &quot;Enable Telegram&quot;, and press &quot;Send Test Message&quot; to verify.</li>
+</ol>
+<p>The device must reach <code>api.telegram.org</code> (a system proxy is usually needed in mainland China). Reverse queries use getUpdates long polling and need no public IP.</p>
+<p><strong>Feishu (choose one)</strong></p>
+<ul>
+<li><strong>Custom bot Webhook (push only)</strong>: group settings → Group Bots → Add Bot → Custom Bot, copy the <strong>Webhook URL</strong>. This mode cannot receive slash commands.</li>
+</ul>
+<ul>
+<li><strong>Custom app (bidirectional)</strong>: create an enterprise custom app on the Feishu Open Platform → enable the bot capability → request the <code>im:message</code> scope → publish a version → add the bot to the target group; fill <strong>App ID / App Secret / Chat ID</strong>.</li>
+</ul>
+<p>Feishu is directly reachable from mainland China with no proxy. Both platforms can be enabled at once (messages go to both; query replies return to the platform the command came from).</p>
+<p><strong>Slash commands (locally parsed, 0 token)</strong></p>
+<div class="tbl-wrap"><table>
+<thead><tr><th>Command</th><th>Returns</th></tr></thead>
+<tbody>
+<tr><td><code>/help</code></td><td>Command list</td></tr>
+<tr><td><code>/query</code></td><td>Full parameter summary</td></tr>
+<tr><td><code>/mode</code></td><td>Current mode and mode names</td></tr>
+<tr><td><code>/emotion</code></td><td>Emotion parameters</td></tr>
+<tr><td><code>/runtime</code></td><td>Runtime parameters</td></tr>
+<tr><td><code>/tasks</code></td><td>Task list</td></tr>
+<tr><td><code>/model</code></td><td>Model info</td></tr>
+<tr><td><code>/status</code></td><td>Info parameters</td></tr>
+<tr><td><code>/buttons</code></td><td>Control button texts</td></tr>
+<tr><td><code>/links</code></td><td>Info panel links</td></tr>
+</tbody></table></div>
+<p>Blank commands (empty message or a lone <code>/</code>) are not supported and are ignored; unknown commands get the help text. Replies follow the console language and use your actual mode names; account passwords and API keys are reported only as &quot;set / not set&quot;, and the Bot Token / App Secret are never echoed. The push queue is rate-limited to one message per second.</p>
+<blockquote>The console must keep running (page open) to answer queries. Configuration travels with &quot;Export Config&quot;, which contains sensitive data such as the Bot Token — keep it safe.</blockquote>
 <hr>
 <h2>7. Information panel</h2>
 <p>The <strong>?</strong> button opens the information panel in two blocks.</p>

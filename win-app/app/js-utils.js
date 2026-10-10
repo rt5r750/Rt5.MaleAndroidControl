@@ -8,4 +8,8 @@ function buildFetchCallbackJs(callbackId) {
   return `if(window.__mimoFetchCallback)window.__mimoFetchCallback(${JSON.stringify(String(callbackId))})`;
 }
 
-module.exports = { buildTtsCallbackJs, buildFetchCallbackJs };
+function buildHttpFetchCallbackJs(callbackId) {
+  return `if(window.__httpFetchCallback)window.__httpFetchCallback(${JSON.stringify(String(callbackId))})`;
+}
+
+module.exports = { buildTtsCallbackJs, buildFetchCallbackJs, buildHttpFetchCallbackJs };

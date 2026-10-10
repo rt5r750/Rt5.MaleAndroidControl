@@ -5,7 +5,7 @@ const nodeFs = require('node:fs');
 const { createProtocolHandler } = require('./protocol-handler.js');
 const { generateConsoleQr } = require('./qr.js');
 const { resolveOpenPath } = require('./paths.js');
-const { buildTtsCallbackJs, buildFetchCallbackJs } = require('./js-utils.js');
+const { buildTtsCallbackJs, buildFetchCallbackJs, buildHttpFetchCallbackJs } = require('./js-utils.js');
 const { UsbWatcher } = require('./usb-watcher.js');
 const { BleBridge, resolveHostPath } = require('./ble-bridge.js');
 const { encodeDataValue, CHAR_NAMES } = require('./ble-protocol.js');
@@ -804,6 +804,33 @@ function registerIpc() {
     if (!mainWindow) return;
     mainWindow.webContents.send('mimo-result', cbId, resultStr);
     mainWindow.webContents.executeJavaScript(buildFetchCallbackJs(cbId)).catch(() => {});
+  });
+
+  // 通用 HTTP 桥（v1.12.0 Clawbot 通知推送）：白名单域名 + net.fetch，结果轮询表 + 回调通知
+  const HTTP_BRIDGE_HOSTS = ['api.telegram.org', 'open.feishu.cn'];
+  ipcMain.on('http-fetch', async (_event, payload) => {
+    const url = String(payload && payload.url || '');
+    const cbId = String(payload && payload.cbId || '');
+    let options = {};
+    try { options = JSON.parse(String(payload && payload.optionsJson || '{}')); } catch { options = {}; }
+    let resultStr;
+    try {
+      const host = new URL(url).hostname;
+      if (!HTTP_BRIDGE_HOSTS.includes(host)) {
+        throw new Error(`host not allowed: ${host}`);
+      }
+      const method = String(options.method || 'GET').toUpperCase();
+      const fetchOpts = { method, headers: options.headers || {} };
+      if (options.body != null && method !== 'GET' && method !== 'HEAD') fetchOpts.body = String(options.body);
+      const response = await net.fetch(url, fetchOpts);
+      const text = await response.text();
+      resultStr = JSON.stringify({ status: response.status, text });
+    } catch (e) {
+      resultStr = JSON.stringify({ error: String(e && e.message || e).replace(/"/g, "'").slice(0, 300) });
+    }
+    if (!mainWindow) return;
+    mainWindow.webContents.send('http-result', cbId, resultStr);
+    mainWindow.webContents.executeJavaScript(buildHttpFetchCallbackJs(cbId)).catch(() => {});
   });
 
   ipcMain.on('audio-done', (_event, cbId, ok, errMsg) => {

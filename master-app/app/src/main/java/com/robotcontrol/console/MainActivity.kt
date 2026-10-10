@@ -101,6 +101,10 @@ class MainActivity : AppCompatActivity() {
     // MiMo Fetch 异步结果存储（通知+拉取模式，避免 evaluateJavascript 传递大响应超 Binder 限制）
     private val mimoFetchResults = java.util.concurrent.ConcurrentHashMap<String, String>()
 
+    // 通用 HTTP 桥（v1.12.0 Clawbot 通知推送）：结果存储同 mimoFetch 模式
+    private val httpFetchResults = java.util.concurrent.ConcurrentHashMap<String, String>()
+    private val httpBridgeHosts = setOf("api.telegram.org", "open.feishu.cn")
+
     // 闪屏视频相关
     private var splashVideoView: TextureView? = null
     private var splashMediaPlayer: MediaPlayer? = null
@@ -611,6 +615,60 @@ class MainActivity : AppCompatActivity() {
             @JavascriptInterface
             fun getRotationVideoBgColor(): String = "29,62,29"
 
+            /** 通用 HTTP 桥（v1.12.0 Clawbot 通知推送）：URL/headers/body 通用，
+             *  白名单域名（api.telegram.org / open.feishu.cn）防特权通道被滥用。
+             *  完成后调 window.__httpFetchCallback(cbId)，结果经 getHttpFetchResult 同步取回。 */
+            @JavascriptInterface
+            fun httpFetchAsync(url: String, optionsJson: String, callbackId: String) {
+                networkExecutor.execute {
+                    val resultStr = try {
+                        val host = java.net.URI(url).host ?: ""
+                        if (host !in httpBridgeHosts) throw IllegalArgumentException("host not allowed: $host")
+                        val opts = org.json.JSONObject(optionsJson)
+                        val method = opts.optString("method", "GET").uppercase()
+                        val connection = java.net.URL(url).openConnection() as HttpURLConnection
+                        connection.requestMethod = method
+                        connection.connectTimeout = 15000
+                        connection.readTimeout = 60000
+                        connection.instanceFollowRedirects = true
+                        connection.useCaches = false
+                        val headers = opts.optJSONObject("headers")
+                        headers?.keys()?.forEach { k -> connection.setRequestProperty(k, headers.optString(k)) }
+                        val bodyStr = if (opts.isNull("body")) null else opts.optString("body", "")
+                        if (!bodyStr.isNullOrEmpty() && method != "GET" && method != "HEAD") {
+                            connection.doOutput = true
+                            val bodyBytes = bodyStr.toByteArray(StandardCharsets.UTF_8)
+                            connection.setRequestProperty("Content-Length", bodyBytes.size.toString())
+                            DataOutputStream(connection.outputStream).use { os ->
+                                os.write(bodyBytes)
+                                os.flush()
+                            }
+                        }
+                        connection.doInput = true
+                        val responseCode = connection.responseCode
+                        val inputStream = if (responseCode in 200..299) connection.inputStream else connection.errorStream
+                        val respStr = inputStream?.use { ins ->
+                            val respBytes = ByteArrayOutputStream().use { baos ->
+                                val buffer = ByteArray(4096)
+                                var bytesRead: Int
+                                while (ins.read(buffer).also { bytesRead = it } != -1) {
+                                    baos.write(buffer, 0, bytesRead)
+                                }
+                                baos.toByteArray()
+                            }
+                            String(respBytes, StandardCharsets.UTF_8)
+                        } ?: ""
+                        connection.disconnect()
+                        org.json.JSONObject().put("status", responseCode).put("text", respStr).toString()
+                    } catch (e: Exception) {
+                        val errMsg = e.message?.replace("\"", "'")?.take(300) ?: "Unknown error"
+                        "{\"error\":\"${e.javaClass.simpleName}: $errMsg\"}"
+                    }
+                    httpFetchResults[callbackId] = resultStr
+                    callHttpFetchCallback(callbackId)
+                }
+            }
+
             @JavascriptInterface
             fun btHasClientBond(): Boolean {
                 return BondStore.hasClientBond()
@@ -714,6 +772,18 @@ class MainActivity : AppCompatActivity() {
                     val js = "if(window.__mimoFetchCallback)window.__mimoFetchCallback('$callbackId')"
                     webView.evaluateJavascript(js, null)
                 }
+            }
+
+            private fun callHttpFetchCallback(callbackId: String) {
+                mainHandler.post {
+                    val js = "if(window.__httpFetchCallback)window.__httpFetchCallback('$callbackId')"
+                    webView.evaluateJavascript(js, null)
+                }
+            }
+
+            @JavascriptInterface
+            fun getHttpFetchResult(cbId: String): String {
+                return httpFetchResults.remove(cbId) ?: "{\"error\":\"result not found for $cbId\"}"
             }
 
             @JavascriptInterface
