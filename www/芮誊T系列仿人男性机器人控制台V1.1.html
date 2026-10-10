@@ -214,9 +214,9 @@
                     <div class="activation-section-title">10. <span data-act-label>控制按钮文本设置</span></div>
                     <div id="activation-button-texts"></div>
                 </div>
-                <!-- 11. 通知推送（Clawbot，v1.12.0）：非必要项，点击弹出大窗口设置 -->
+                <!-- 11. 通知推送（v1.12.0）：非必要项，点击弹出大窗口设置 -->
                 <div class="activation-section">
-                    <div class="activation-section-title">11. <span data-act-label>通知推送（Clawbot）</span></div>
+                    <div class="activation-section-title">11. <span data-act-label>IM 通知推送</span></div>
                     <p class="text-xs text-[#8fbc8f]/70 mb-1" data-act-label>可选：把指令播报与数据变更推送到 Telegram / 飞书，并支持斜杠指令查询参数（0 token）。点击下方按钮在大窗口中配置，跳过不影响激活。</p>
                     <div class="activation-row"><label id="clawbot-act-status">未配置（可跳过，随时在设置中开启）</label>
                         <button type="button" id="clawbot-open-btn" class="btn-add"><i class="fa fa-paper-plane mr-1"></i><span data-act-label>打开设置</span></button>
@@ -242,7 +242,7 @@
     <div id="clawbot-modal" class="clawbot-modal">
         <div class="clawbot-modal-content">
             <div class="clawbot-modal-header">
-                <h2><i class="fa fa-paper-plane"></i>通知推送设置（Clawbot）</h2>
+                <h2><i class="fa fa-paper-plane"></i>IM 通知推送设置</h2>
                 <button type="button" id="clawbot-modal-close" class="clawbot-modal-close-btn" aria-label="关闭"><i class="fa fa-xmark"></i></button>
             </div>
             <div class="clawbot-modal-body" id="clawbot-modal-body"></div>
@@ -576,11 +576,11 @@
                         </button>
                     </div>
 
-                    <!-- Clawbot 通知推送（v1.12.0）：播报内容/数据变更推送到 Telegram/飞书，
+                    <!-- 通知推送（v1.12.0）：播报内容/数据变更推送到 Telegram/飞书，
                          斜杠指令本地解析查询参数（0 token）；表单由 app-clawbot.js 渲染进容器 -->
                     <div class="setting-group" id="clawbot-setting">
-                        <label class="setting-label">Clawbot 通知推送</label>
-                        <p class="text-xs text-[#8fbc8f]/70 mb-2">把语音播报内容（主人指令：+内容）与实时数据修改（数据变更：+内容）推送到 Telegram / 飞书聊天；支持在聊天中用斜杠指令反查机器人参数。全部收发为纯 API 直连、本地解析回复，不经过任何大模型（0 token 消耗）。</p>
+                        <label class="setting-label">IM 通知推送</label>
+                        <p class="text-xs text-[#8fbc8f]/70 mb-2">把语音播报内容（主人指令：+内容）与实时数据修改（数据变更：+内容）推送到 Telegram / 飞书聊天；支持在聊天中用斜杠指令反查机器人参数。全部收发为纯 API 直连、本地解析回复，不经过任何大模型（0 token 消耗）。如果无法安装 Slave 端（例如 iOS 设备无法侧载），可以使用该方法将命令推送到 IM 软件。</p>
                         <div id="clawbot-settings-body"></div>
                     </div>
 

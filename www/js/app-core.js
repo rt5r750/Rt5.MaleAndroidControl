@@ -644,6 +644,10 @@
         
         // 更新运行参数显示
         function updateRuntimeParamsDisplay() {
+            /* Clawbot（v1.12.1）：运行参数不推送，仅充电状态切换推送（与不推给 slave 同口径） */
+            if (window.ClawbotBridge && window.ClawbotBridge.notifyChargingChange) {
+                window.ClawbotBridge.notifyChargingChange(state.runtimeParams && state.runtimeParams.isCharging);
+            }
             /* v1.6.0：关机/重启中止期间运行参数窗口冻结——仅电量继续按自动计划显示
                （用户需求"关机时只有电量信息仍然继续显示"），液体/存储保持关机时的 N/A，
                不被 USB 状态等事件触发的整窗重写复活（此前 N/A ↔ 实际值来回跳变） */
@@ -6340,6 +6344,7 @@
             '模式名称设置': 'fa-tags',
             '信息面板链接': 'fa-link',
             '机器人状态设置': 'fa-robot',
+            'IM 通知推送': 'fa-paper-plane',
             '配置导入导出': 'fa-right-left'
         };
         function settingsNavIcon(text) {

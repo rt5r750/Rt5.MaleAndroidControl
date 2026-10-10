@@ -339,26 +339,28 @@ The battery schedule, which is the default, runs from 1 % at 01:00 to 100 % at 0
 
 **Import** reads such a file back, warns that it overwrites every personalisation and reloads the page. Invalid files are rejected.
 
-## 6.2 Clawbot notifications
+## 6.2 IM notifications (Clawbot)
 
-Everything that happens in the console can be pushed live to a Telegram / Feishu chat (your Clawbot — or any bot — in the group will see it), and the chat can query android parameters with slash commands. **All traffic is plain API calls with locally generated replies — no LLM involved, 0 token cost.**
+Everything that happens in the console can be pushed live to a Telegram / Feishu chat (your Clawbot — or any bot — in the group will see it), and the chat can query android parameters with slash commands. **All traffic is plain API calls with locally generated replies — no LLM involved, 0 token cost.** If the Slave app cannot be installed (e.g. iOS devices cannot be sideloaded), use this to deliver commands to an IM app instead.
+
+Setup guides: [Feishu custom bot](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot) · [Feishu bot overview](https://open.feishu.cn/document/client-docs/bot-v3/bot-overview) · [Telegram guide (Chinese)](https://github.com/danshui-git/shuoming/blob/master/bot.md) · [Telegram tutorial (English)](https://core.telegram.org/bots/tutorial).
 
 **Push format (two distinct kinds)**
 
 | Kind | When | Format |
 |---|---|---|
 | Command broadcast | Whatever is spoken (terminal commands, control buttons, mode switches, task completion, system notices) | `Master's Command: ` + the content |
-| Data change | Real-time parameter edits (emotion sliders, task add/remove, actual changed items after saving settings) | `Data Change: ` + what changed |
+| Data change | Real-time parameter edits (emotion sliders, task add/remove, actual changed items after saving settings, charging state switches) | `Data Change: ` + what changed |
 
-In the Chinese interface the two prefixes appear as their Chinese equivalents (literally "Master's Command:" and "Data Change:"); content follows the interface language, and mode names use your actual settings. Blank content is never pushed.
+In the Chinese interface the two prefixes appear as their Chinese equivalents (literally "Master's Command:" and "Data Change:"); content follows the interface language, and mode names use your actual settings. Blank content is never pushed. Runtime parameters themselves are never pushed (same policy as the Slave clients); only **charging state switches** (charging started/stopped) push one message. The first outbound message to each chat is preceded by a one-time binding notice (full model name + "has been successfully bound...", localized incl. English).
 
 **Where to configure**: the "Clawbot Notifications" group in Settings; on first activation, group 11's "Open Settings" button opens the same form in a large window (optional — skipping does not block activation). Three switches: push voice broadcasts / push data changes / respond to slash commands.
 
 **Telegram**
 
 1. Talk to `@BotFather` on Telegram, create a bot with `/newbot`, and copy the **Bot Token** (looks like `123456789:AA...`).
-2. Add the bot to the target group (or just message it privately) and get the **Chat ID** (groups start with `-100...`, private chats are positive integers; @userinfobot can tell you).
-3. Fill the form, tick "Enable Telegram", and press "Send Test Message" to verify.
+2. **Send the bot a message (e.g. `/start`) in Telegram**, then press **"Auto detect Chat ID"** in the settings form — your chat id fills in automatically. You can also type the numeric chat id by hand (groups start with `-100...`, private chats are positive integers), or paste an `@username` / `t.me` link (resolved automatically). **Do not use the bot's own username** — a bot cannot receive chat messages.
+3. Tick "Enable Telegram" and press "Send Test Message" to verify.
 
 The device must reach `api.telegram.org` (a system proxy is usually needed in mainland China). Reverse queries use getUpdates long polling and need no public IP.
 

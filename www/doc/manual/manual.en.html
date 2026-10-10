@@ -371,26 +371,27 @@
 <p><strong>Config Import / Export → Export</strong> writes <code>robotcontrol-config-YYYYMMDD.json</code> containing button texts, status items, mode names, model information, links, runtime parameters, accounts, both images, emotion values, language, the TTS engine and the MiMo API key.</p>
 <blockquote>The exported file contains your login password and API key in plain text, and may include the android images. Store it accordingly.</blockquote>
 <p><strong>Import</strong> reads such a file back, warns that it overwrites every personalisation and reloads the page. Invalid files are rejected.</p>
-<h2>6.2 Clawbot notifications</h2>
-<p>Everything that happens in the console can be pushed live to a Telegram / Feishu chat (your Clawbot — or any bot — in the group will see it), and the chat can query android parameters with slash commands. <strong>All traffic is plain API calls with locally generated replies — no LLM involved, 0 token cost.</strong></p>
+<h2>6.2 IM notifications (Clawbot)</h2>
+<p>Everything that happens in the console can be pushed live to a Telegram / Feishu chat (your Clawbot — or any bot — in the group will see it), and the chat can query android parameters with slash commands. <strong>All traffic is plain API calls with locally generated replies — no LLM involved, 0 token cost.</strong> If the Slave app cannot be installed (e.g. iOS devices cannot be sideloaded), use this to deliver commands to an IM app instead.</p>
+<p>Setup guides: <a href="https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot" target="_blank" rel="noopener noreferrer">Feishu custom bot</a> · <a href="https://open.feishu.cn/document/client-docs/bot-v3/bot-overview" target="_blank" rel="noopener noreferrer">Feishu bot overview</a> · <a href="https://github.com/danshui-git/shuoming/blob/master/bot.md" target="_blank" rel="noopener noreferrer">Telegram guide (Chinese)</a> · <a href="https://core.telegram.org/bots/tutorial" target="_blank" rel="noopener noreferrer">Telegram tutorial (English)</a>.</p>
 <p><strong>Push format (two distinct kinds)</strong></p>
 <div class="tbl-wrap"><table>
 <thead><tr><th>Kind</th><th>When</th><th>Format</th></tr></thead>
 <tbody>
 <tr><td>Command broadcast</td><td>Whatever is spoken (terminal commands, control buttons, mode switches, task completion, system notices)</td><td><code>Master's Command: </code> + the content</td></tr>
-<tr><td>Data change</td><td>Real-time parameter edits (emotion sliders, task add/remove, actual changed items after saving settings)</td><td><code>Data Change: </code> + what changed</td></tr>
+<tr><td>Data change</td><td>Real-time parameter edits (emotion sliders, task add/remove, actual changed items after saving settings, charging state switches)</td><td><code>Data Change: </code> + what changed</td></tr>
 </tbody></table></div>
-<p>In the Chinese interface the two prefixes appear as their Chinese equivalents (literally &quot;Master's Command:&quot; and &quot;Data Change:&quot;); content follows the interface language, and mode names use your actual settings. Blank content is never pushed.</p>
+<p>In the Chinese interface the two prefixes appear as their Chinese equivalents (literally &quot;Master's Command:&quot; and &quot;Data Change:&quot;); content follows the interface language, and mode names use your actual settings. Blank content is never pushed. Runtime parameters themselves are never pushed (same policy as the Slave clients); only <strong>charging state switches</strong> (charging started/stopped) push one message. The first outbound message to each chat is preceded by a one-time binding notice (full model name + &quot;has been successfully bound...&quot;, localized incl. English).</p>
 <p><strong>Where to configure</strong>: the &quot;Clawbot Notifications&quot; group in Settings; on first activation, group 11's &quot;Open Settings&quot; button opens the same form in a large window (optional — skipping does not block activation). Three switches: push voice broadcasts / push data changes / respond to slash commands.</p>
 <p><strong>Telegram</strong></p>
 <ol>
 <li>Talk to <code>@BotFather</code> on Telegram, create a bot with <code>/newbot</code>, and copy the <strong>Bot Token</strong> (looks like <code>123456789:AA...</code>).</li>
 </ol>
 <ol>
-<li>Add the bot to the target group (or just message it privately) and get the <strong>Chat ID</strong> (groups start with <code>-100...</code>, private chats are positive integers; @userinfobot can tell you).</li>
+<li><strong>Send the bot a message (e.g. <code>/start</code>) in Telegram</strong>, then press <strong>&quot;Auto detect Chat ID&quot;</strong> in the settings form — your chat id fills in automatically. You can also type the numeric chat id by hand (groups start with <code>-100...</code>, private chats are positive integers), or paste an <code>@username</code> / <code>t.me</code> link (resolved automatically). <strong>Do not use the bot's own username</strong> — a bot cannot receive chat messages.</li>
 </ol>
 <ol>
-<li>Fill the form, tick &quot;Enable Telegram&quot;, and press &quot;Send Test Message&quot; to verify.</li>
+<li>Tick &quot;Enable Telegram&quot; and press &quot;Send Test Message&quot; to verify.</li>
 </ol>
 <p>The device must reach <code>api.telegram.org</code> (a system proxy is usually needed in mainland China). Reverse queries use getUpdates long polling and need no public IP.</p>
 <p><strong>Feishu (choose one)</strong></p>

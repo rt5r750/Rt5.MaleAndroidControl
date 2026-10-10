@@ -158,23 +158,143 @@
         }
     };
 
+    /* ---------- Chat ID 规范化与解析（v1.12.1）----------
+       用户常填 t.me/xxx、@xxx 或纯用户名（bot 链接/用户名不是会话 ID）：
+       - 数字（含负号）直接用；
+       - t.me 链接 / @用户名 / 纯名 → 规范化为 @xxx，经 getChat 解析为数字会话 ID；
+       - 解析到的是机器人（is_bot）或 getChat 失败时给明确指引（私聊会话 ID 需先给 bot
+         发送 /start 再用「自动获取」发现）；解析结果缓存，配置变化即失效。 */
+    var _tgResolved = { raw: '', resolved: '' };
+    function parseChatIdInput(raw) {
+        var s = trim(raw);
+        if (!s) return '';
+        var m = s.match(/^(?:https?:\/\/)?t\.me\/(?:@)?([A-Za-z0-9_]{3,})\/?$/i);
+        if (m) return '@' + m[1];
+        if (/^[A-Za-z0-9_]{3,}$/.test(s) && !/^\d+$/.test(s)) return '@' + s;
+        return s;
+    }
+    function resolveTgChatId(tg) {
+        var input = parseChatIdInput(tg.chatId);
+        if (/^-?\d+$/.test(input)) {
+            _tgResolved = { raw: trim(tg.chatId), resolved: input };
+            return Promise.resolve(input);
+        }
+        if (_tgResolved.raw === trim(tg.chatId) && _tgResolved.resolved) {
+            return Promise.resolve(_tgResolved.resolved);
+        }
+        if (input.charAt(0) !== '@') {
+            return Promise.reject(new Error(t('Chat ID 无法识别：请填数字会话 ID、@用户名或 t.me 链接', 'Unrecognized Chat ID: use a numeric chat id, @username or a t.me link')));
+        }
+        return clawbotFetch('https://api.telegram.org/bot' + trim(tg.botToken) + '/getChat?chat_id=' + encodeURIComponent(input), { method: 'GET' }).then(function (r) {
+            var data = null;
+            try { data = JSON.parse(r.text); } catch (e) { /* ignore */ }
+            if (data && data.ok === true && data.result && typeof data.result.id === 'number') {
+                var resolvedId = String(data.result.id);
+                /* getChat 的 Chat 对象没有 is_bot 字段：识别"这是 bot 自己的用户名"改用
+                   getMe 对比——token 前缀即 bot id，解析结果等于它就是发给了 bot 自己 */
+                return clawbotFetch('https://api.telegram.org/bot' + trim(tg.botToken) + '/getMe', { method: 'GET' }).then(function (r2) {
+                    var me = null;
+                    try { me = JSON.parse(r2.text); } catch (e) { /* ignore */ }
+                    var myId = (me && me.ok === true && me.result && me.result.id) ? String(me.result.id) : '';
+                    if (myId && resolvedId === myId) {
+                        throw new Error(t('这是 bot 自己的用户名，不能作为会话接收消息。请在 Telegram 给该 bot 发送 /start，然后点「自动获取」填入你的会话 ID',
+                            'This is the bot\'s own username and cannot receive chat messages. Send /start to the bot in Telegram, then press "Auto detect" to fill your chat id'));
+                    }
+                    _tgResolved = { raw: trim(tg.chatId), resolved: resolvedId };
+                    return resolvedId;
+                });
+            }
+            var desc = (data && data.description) || '';
+            throw new Error(t('无法解析 Chat ID ' + input + '：' + (desc || '请确认用户名，或改用数字会话 ID（给 bot 发送 /start 后点「自动获取」）'),
+                'Cannot resolve Chat ID ' + input + ': ' + (desc || 'check the username, or use a numeric chat id (send /start to the bot and press "Auto detect")')));
+        });
+    }
+    /* 「自动获取」：从 getUpdates 最近一条消息发现会话 ID（offset=-1 不消费历史） */
+    function discoverTgChatId(tg, cb) {
+        clawbotFetch('https://api.telegram.org/bot' + trim(tg.botToken) + '/getUpdates?offset=-1&limit=1', { method: 'GET' }).then(function (r) {
+            var data = null;
+            try { data = JSON.parse(r.text); } catch (e) { /* ignore */ }
+            if (!data || data.ok !== true) {
+                cb(null, t('查询失败：', 'Query failed: ') + ((data && data.description) || ('HTTP ' + r.status)));
+                return;
+            }
+            var up = (data.result || [])[0];
+            var msg = up && (up.message || up.edited_message);
+            if (!msg || !msg.chat || typeof msg.chat.id !== 'number') {
+                cb(null, t('暂未发现会话：请先在 Telegram 给该 bot 发送一条消息（如 /start），再点「自动获取」',
+                    'No chat found yet: send a message (e.g. /start) to the bot in Telegram first, then press "Auto detect"'));
+                return;
+            }
+            cb(String(msg.chat.id), null);
+        }, function (err) {
+            cb(null, t('网络错误：', 'Network error: ') + String(err && err.message || err));
+        });
+    }
+    /* ---------- 首次连接绑定提示 ----------
+       每平台+会话的首条出站消息前先发一条绑定提示（只发一次，落库记忆）：
+       （完整型号）已被主人成功绑定，输入/help查看帮助，反查状态需要（主人名称）Master端在线。
+       完整型号/主人名称取实际设置值并随界面语言；提示词本身按界面语言（EN 有独立译文）。 */
+    var BOUND_KEY = 'robotClawbotBoundSent';
+    function boundKey(platform, cfg) {
+        return platform + '|' + (platform === 'telegram'
+            ? trim(cfg.telegram.chatId)
+            : (trim(cfg.feishu.webhookUrl) || trim(cfg.feishu.chatId)));
+    }
+    function bindNoticeText() {
+        var full = safe(function () { return getModelInfo('fullName'); }, '');
+        var master = safe(function () { return getModelInfo('master'); }, '');
+        return t(full + '已被主人成功绑定，输入/help查看帮助，反查状态需要' + master + 'Master端在线。',
+            full + ' has been successfully bound to its master. Send /help for help; status queries require ' + master + "'s Master console to be online.");
+    }
+    function withBindNotice(platform, cfg, sender, text) {
+        var store = readJson(BOUND_KEY, {});
+        var key = boundKey(platform, cfg);
+        if (store[key]) return sender(text);
+        store[key] = true;
+        writeJson(BOUND_KEY, store);
+        return sender(bindNoticeText()).then(function () {
+            return sender(text);
+        }, function (err) {
+            var s2 = readJson(BOUND_KEY, {});
+            delete s2[key];
+            writeJson(BOUND_KEY, s2);
+            throw err;
+        });
+    }
+
     /* ---------- 平台发送 ---------- */
-    function tgSend(cfg, text) {
-        return clawbotFetch('https://api.telegram.org/bot' + trim(cfg.botToken) + '/sendMessage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: trim(cfg.chatId), text: clipText(text) })
+    function tgSendRaw(cfg, text) {
+        return resolveTgChatId(cfg).then(function (chatId) {
+            return clawbotFetch('https://api.telegram.org/bot' + trim(cfg.botToken) + '/sendMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: clipText(text) })
+            });
         }).then(function (r) {
             var ok = r.status === 200;
             var data = null;
             try { data = JSON.parse(r.text); } catch (e) { /* ignore */ }
             if (!ok || (data && data.ok === false)) {
+                var desc = (data && data.description) || '';
+                if (/chat not found/i.test(desc)) {
+                    throw new Error(t('会话不存在：请确认 Chat ID，或在 Telegram 给该 bot 发送 /start 后点「自动获取」',
+                        'Chat not found: check the Chat ID, or send /start to the bot in Telegram and press "Auto detect"'));
+                }
+                if (/unauthorized/i.test(desc) || r.status === 401) {
+                    throw new Error(t('Bot Token 无效，请检查是否复制完整', 'Invalid Bot Token — check it was copied in full'));
+                }
                 throw new Error('Telegram sendMessage HTTP ' + r.status + ': ' + String(r.text).slice(0, 200));
             }
             return r;
         });
     }
+    function tgSend(cfg, text) {
+        return withBindNotice('telegram', cfg, function (msg) { return tgSendRaw(cfg, msg); }, text);
+    }
     function fsWebhookSend(cfg, text) {
+        return withBindNotice('feishu', cfg, function (msg) { return fsWebhookSendRaw(cfg, msg); }, text);
+    }
+    function fsWebhookSendRaw(cfg, text) {
         return clawbotFetch(trim(cfg.webhookUrl), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -210,6 +330,9 @@
         });
     }
     function fsAppSend(cfg, text) {
+        return withBindNotice('feishu', cfg, function (msg) { return fsAppSendRaw(cfg, msg); }, text);
+    }
+    function fsAppSendRaw(cfg, text) {
         return fsGetToken(cfg).then(function (token) {
             return clawbotFetch('https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id', {
                 method: 'POST',
@@ -224,7 +347,7 @@
                 try { data = JSON.parse(r.text); } catch (e) { /* ignore */ }
                 if (r.status === 401 || (data && data.code === 99991663)) {
                     _fsTokenCache = { token: '', expireAt: 0 };   // token 失效：清缓存重试一次
-                    return fsAppSend(cfg, text);
+                    return fsAppSendRaw(cfg, text);
                 }
                 if (r.status !== 200 || (data && data.code !== 0)) {
                     throw new Error('Feishu sendMessage HTTP ' + r.status + ': ' + String(r.text).slice(0, 200));
@@ -301,7 +424,6 @@
             statusItems: t('信息参数', 'Info params'),
             modelInfo: t('型号信息', 'Model info'),
             infoLinks: t('信息面板链接', 'Info links'),
-            runtimeParams: t('运行参数', 'Runtime params'),
             accounts: t('账号管理', 'Accounts'),
             emotions: t('情绪参数', 'Emotions')
         };
@@ -309,12 +431,6 @@
             var name = CAT[k];
             var a = before ? before[k] : null;
             var b = after ? after[k] : null;
-            if (k === 'runtimeParams' && a && b) {
-                ['liquidCurrent', 'liquidTotal', 'batteryAuto', 'batteryPercentage', 'isCharging', 'storageUsed', 'storageTotal'].forEach(function (f) {
-                    add(t('运行参数', 'Runtime params') + '.' + f, a[f], b[f]);
-                });
-                return;
-            }
             if (k === 'emotions' && a && b) {
                 ['obedience', 'shame', 'pleasure', 'mechanical'].forEach(function (f) {
                     add(t('情绪参数', 'Emotions') + '.' + f, a[f], b[f]);
@@ -329,6 +445,18 @@
         var lines = settingsDiffLines(before, after);
         if (!lines.length) return;
         push('data', lines.join('\n'));
+    }
+
+    /* ---------- 充电状态切换推送（data 类）----------
+       运行参数本身不推送（与不推给 slave 端同口径），仅充电状态切换推送；
+       首次建立基线不推，此后开始/停止充电各推一条。 */
+    var _lastChargingNotified;
+    function notifyChargingChange(charging) {
+        var c = !!charging;
+        if (_lastChargingNotified === undefined) { _lastChargingNotified = c; return; }
+        if (_lastChargingNotified === c) return;
+        _lastChargingNotified = c;
+        push('data', t(c ? '开始充电' : '停止充电', c ? 'Charging started' : 'Charging stopped'));
     }
 
     /* ---------- 斜杠指令查询（0 token 本地解析） ---------- */
@@ -508,44 +636,51 @@
         return buildReply(cmd);
     }
 
-    /* ---------- 反向轮询 ---------- */
+    /* ---------- 反向轮询 ----------
+       代际 token：restartPolling 每次换代，旧循环链在回调处校验代际即退出——
+       否则保存设置/大窗保存等多次重启会残留多个并行循环，同一条斜杠指令被
+       多个循环消费并各回复一次（用户实测「反查回复发三遍」的根因）。 */
     var _tgPolling = false;
     var _fsPolling = false;
     var _tgPollTimer = null;
     var _fsPollTimer = null;
+    var _pollGen = 0;
 
     function tgPollOnce(cfg) {
         var tg = cfg.telegram;
-        var offset = readJson(TG_OFFSET_KEY, 0) || 0;
-        var url = 'https://api.telegram.org/bot' + trim(tg.botToken) + '/getUpdates?timeout=25' + (offset ? '&offset=' + offset : '');
-        return clawbotFetch(url, { method: 'GET' }).then(function (r) {
-            var data = null;
-            try { data = JSON.parse(r.text); } catch (e) { /* ignore */ }
-            if (!data || data.ok !== true || !Array.isArray(data.result)) return;
-            data.result.forEach(function (up) {
-                if (typeof up.update_id === 'number') {
-                    offset = Math.max(offset, up.update_id + 1);
-                }
-                var msg = up.message || up.edited_message;
-                if (!msg || typeof msg.text !== 'string') return;
-                /* 只响应配置会话（防他人私聊 bot 查询） */
-                if (msg.chat && String(msg.chat.id) !== trim(tg.chatId)) return;
-                var reply = handleCommand(msg.text);
-                if (reply) {
-                    enqueue('telegram', reply);
-                }
+        return resolveTgChatId(tg).then(function (chatId) {
+            var offset = readJson(TG_OFFSET_KEY, 0) || 0;
+            var url = 'https://api.telegram.org/bot' + trim(tg.botToken) + '/getUpdates?timeout=25' + (offset ? '&offset=' + offset : '');
+            return clawbotFetch(url, { method: 'GET' }).then(function (r) {
+                var data = null;
+                try { data = JSON.parse(r.text); } catch (e) { /* ignore */ }
+                if (!data || data.ok !== true || !Array.isArray(data.result)) return;
+                data.result.forEach(function (up) {
+                    if (typeof up.update_id === 'number') {
+                        offset = Math.max(offset, up.update_id + 1);
+                    }
+                    var msg = up.message || up.edited_message;
+                    if (!msg || typeof msg.text !== 'string') return;
+                    /* 只响应配置会话（防他人私聊 bot 查询） */
+                    if (msg.chat && String(msg.chat.id) !== chatId) return;
+                    var reply = handleCommand(msg.text);
+                    if (reply) {
+                        enqueue('telegram', reply);
+                    }
+                });
+                if (offset) writeJson(TG_OFFSET_KEY, offset);
             });
-            if (offset) writeJson(TG_OFFSET_KEY, offset);
         });
     }
     function tgPollLoop() {
         if (!_tgPolling) return;
+        var gen = _pollGen;
         var cfg = getConfig();
         if (!cfg.telegram.enabled || !cfg.queryEnabled) { _tgPolling = false; return; }
         tgPollOnce(cfg).catch(function (err) {
             try { console.warn('[Clawbot] telegram poll:', err && err.message); } catch (e) { /* ignore */ }
         }).then(function () {
-            if (!_tgPolling) return;
+            if (!_tgPolling || gen !== _pollGen) return;
             _tgPollTimer = setTimeout(tgPollLoop, 1500);
         });
     }
@@ -584,18 +719,20 @@
     }
     function fsPollLoop() {
         if (!_fsPolling) return;
+        var gen = _pollGen;
         var cfg = getConfig();
         if (!cfg.feishu.enabled || cfg.feishu.mode !== 'app' || !cfg.queryEnabled) { _fsPolling = false; return; }
         fsPollOnce(cfg).catch(function (err) {
             try { console.warn('[Clawbot] feishu poll:', err && err.message); } catch (e) { /* ignore */ }
         }).then(function () {
-            if (!_fsPolling) return;
+            if (!_fsPolling || gen !== _pollGen) return;
             _fsPollTimer = setTimeout(fsPollLoop, 5000);
         });
     }
 
     function restartPolling() {
         var cfg = getConfig();
+        _pollGen++;                       // 旧循环链在回调处因代际不符退出
         if (_tgPollTimer) { clearTimeout(_tgPollTimer); _tgPollTimer = null; }
         if (_fsPollTimer) { clearTimeout(_fsPollTimer); _fsPollTimer = null; }
         _tgPolling = false;
@@ -640,9 +777,12 @@
             '    <div class="clawbot-platform-title">Telegram</div>' +
             '    <label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" id="' + id('tg-on') + '"><span>启用 Telegram</span></label>' +
             '    <div class="activation-row"><label>Bot Token</label><input type="text" id="' + id('tg-token') + '" class="setting-input" placeholder="123456789:AA...（@BotFather 获取）"></div>' +
-            '    <div class="activation-row"><label>Chat ID</label><input type="text" id="' + id('tg-chat') + '" class="setting-input" placeholder="群或用户的 Chat ID"></div>' +
-            '    <button type="button" class="btn-add clawbot-test-btn mt-2" data-clawbot-test="telegram"><i class="fa fa-paper-plane mr-1"></i>发送测试消息</button>' +
-            '    <p class="text-xs text-[#8fbc8f]/70 mt-1">需设备网络可达 api.telegram.org（大陆网络通常需系统代理）；反向查询用 getUpdates 长轮询，无需公网 IP。</p>' +
+            '    <div class="activation-row"><label>Chat ID</label><input type="text" id="' + id('tg-chat') + '" class="setting-input" placeholder="数字会话 ID / @用户名 / t.me 链接"></div>' +
+            '    <div class="flex flex-wrap gap-2 mt-2">' +
+            '      <button type="button" class="btn-add clawbot-discover-btn" data-clawbot-discover="telegram"><i class="fa fa-magnifying-glass mr-1"></i>自动获取会话 ID</button>' +
+            '      <button type="button" class="btn-add clawbot-test-btn" data-clawbot-test="telegram"><i class="fa fa-paper-plane mr-1"></i>发送测试消息</button>' +
+            '    </div>' +
+            '    <p class="text-xs text-[#8fbc8f]/70 mt-1">先在 Telegram 给该 bot 发送 /start，再点「自动获取」填入你的会话 ID（不能填 bot 自己的用户名）。需设备网络可达 api.telegram.org（大陆网络通常需系统代理）；反向查询用 getUpdates 长轮询，无需公网 IP。</p>' +
             '  </div>' +
             '  <div class="clawbot-platform">' +
             '    <div class="clawbot-platform-title">飞书 / Feishu</div>' +
@@ -659,7 +799,8 @@
             '    <p class="text-xs text-[#8fbc8f]/70 mt-1">Webhook 模式只能推送、不能接收斜杠指令；双向需飞书开放平台自建应用（机器人能力 + im:message 权限）并把机器人拉进目标群。</p>' +
             '  </div>' +
             '  <div class="clawbot-help">' +
-            '    <p class="text-xs text-[#8fbc8f]/70">支持的斜杠指令：/help /query /mode /emotion /runtime /tasks /model /status /buttons /links；空白指令不支持。回复语言跟随本控制台语言设置，模式名等文案取实际设置值；账号密码与 API Key 只回「已设置/未设置」。全部收发均为纯 API 直连，不经过任何大模型（0 token 消耗）。</p>' +
+            '    <p class="text-xs text-[#8fbc8f]/70">支持的斜杠指令：/help /query /mode /emotion /runtime /tasks /model /status /buttons /links；空白指令不支持。回复语言跟随本控制台语言设置，模式名等文案取实际设置值；账号密码与 API Key 只回「已设置/未设置」。全部收发均为纯 API 直连，不经过任何大模型（0 token 消耗）。如果无法安装 Slave 端（例如 iOS 设备无法侧载），可以使用该方法将命令推送到 IM 软件。</p>' +
+            '    <p class="text-xs text-[#8fbc8f]/70 mt-1">接入教程：<a href="https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot" target="_blank" rel="noopener noreferrer" class="underline hover:text-[#c0e4c0]">飞书官方 · 自定义机器人 ↗</a>、<a href="https://open.feishu.cn/document/client-docs/bot-v3/bot-overview" target="_blank" rel="noopener noreferrer" class="underline hover:text-[#c0e4c0]">飞书官方 · 机器人概览 ↗</a>、<a href="https://github.com/danshui-git/shuoming/blob/master/bot.md" target="_blank" rel="noopener noreferrer" class="underline hover:text-[#c0e4c0]">Telegram 教程（中文）↗</a>、<a href="https://core.telegram.org/bots/tutorial" target="_blank" rel="noopener noreferrer" class="underline hover:text-[#c0e4c0]">Telegram Tutorial (English) ↗</a></p>' +
             '    <p class="clawbot-test-status text-xs text-[#8fbc8f]/70 mt-1"></p>' +
             '  </div>' +
             '</div>';
@@ -785,7 +926,38 @@
             }
         });
         document.addEventListener('click', function (e) {
-            var btn = e.target && e.target.closest ? e.target.closest('.clawbot-test-btn') : null;
+            var target = e.target && e.target.closest ? e.target : null;
+            /* 「自动获取会话 ID」：getUpdates 发现最近消息的 chat.id 并回填 */
+            var discBtn = target ? target.closest('.clawbot-discover-btn') : null;
+            if (discBtn) {
+                var discWrap = discBtn.closest('.clawbot-form');
+                var discStatus = discWrap ? discWrap.querySelector('.clawbot-test-status') : null;
+                var discProbe = discWrap ? discWrap.querySelector('input[id*="clawbot-"]') : null;
+                var discPrefix = discProbe && discProbe.id.indexOf('act-') === 0 ? 'act-' : 'set-';
+                var discCollected = collectForm(discPrefix);
+                if (discCollected.error) {
+                    if (discStatus) discStatus.textContent = discCollected.error;
+                    else alert(discCollected.error);
+                    return;
+                }
+                discBtn.disabled = true;
+                if (discStatus) discStatus.textContent = t('正在获取…', 'Detecting…');
+                var savedCfg = getConfig();
+                setConfigSilent(discCollected.config);
+                discoverTgChatId(discCollected.config.telegram, function (chatId, err) {
+                    discBtn.disabled = false;
+                    setConfigSilent(savedCfg);
+                    var input = discWrap ? discWrap.querySelector('input[id$="clawbot-tg-chat"]') : null;
+                    if (chatId) {
+                        if (input) input.value = chatId;
+                        if (discStatus) discStatus.textContent = t('已获取会话 ID：', 'Chat id detected: ') + chatId;
+                    } else if (discStatus) {
+                        discStatus.textContent = err || t('获取失败', 'Detection failed');
+                    }
+                });
+                return;
+            }
+            var btn = target ? target.closest('.clawbot-test-btn') : null;
             if (!btn) return;
             var wrap = btn.closest('.clawbot-form');
             var statusEl = wrap ? wrap.querySelector('.clawbot-test-status') : null;
@@ -827,6 +999,7 @@
     window.ClawbotBridge = {
         push: push,
         pushSettingsDiff: pushSettingsDiff,
+        notifyChargingChange: notifyChargingChange,
         settingsDiffLines: settingsDiffLines,
         snapshotSettings: function () {
             return {

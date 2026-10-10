@@ -1120,7 +1120,10 @@
             var n = Number(ordinal);
             var modeId = (n >= 0 && n <= 3) ? modeMap[n] : null;
             if (!modeId || typeof MODES === 'undefined' || !MODES[modeId]) return;
-            activateMode(modeId);
+            /* 幂等短路（v1.12.1）：已是该模式时不再重走 activateMode——回声/重复事件
+               否则会二次播报，IM 通知推送发两遍（用户实测）；「推送成功」提示照常 */
+            var already = (typeof state !== 'undefined' && state.activeMode === modeId);
+            if (!already) activateMode(modeId);
             if (isDesktopChrome() && typeof showMacosNotification === 'function') {
                 showMacosNotification({
                     icon: 'fa-arrow-right-arrow-left',

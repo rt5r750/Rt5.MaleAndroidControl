@@ -39,7 +39,7 @@ The system is split into a **Master** that controls and pushes state, and **Slav
 
 Naming note: the **console** is Master on every platform (the Android console app and the Windows build are the same console), and the **robot-side phone app** is Slave. Their Android package names and BLE names (`RobotControl-*`) are unchanged, so upgrades and existing pairings keep working.
 
-**Clawbot notifications** — the console can push everything it announces (`Master's Command: ` + content) and every live data change (`Data Change: ` + content) to Telegram / Feishu chats, and answer slash-command queries (`/query`, `/mode`, …) there with locally generated replies — plain API calls, no LLM, 0 token cost. See manual section 6.2.
+**IM notifications (Clawbot)** — the console can push everything it announces (`Master's Command: ` + content) and every live data change (`Data Change: ` + content) to Telegram / Feishu chats, and answer slash-command queries (`/query`, `/mode`, …) there with locally generated replies — plain API calls, no LLM, 0 token cost. If the Slave app cannot be installed (e.g. iOS devices cannot be sideloaded), this doubles as the command-delivery channel to an IM app. Setup guides: [Feishu custom bot](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot) · [Feishu bot overview](https://open.feishu.cn/document/client-docs/bot-v3/bot-overview) · [Telegram guide (Chinese)](https://github.com/danshui-git/shuoming/blob/master/bot.md) · [Telegram tutorial (English)](https://core.telegram.org/bots/tutorial). See manual section 6.2.
 
 ## Demo
 

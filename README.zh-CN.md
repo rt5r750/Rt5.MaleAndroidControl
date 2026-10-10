@@ -39,7 +39,7 @@
 
 命名说明：**控制台**在各平台都叫 Master（Android 控制台 App 与 Windows 桌面端是同一套控制台），**机器人端手机 App** 叫 Slave。两者的 Android 包名与 BLE 设备名（`RobotControl-*`）均保持不变，升级与既有配对不受影响。
 
-**Clawbot 通知推送** —— 控制台可把播报内容（`主人指令：`+内容）与实时数据修改（`数据变更：`+内容）推送到 Telegram / 飞书聊天，并支持在聊天里用斜杠指令（`/query`、`/mode` 等）反查机器人参数、本地直接回复——纯 API 直连、不经过大模型、0 token 消耗。详见说明书 6.2 节。
+**IM 通知推送（Clawbot）** —— 控制台可把播报内容（`主人指令：`+内容）与实时数据修改（`数据变更：`+内容）推送到 Telegram / 飞书聊天，并支持在聊天里用斜杠指令（`/query`、`/mode` 等）反查机器人参数、本地直接回复——纯 API 直连、不经过大模型、0 token 消耗。无法安装 Slave 端（例如 iOS 设备无法侧载）时，可用该方法将命令推送到 IM 软件。接入教程：[飞书官方 · 自定义机器人](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot) · [飞书官方 · 机器人概览](https://open.feishu.cn/document/client-docs/bot-v3/bot-overview) · [Telegram 教程（中文）](https://github.com/danshui-git/shuoming/blob/master/bot.md) · [Telegram Tutorial (English)](https://core.telegram.org/bots/tutorial)。详见说明书 6.2 节。
 
 ## 演示
 

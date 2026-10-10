@@ -371,26 +371,27 @@
 <p><strong>导出配置</strong> 生成 <code>robotcontrol-config-YYYYMMDD.json</code>，包含按钮文本、状态项、模式名称、型号信息、链接、运行参数、账号、两张图片、情绪值、语言、TTS 引擎与 MiMo API Key。</p>
 <blockquote>导出文件以明文包含登录密码与 API Key，且可能包含机器人图片，请妥善保管。</blockquote>
 <p><strong>导入配置</strong> 读回该文件，并提示会覆盖全部个性化设置后刷新页面。无效文件会被拒绝。</p>
-<h2>6.2 Clawbot 通知推送</h2>
-<p>把控制台里发生的事实时推送到 Telegram / 飞书聊天（群里的 Clawbot 或任何 bot 都能收到），也能在聊天里用斜杠指令反查机器人参数。<strong>全部收发为纯 API 直连、本地解析回复，不经过任何大模型，0 token 消耗。</strong></p>
+<h2>6.2 IM 通知推送（Clawbot）</h2>
+<p>把控制台里发生的事实时推送到 Telegram / 飞书聊天（群里的 Clawbot 或任何 bot 都能收到），也能在聊天里用斜杠指令反查机器人参数。<strong>全部收发为纯 API 直连、本地解析回复，不经过任何大模型，0 token 消耗。</strong> 如果无法安装 Slave 端（例如 iOS 设备无法侧载），可以使用该方法将命令推送到 IM 软件，作为命令下发的替代渠道。</p>
+<p>接入教程：<a href="https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot" target="_blank" rel="noopener noreferrer">飞书官方 · 自定义机器人</a> · <a href="https://open.feishu.cn/document/client-docs/bot-v3/bot-overview" target="_blank" rel="noopener noreferrer">飞书官方 · 机器人概览</a> · <a href="https://github.com/danshui-git/shuoming/blob/master/bot.md" target="_blank" rel="noopener noreferrer">Telegram 教程（中文）</a> · <a href="https://core.telegram.org/bots/tutorial" target="_blank" rel="noopener noreferrer">Telegram Tutorial (English)</a>。</p>
 <p><strong>推送格式（两类分开）</strong></p>
 <div class="tbl-wrap"><table>
 <thead><tr><th>类别</th><th>触发时机</th><th>格式</th></tr></thead>
 <tbody>
 <tr><td>指令播报</td><td>语音播报的内容（终端指令、控制按钮、模式切换、任务完成、系统通知等）</td><td><code>主人指令：</code> + 实际内容</td></tr>
-<tr><td>数据变更</td><td>实时修改的数据（情绪滑杆、任务增删、设置保存后的实际改动项）</td><td><code>数据变更：</code> + 变更内容</td></tr>
+<tr><td>数据变更</td><td>实时修改的数据（情绪滑杆、任务增删、设置保存后的实际改动项、充电状态切换）</td><td><code>数据变更：</code> + 变更内容</td></tr>
 </tbody></table></div>
-<p>英文界面下前缀与内容自动翻成英文（<code>Master's Command: </code> / <code>Data Change: </code>），模式名等文案取实际设置值。空白内容不推送。</p>
+<p>英文界面下前缀与内容自动翻成英文（<code>Master's Command: </code> / <code>Data Change: </code>），模式名等文案取实际设置值。空白内容不推送。运行参数本身不推送（与不推给 Slave 端同口径），仅<strong>充电状态切换</strong>（开始/停止充电）推送一条。每个平台首次向会话发送时会先发一条绑定提示（完整型号 + 已被主人成功绑定……按界面语言，含英文版）。</p>
 <p><strong>在哪里设置</strong>：设置页「Clawbot 通知推送」组；首次激活第 11 节点「打开设置」会弹出大窗配置（非必要项，跳过不影响激活）。两处是同一套表单，含三个开关：推送语音播报内容 / 推送实时数据修改 / 响应斜杠指令查询。</p>
 <p><strong>Telegram 接入</strong></p>
 <ol>
 <li>在 Telegram 找 <code>@BotFather</code>，<code>/newbot</code> 创建机器人，拿到 <strong>Bot Token</strong>（形如 <code>123456789:AA...</code>）。</li>
 </ol>
 <ol>
-<li>把机器人拉进目标群（或直接私聊），取得 <strong>Chat ID</strong>（群为 <code>-100...</code> 开头，私聊为正整数，可借助 @userinfobot 查询）。</li>
+<li>在 Telegram 里给该机器人<strong>发送一条消息（如 <code>/start</code>）</strong>，然后在设置表单点 <strong>「自动获取会话 ID」</strong>——自动填入你与机器人的会话 ID。也可以手填数字会话 ID（群为 <code>-100...</code> 开头、私聊为正整数），或粘贴 <code>@用户名</code> / <code>t.me</code> 链接（由系统自动解析）。<strong>不能填机器人自己的用户名</strong>（机器人无法作为会话接收消息）。</li>
 </ol>
 <ol>
-<li>填入表单并勾选「启用 Telegram」，点「发送测试消息」验证。</li>
+<li>勾选「启用 Telegram」，点「发送测试消息」验证。</li>
 </ol>
 <p>需设备网络可达 <code>api.telegram.org</code>（大陆网络通常需系统代理）；反向查询用 getUpdates 长轮询，无需公网 IP。</p>
 <p><strong>飞书接入（二选一）</strong></p>
